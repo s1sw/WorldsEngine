@@ -282,7 +282,7 @@ namespace R2::VK
 	void Core::QueueBufferToTextureCopy(Buffer* buffer, Texture* texture, uint64_t bufferOffset)
 	{
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
-		frameResources.BufferToTextureCopies.emplace_back(buffer, texture, bufferOffset);
+		frameResources.BufferToTextureCopies.emplace_back(buffer, texture, bufferOffset, texture->GetNumMips());
 	}
 
 	struct TextureBlockInfo
@@ -316,9 +316,10 @@ namespace R2::VK
 		return ((blockInfo.BytesPerBlock + 3) & ~3) * ((width / blockInfo.BlockWidth) * (height / blockInfo.BlockHeight));
 	}
 
-	void Core::QueueTextureUpload(Texture* texture, void* data, uint64_t dataSize)
+	void Core::QueueTextureUpload(Texture* texture, void* data, uint64_t dataSize, int numMips)
 	{
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
+		int mipsToUpload = numMips == -1 ? texture->GetNumMips() : numMips;
 
 		if (dataSize >= STAGING_BUFFER_SIZE)
 		{
@@ -350,7 +351,7 @@ namespace R2::VK
 			uint64_t offset = 0;
 			int currWidth = texture->GetWidth();
 			int currHeight = texture->GetHeight();
-			for (int i = 0; i < texture->GetNumMips(); i++)
+			for (int i = 0; i < mipsToUpload; i++)
 			{
 				VkBufferImageCopy vbic{};
 				vbic.imageSubresource.layerCount = texture->GetLayers();
@@ -409,7 +410,7 @@ namespace R2::VK
 
 		memcpy(frameResources.StagingMapped + uploadedOffset + requiredPadding, data, dataSize);
 
-		frameResources.BufferToTextureCopies.emplace_back(frameResources.StagingBuffer, texture, uploadedOffset + requiredPadding);
+		frameResources.BufferToTextureCopies.emplace_back(frameResources.StagingBuffer, texture, uploadedOffset + requiredPadding, mipsToUpload);
 
 		frameResources.StagingOffset += dataSize + requiredPadding;
 	}
@@ -523,7 +524,7 @@ namespace R2::VK
 			uint64_t offset = 0;
 			int currWidth = bttc.Texture->GetWidth();
 			int currHeight = bttc.Texture->GetHeight();
-			for (int i = 0; i < bttc.Texture->GetNumMips(); i++)
+			for (int i = 0; i < bttc.numMips; i++)
 			{
 				VkBufferImageCopy vbic{};
 				vbic.imageSubresource.layerCount = bttc.Texture->GetLayers();

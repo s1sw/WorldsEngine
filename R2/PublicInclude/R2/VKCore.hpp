@@ -106,7 +106,7 @@ namespace R2::VK
 		VkSemaphore GetFrameCompletionSemaphore();
 		void QueueBufferUpload(Buffer* buffer, void* data, uint64_t dataSize, uint64_t dataOffset);
 		void QueueBufferToTextureCopy(Buffer* buffer, Texture* texture, uint64_t bufferOffset = 0);
-		void QueueTextureUpload(Texture* texture, void* data, uint64_t dataSize);
+		void QueueTextureUpload(Texture* texture, void* data, uint64_t dataSize, int numMips = -1);
 		uint32_t GetFrameIndex() const;
 		uint32_t GetNextFrameIndex() const;
 		void EndFrame();
@@ -129,6 +129,7 @@ namespace R2::VK
 			Buffer* Buffer;
 			Texture* Texture;
 			uint64_t BufferOffset;
+			int numMips;
 		};
 
 		struct PerFrameResources

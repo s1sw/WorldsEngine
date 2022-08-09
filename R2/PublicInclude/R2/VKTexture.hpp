@@ -342,7 +342,7 @@ namespace R2::VK
         MAX_ENUM = 0x7FFFFFFF
     };
 
-    enum class ImageLayout
+    enum class ImageLayout : uint32_t
     {
         Undefined = 0,
         General = 1,
@@ -437,5 +437,25 @@ namespace R2::VK
         VmaAllocation allocation;
         ImageLayout lastLayout;
         AccessFlags lastAccess;
+    };
+
+    struct TextureSubset
+    {
+        TextureDimension Dimension;
+        int LayerStart;
+        int LayerCount;
+        int MipStart;
+        int MipCount;
+    };
+
+    class TextureView
+    {
+    public:
+        TextureView(Core* core, Texture* texture, TextureSubset subset);
+        VkImageView GetNativeHandle();
+    private:
+        Core* core;
+        VkImageView imageView;
+        TextureSubset subset;
     };
 }

@@ -34,6 +34,7 @@ namespace R2
 
         uint32_t AllocateTextureHandle(VK::Texture* tex);
         void SetTextureAt(uint32_t handle, VK::Texture* tex);
+        VK::Texture* GetTextureAt(uint32_t handle);
         void FreeTextureHandle(uint32_t handle);
 
         VK::DescriptorSet& GetTextureDescriptorSet();

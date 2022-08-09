@@ -16,7 +16,9 @@ namespace R2::VK
     class Sampler;
     class DescriptorSetLayoutBuilder;
     class DescriptorSetUpdater;
+    class TextureView;
     enum class DescriptorType : uint32_t;
+    enum class ImageLayout : uint32_t;
 }
 
 namespace worlds
@@ -29,8 +31,11 @@ namespace worlds
         {
             uint32_t binding;
             R2::VK::DescriptorType type;
+            bool isTextureView;
+            bool useLayout;
             void* pointTo;
             R2::VK::Sampler* sampler;
+            R2::VK::ImageLayout layout;
         };
 
         R2::VK::Core* core;
@@ -47,9 +52,13 @@ namespace worlds
         SimpleCompute& BindStorageBuffer(uint32_t binding, R2::VK::Buffer* buffer);
         SimpleCompute& BindUniformBuffer(uint32_t binding, R2::VK::Buffer* buffer);
         SimpleCompute& BindSampledTexture(uint32_t binding, R2::VK::Texture* texture, R2::VK::Sampler* sampler);
+        SimpleCompute& BindSampledTextureWithLayout(uint32_t binding, R2::VK::Texture* texture, R2::VK::ImageLayout layout, R2::VK::Sampler* sampler);
         SimpleCompute& BindStorageTexture(uint32_t binding, R2::VK::Texture* texture);
+        SimpleCompute& BindSampledTextureView(uint32_t binding, R2::VK::TextureView* texture, R2::VK::Sampler* sampler);
+        SimpleCompute& BindStorageTextureView(uint32_t binding, R2::VK::TextureView* texture);
         SimpleCompute& PushConstantSize(size_t size);
         void Build();
+        void UpdateDescriptors();
         template <typename T>
         void Dispatch(R2::VK::CommandBuffer& cb, T& pushConstants, uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ)
         {
