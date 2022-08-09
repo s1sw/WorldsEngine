@@ -2,19 +2,14 @@
 #include <Core/AssetDB.hpp>
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/SubAllocatedBuffer.hpp>
-#include <R2/VKBuffer.hpp>
-#include <R2/VKCommandBuffer.hpp>
-#include <R2/VKCore.hpp>
-#include <R2/VKDescriptorSet.hpp>
-#include <R2/VKPipeline.hpp>
-#include <R2/VKRenderPass.hpp>
-#include <R2/VKTexture.hpp>
+#include <R2/VK.hpp>
 #include <Render/MaterialManager.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderReflector.hpp>
 #include <Render/ShaderCache.hpp>
 #include <Render/StandardPipeline/LightCull.hpp>
 #include <Render/StandardPipeline/Tonemapper.hpp>
+#include <Render/StandardPipeline/CubemapConvoluter.hpp>
 #include <entt/entity/registry.hpp>
 #include <Util/JsonUtil.hpp>
 
@@ -225,6 +220,7 @@ namespace worlds
 
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget());
         lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
+        cubemapConvoluter = new CubemapConvoluter(core);
     }
 
     void StandardPipeline::onResize(int width, int height)
@@ -431,6 +427,7 @@ namespace worlds
             convoluteQueue.pop_front();
             uint32_t convoluteHandle = textureManager->loadOrGet(convoluteID);
             VK::Texture* tex = btm->GetTextureAt(convoluteHandle);
+            cubemapConvoluter->Convolute(cb, tex);
         }
 
         cb.BindPipeline(depthPrePipeline.Get());

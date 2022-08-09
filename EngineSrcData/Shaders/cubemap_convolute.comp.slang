@@ -1,5 +1,6 @@
 import Math;
 
+[[vk::push_constant]]
 cbuffer PC
 {
     float roughness;

@@ -45,6 +45,11 @@ namespace worlds
         return load(id);
     }
 
+    bool VKTextureManager::isLoaded(AssetID id)
+    {
+        return textureIds.contains(id);
+    }
+
     void VKTextureManager::unload(AssetID id)
     {
         TexInfo info = textureIds[id];
@@ -67,7 +72,7 @@ namespace worlds
         if (td.isCubemap)
         {
             tci.Dimension = R2::VK::TextureDimension::Cube;
-            tci.Layers = 6;
+            tci.Layers = 1;
             tci.NumMips = 5; // Give cubemaps 5 mips for convolution
         }
 

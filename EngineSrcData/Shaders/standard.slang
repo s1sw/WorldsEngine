@@ -272,7 +272,7 @@ float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos)
     if (shadeInfo.metallic < 1.0)
     {
         float3 kD = (1.0 - F) * (1.0 - shadeInfo.metallic);
-        //totalAmbient += kD * diffuseAmbient * shadeInfo.albedoColor;
+        totalAmbient += kD * diffuseAmbient * shadeInfo.albedoColor;
     }
 
     return totalAmbient;

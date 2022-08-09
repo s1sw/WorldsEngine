@@ -130,7 +130,7 @@ namespace R2::VK
         width = createInfo.Width;
         height = createInfo.Height;
         depth = createInfo.Depth;
-        layers = createInfo.Layers;
+        layers = ici.arrayLayers;
         numMips = createInfo.NumMips;
         format = createInfo.Format;
         dimension = createInfo.Dimension;
@@ -342,5 +342,27 @@ namespace R2::VK
         }
 
         return VK_IMAGE_ASPECT_COLOR_BIT;
+    }
+
+    TextureView::TextureView(Core* core, Texture* texture, TextureSubset subset)
+        : core(core)
+        , subset(subset)
+    {
+        VkImageViewCreateInfo ivci{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+        ivci.image = texture->GetNativeHandle();
+        ivci.viewType = convertViewType(subset.Dimension);
+        ivci.format = static_cast<VkFormat>(texture->GetFormat());
+        ivci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
+        ivci.subresourceRange.baseArrayLayer = subset.LayerStart;
+        ivci.subresourceRange.baseMipLevel = subset.MipStart;
+        ivci.subresourceRange.layerCount = subset.LayerCount;
+        ivci.subresourceRange.levelCount = subset.MipCount;
+
+        VKCHECK(vkCreateImageView(core->GetHandles()->Device, &ivci, core->GetHandles()->AllocCallbacks, &imageView));
+    }
+
+    VkImageView TextureView::GetNativeHandle()
+    {
+        return imageView;
     }
 }

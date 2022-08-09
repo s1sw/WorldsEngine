@@ -63,6 +63,12 @@ namespace R2
         descriptorsNeedUpdate = true;
     }
 
+    VK::Texture* BindlessTextureManager::GetTextureAt(uint32_t handle)
+    {
+        assert(presentTextures[handle]);
+        return textures[handle];
+    }
+
     void BindlessTextureManager::FreeTextureHandle(uint32_t handle)
     {
         textures[handle] = nullptr;

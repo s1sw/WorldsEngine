@@ -14,8 +14,10 @@ namespace R2::VK
     struct Handles;
     class Core;
     class Texture;
+    class TextureView;
     class Buffer;
     class Sampler;
+    enum class ImageLayout : uint32_t;
 
     class DescriptorSet
     {
@@ -39,7 +41,7 @@ namespace R2::VK
         VkDescriptorSetLayout layout;
     };
 
-    enum class DescriptorType
+    enum class DescriptorType : uint32_t
     {
         Sampler = 0,
         CombinedImageSampler = 1,
@@ -86,16 +88,33 @@ namespace R2::VK
     public:
         DescriptorSetUpdater(const Handles* handles, DescriptorSet* ds);
         DescriptorSetUpdater& AddTexture(uint32_t binding, uint32_t arrayElement, DescriptorType type, Texture* tex, Sampler* sampler = nullptr);
+        DescriptorSetUpdater& AddTextureWithLayout(uint32_t binding, uint32_t arrayElement, DescriptorType type, Texture* tex, ImageLayout layout, Sampler* sampler = nullptr);
+        DescriptorSetUpdater& AddTextureView(uint32_t binding, uint32_t arrayElement, DescriptorType type, TextureView* texView, Sampler* sampler = nullptr);
         DescriptorSetUpdater& AddBuffer(uint32_t binding, uint32_t arrayElement, DescriptorType type, Buffer* tex);
         void Update();
     private:
+        enum class DSWriteType
+        {
+            Texture,
+            TextureView,
+            Buffer
+        };
+
         struct DSWrite
         {
             uint32_t Binding;
             uint32_t ArrayElement;
             DescriptorType Type;
-            Texture* Texture;
-            Buffer* Buffer;
+            DSWriteType WriteType;
+            ImageLayout TextureLayout;
+            
+            union
+            {
+                Texture* Texture;
+                TextureView* TextureView;
+                Buffer* Buffer;
+            };
+
             Sampler* Sampler;
         };
 

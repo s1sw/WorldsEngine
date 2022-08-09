@@ -145,7 +145,41 @@ namespace R2::VK
         dw.Binding = binding;
         dw.ArrayElement = arrayElement;
         dw.Type = type;
+        dw.WriteType = DSWriteType::Texture;
+        dw.TextureLayout = ImageLayout::Undefined;
         dw.Texture = tex;
+        dw.Sampler = samp;
+
+        descriptorWrites.push_back(dw);
+
+        return *this;
+    }
+
+    DescriptorSetUpdater& DescriptorSetUpdater::AddTextureWithLayout(uint32_t binding, uint32_t arrayElement, DescriptorType type, Texture* tex, ImageLayout layout, Sampler* samp)
+    {
+        DSWrite dw{};
+        dw.Binding = binding;
+        dw.ArrayElement = arrayElement;
+        dw.Type = type;
+        dw.WriteType = DSWriteType::Texture;
+        dw.TextureLayout = layout;
+        dw.Texture = tex;
+        dw.Sampler = samp;
+
+        descriptorWrites.push_back(dw);
+
+        return *this;
+    }
+
+    DescriptorSetUpdater& DescriptorSetUpdater::AddTextureView(uint32_t binding, uint32_t arrayElement, DescriptorType type, TextureView* texView, Sampler* samp)
+    {
+        DSWrite dw{};
+        dw.Binding = binding;
+        dw.ArrayElement = arrayElement;
+        dw.Type = type;
+        dw.WriteType = DSWriteType::TextureView;
+        dw.TextureLayout = ImageLayout::Undefined;
+        dw.TextureView = texView;
         dw.Sampler = samp;
 
         descriptorWrites.push_back(dw);
@@ -159,6 +193,7 @@ namespace R2::VK
         dw.Binding = binding;
         dw.ArrayElement = arrayElement;
         dw.Type = type;
+        dw.WriteType = DSWriteType::Buffer;
         dw.Buffer = buf;
 
         descriptorWrites.push_back(dw);
@@ -177,11 +212,11 @@ namespace R2::VK
 
         for (DSWrite& dw : descriptorWrites)
         {
-            if (dw.Texture)
+            if (dw.WriteType == DSWriteType::Texture || dw.WriteType == DSWriteType::TextureView)
             {
                 numImageInfos++;
             }
-            else if (dw.Buffer)
+            else if (dw.WriteType == DSWriteType::Buffer)
             {
                 numBufferInfos++;
             }
@@ -199,30 +234,46 @@ namespace R2::VK
             vw.descriptorCount = 1;
             vw.descriptorType = (VkDescriptorType)dw.Type;
             
-            if (dw.Texture)
+            switch (dw.WriteType)
             {
-                VkDescriptorImageInfo dii{};
-                if (dw.Type != DescriptorType::StorageImage)
-                    dii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                else
-                    dii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                case DSWriteType::Texture:
+                case DSWriteType::TextureView:
+                {
+                    VkDescriptorImageInfo dii{};
+                    if (dw.TextureLayout == ImageLayout::Undefined)
+                    {
+                        if (dw.Type != DescriptorType::StorageImage)
+                            dii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                        else
+                            dii.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                    }
+                    else
+                    {
+                        dii.imageLayout = (VkImageLayout)dw.TextureLayout;
+                    }
 
-                dii.imageView = dw.Texture->GetView();
+                    if (dw.WriteType == DSWriteType::Texture)
+                        dii.imageView = dw.Texture->GetView();
+                    else
+                        dii.imageView = dw.TextureView->GetNativeHandle();
 
-                if (dw.Sampler != nullptr)
-                    dii.sampler = dw.Sampler->GetNativeHandle();
+                    if (dw.Sampler != nullptr)
+                        dii.sampler = dw.Sampler->GetNativeHandle();
 
-                imageInfos.push_back(dii);
-                vw.pImageInfo = &imageInfos[imageInfos.size() - 1];
-            }
-            else if (dw.Buffer)
-            {
-                VkDescriptorBufferInfo bii{};
-                bii.buffer = dw.Buffer->GetNativeHandle();
-                bii.offset = 0;
-                bii.range = VK_WHOLE_SIZE;
-                bufferInfos.push_back(bii);
-                vw.pBufferInfo = &bufferInfos[bufferInfos.size() - 1];
+                    imageInfos.push_back(dii);
+                    vw.pImageInfo = &imageInfos[imageInfos.size() - 1];
+                    break;
+                }
+                case DSWriteType::Buffer:
+                {
+                    VkDescriptorBufferInfo bii{};
+                    bii.buffer = dw.Buffer->GetNativeHandle();
+                    bii.offset = 0;
+                    bii.range = VK_WHOLE_SIZE;
+                    bufferInfos.push_back(bii);
+                    vw.pBufferInfo = &bufferInfos[bufferInfos.size() - 1];
+                    break;
+                }
             }
 
             writes.push_back(vw);

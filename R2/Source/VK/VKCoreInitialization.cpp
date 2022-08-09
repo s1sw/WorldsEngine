@@ -178,6 +178,7 @@ namespace R2::VK
         features12.descriptorBindingUniformBufferUpdateAfterBind = true;
         features12.descriptorBindingStorageImageUpdateAfterBind = true;
         features12.descriptorBindingStorageBufferUpdateAfterBind = true;
+        features12.shaderSampledImageArrayNonUniformIndexing = true;
         features12.runtimeDescriptorArray = true;
         features13.synchronization2 = true;
         features13.dynamicRendering = true;
