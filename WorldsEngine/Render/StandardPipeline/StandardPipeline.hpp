@@ -26,6 +26,7 @@ namespace worlds
     class LightCull;
     class VKTextureManager;
     class CubemapConvoluter;
+    class DebugLineDrawer;
 
     class StandardPipeline : public IRenderPipeline
     {
@@ -44,6 +45,7 @@ namespace worlds
         UniquePtr<Tonemapper> tonemapper;
         UniquePtr<LightCull> lightCull;
         UniquePtr<CubemapConvoluter> cubemapConvoluter;
+        UniquePtr<DebugLineDrawer> debugLineDrawer;
 
         VKRenderer* renderer;
         VKRTTPass* rttPass;
