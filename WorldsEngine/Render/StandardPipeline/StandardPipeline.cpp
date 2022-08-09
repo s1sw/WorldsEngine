@@ -370,6 +370,7 @@ namespace worlds
             pl.distanceCutoff = wl.maxDistance;
             pl.direction = lightForward;
             pl.spotCutoff = glm::cos(wl.spotCutoff);
+            pl.setOuterCutoff(wl.spotOuterCutoff);
             pl.position = t.position;
 
             // Tube lights are packed in a weird way

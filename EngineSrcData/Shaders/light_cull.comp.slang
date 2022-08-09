@@ -345,7 +345,8 @@ void cullLights(uint tileIndex, uint groupIndex)
         // Shrink the bounding sphere to better fit the cone of a spotlight
         if (lightType == LightType.Spot)
         {
-            float4 sphere = spotBoundingSphere(lightPosition, -light.pack1.xyz, light.DistanceCutoff, light.pack1.w);
+            // We have to cull by the outer cutoff of the spotlight
+            float4 sphere = spotBoundingSphere(lightPosition, -light.pack1.xyz, light.DistanceCutoff, light.SpotOuterCutoff);
             lightPosition = sphere.xyz;
             lightRadius = sphere.w;
         }

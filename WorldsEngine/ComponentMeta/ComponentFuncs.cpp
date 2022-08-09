@@ -542,6 +542,11 @@ namespace worlds
                 float cutoff = glm::degrees(worldLight.spotCutoff);
                 ImGui::DragFloat("Spot Cutoff", &cutoff, 1.0f, 0.0f, 90.0f);
                 worldLight.spotCutoff = glm::radians(cutoff);
+
+                float outerCutoff = glm::degrees(worldLight.spotOuterCutoff);
+                ImGui::DragFloat("Spot Outer Cutoff", &outerCutoff, 1.0f, cutoff, 90.0f);
+                worldLight.spotOuterCutoff = glm::radians(outerCutoff);
+
                 ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
 
                 if (worldLight.enableShadows)
@@ -642,6 +647,7 @@ namespace worlds
             j = {{"type", wl.type},
                  {"color", wl.color},
                  {"spotCutoff", wl.spotCutoff},
+                 {"spotOuterCutoff", wl.spotOuterCutoff},
                  {"intensity", wl.intensity},
                  {"tubeLength", wl.tubeLength},
                  {"tubeRadius", wl.tubeRadius},
@@ -659,6 +665,7 @@ namespace worlds
             wl.type = j["type"];
             wl.color = j["color"];
             wl.spotCutoff = j["spotCutoff"];
+            wl.spotOuterCutoff = j.value("spotOuterCutoff", glm::pi<float>() * 0.6f);
             wl.intensity = j["intensity"];
             wl.tubeLength = j["tubeLength"];
             wl.tubeRadius = j["tubeRadius"];
