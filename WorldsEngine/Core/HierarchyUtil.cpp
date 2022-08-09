@@ -64,11 +64,13 @@ namespace worlds
         assert(reg.has<ChildComponent>(object));
 
         auto& childComponent = reg.get<ChildComponent>(object);
-        childComponent.parent = entt::null;
 
         entt::entity parent = childComponent.parent;
+        childComponent.parent = entt::null;
+
         if (!reg.has<ParentComponent>(parent))
             return;
+
         auto& parentComponent = reg.get<ParentComponent>(parent);
 
         if (childComponent.nextChild == entt::null && childComponent.prevChild == entt::null)
