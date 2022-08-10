@@ -130,7 +130,7 @@ namespace worlds
                 VK::AccessFlags::ShaderReadWrite, VK::AccessFlags::ShaderReadWrite);
 
             // We want to downsample from the previous mip level to this mip level.
-            BloomPushConstants pcs { mip - 1, 0, (uint32_t)w, (uint32_t)h };
+            BloomPushConstants pcs { (uint32_t)(mip - 1), 0, (uint32_t)w, (uint32_t)h };
             cb.PushConstants(pcs, VK::ShaderStage::Compute, pipelineLayout.Get());
             cb.BindComputeDescriptorSet(pipelineLayout.Get(), mipOutputSets[mip]->GetNativeHandle(), 0);
             cb.Dispatch((w + 15) / 16, (h + 15) / 16, 1);
@@ -150,7 +150,7 @@ namespace worlds
             int h = mipScale(mipChain->GetHeight(), mip - 1);
 
             // We want to upsample from this mip level to the next mip level.
-            BloomPushConstants pcs { mip, 0, (uint32_t)w, (uint32_t)h };
+            BloomPushConstants pcs { (uint32_t)mip, 0, (uint32_t)w, (uint32_t)h };
             cb.PushConstants(pcs, VK::ShaderStage::Compute, pipelineLayout.Get());
             cb.BindComputeDescriptorSet(pipelineLayout.Get(), mipOutputSets[mip - 1]->GetNativeHandle(), 0);
             cb.Dispatch((w + 15) / 16, (h + 15) / 16, 1);
