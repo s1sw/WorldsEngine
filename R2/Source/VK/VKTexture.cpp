@@ -216,13 +216,18 @@ namespace R2::VK
 
     void Texture::SetDebugName(const char* name)
     {
-        VkDebugUtilsObjectNameInfoEXT nameInfo;
-        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        nameInfo.pObjectName = name;
-        nameInfo.objectHandle = (uint64_t)image;
-        nameInfo.objectType = VK_OBJECT_TYPE_IMAGE;
-        nameInfo.pNext = nullptr;
-        vkSetDebugUtilsObjectNameEXT(core->GetHandles()->Device, &nameInfo);
+        // If there isn't a layer present that uses these names,
+        // the function will be null.
+        if (vkSetDebugUtilsObjectNameEXT != nullptr)
+        {
+            VkDebugUtilsObjectNameInfoEXT nameInfo;
+            nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+            nameInfo.pObjectName = name;
+            nameInfo.objectHandle = (uint64_t)image;
+            nameInfo.objectType = VK_OBJECT_TYPE_IMAGE;
+            nameInfo.pNext = nullptr;
+            vkSetDebugUtilsObjectNameEXT(core->GetHandles()->Device, &nameInfo);
+        }
     }
 
     int Texture::GetWidth()

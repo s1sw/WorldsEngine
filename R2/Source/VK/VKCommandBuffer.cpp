@@ -95,19 +95,27 @@ namespace R2::VK
 
     void CommandBuffer::BeginDebugLabel(const char* label, float r, float g, float b)
     {
-        VkDebugUtilsLabelEXT labelObj{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT};
-        labelObj.pLabelName = label;
-        labelObj.color[0] = r;
-        labelObj.color[1] = g;
-        labelObj.color[2] = b;
-        labelObj.color[3] = 1.0f;
+        // If a layer that uses debug labels isn't present,
+        // both the debug label begin and end functions will be null.
+        if (vkCmdBeginDebugUtilsLabelEXT)
+        {
+            VkDebugUtilsLabelEXT labelObj{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT};
+            labelObj.pLabelName = label;
+            labelObj.color[0] = r;
+            labelObj.color[1] = g;
+            labelObj.color[2] = b;
+            labelObj.color[3] = 1.0f;
 
-        vkCmdBeginDebugUtilsLabelEXT(cb, &labelObj);
+            vkCmdBeginDebugUtilsLabelEXT(cb, &labelObj);
+        }
     }
 
     void CommandBuffer::EndDebugLabel()
     {
-        vkCmdEndDebugUtilsLabelEXT(cb);
+        if (vkCmdEndDebugUtilsLabelEXT)
+        {
+            vkCmdEndDebugUtilsLabelEXT(cb);
+        }
     }
 
     void CommandBuffer::TextureBarrier(Texture* tex, PipelineStageFlags srcStage, PipelineStageFlags dstStage, AccessFlags srcAccess, AccessFlags dstAccess)
