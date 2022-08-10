@@ -42,7 +42,7 @@ namespace worlds
         VK::PipelineBuilder pb{core};
         pb.PrimitiveTopology(VK::Topology::LineList)
             .Layout(pipelineLayout.Get())
-            .ColorAttachmentFormat(VK::TextureFormat::R16G16B16A16_SFLOAT)
+            .ColorAttachmentFormat(VK::TextureFormat::B10G11R11_UFLOAT_PACK32)
             .AddVertexBinding(std::move(vb))
             .AddShader(VK::ShaderStage::Vertex, vert)
             .AddShader(VK::ShaderStage::Fragment, frag)

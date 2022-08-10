@@ -47,7 +47,7 @@ namespace worlds
         uint32_t aoSphereIdMasks[2];
     };
 
-    const VK::TextureFormat colorBufferFormat = VK::TextureFormat::R16G16B16A16_SFLOAT;
+    const VK::TextureFormat colorBufferFormat = VK::TextureFormat::B10G11R11_UFLOAT_PACK32;
 
     struct MaterialAllocInfo
     {
