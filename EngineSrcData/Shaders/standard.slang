@@ -141,8 +141,8 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
     float3 lo = 0.0f;
     for (int i = 0; i < 8; i++)
     {
-        //uint lightBits = readFirstInvocationARB(subgroupOr(buf_LightTiles.tiles[tileIdx].lightIdMasks[i]));
-        uint lightBits = LightTiles[tileIdx].lightIdMasks[i];
+        // scalarize light reads if possible
+        uint lightBits = WaveReadLaneFirst(WaveActiveBitOr(LightTiles[tileIdx].lightIdMasks[i]));
 
         while (lightBits != 0)
         {
@@ -160,6 +160,7 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
     return lo;
 }
 
+// https://www.unrealengine.com/en-US/blog/physically-based-shading-on-mobile
 float3 EnvBRDFApprox(float3 specColor, float roughness, float NoV)
 {
     const float4 c0 = { -1, -0.0275, -0.572, 0.022 };
@@ -196,7 +197,7 @@ float calcBlendWeight(Cubemap c, float3 worldPos)
 
 float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos)
 {
-    const float MAX_REFLECTION_LOD = 6.0;
+    const float MAX_REFLECTION_LOD = 5.0;
     float3 R = reflect(-shadeInfo.viewDir, shadeInfo.normal);
     float3 f0 = lerp(0.04, shadeInfo.albedoColor, shadeInfo.metallic);
 
