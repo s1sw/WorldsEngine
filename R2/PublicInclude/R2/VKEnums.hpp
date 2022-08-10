@@ -38,6 +38,7 @@ namespace R2::VK
         InputAttachmentRead = 0x00000010ULL,
         ShaderRead = 0x00000020ULL,
         ShaderWrite = 0x00000040ULL,
+        ShaderReadWrite = ShaderRead | ShaderWrite,
         ColorAttachmentRead = 0x00000080ULL,
         ColorAttachmentWrite = 0x00000100ULL,
         ColorAttachmentReadWrite = ColorAttachmentRead | ColorAttachmentWrite,

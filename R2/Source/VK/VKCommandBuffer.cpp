@@ -1,5 +1,6 @@
 #include <R2/VKCommandBuffer.hpp>
 #include <R2/VKBuffer.hpp>
+#include <R2/VKTexture.hpp>
 #include <R2/VKPipeline.hpp>
 #include <volk.h>
 
@@ -92,11 +93,6 @@ namespace R2::VK
             static_cast<VkShaderStageFlagBits>(stages), 0, (uint32_t)dataSize, data);
     }
 
-    VkCommandBuffer CommandBuffer::GetNativeHandle()
-    {
-        return cb;
-    }
-
     void CommandBuffer::BeginDebugLabel(const char* label, float r, float g, float b)
     {
         VkDebugUtilsLabelEXT labelObj{VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT};
@@ -112,5 +108,29 @@ namespace R2::VK
     void CommandBuffer::EndDebugLabel()
     {
         vkCmdEndDebugUtilsLabelEXT(cb);
+    }
+
+    void CommandBuffer::TextureBarrier(Texture* tex, PipelineStageFlags srcStage, PipelineStageFlags dstStage, AccessFlags srcAccess, AccessFlags dstAccess)
+    {
+        VkImageMemoryBarrier2 imageBarrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+        imageBarrier.image = tex->GetNativeHandle();
+        imageBarrier.oldLayout = imageBarrier.newLayout = (VkImageLayout)tex->lastLayout;
+        tex->lastAccess = dstAccess;
+        imageBarrier.srcStageMask = (VkPipelineStageFlags2)srcStage;
+        imageBarrier.dstStageMask = (VkPipelineStageFlags2)dstStage;
+        imageBarrier.srcAccessMask = (VkAccessFlags2)srcAccess;
+        imageBarrier.dstAccessMask = (VkAccessFlags2)dstAccess;
+        imageBarrier.subresourceRange = VkImageSubresourceRange { tex->getAspectFlags(), 0, (uint32_t)tex->GetNumMips(), 0, (uint32_t)tex->GetLayers() };
+
+        VkDependencyInfo di { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+        di.imageMemoryBarrierCount = 1;
+        di.pImageMemoryBarriers = &imageBarrier;
+        di.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+        vkCmdPipelineBarrier2(cb, &di);
+    }
+
+    VkCommandBuffer CommandBuffer::GetNativeHandle()
+    {
+        return cb;
     }
 }

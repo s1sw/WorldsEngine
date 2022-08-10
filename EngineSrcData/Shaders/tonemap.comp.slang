@@ -1,3 +1,5 @@
+import InversibleTonemap;
+
 RWTexture2D<float4> resultImage;
 
 #ifdef MSAA
@@ -15,7 +17,7 @@ RWTexture2D<float4> resultImage;
 #endif
 
 // TODO: Bloom
-//Sampler2DArray bloomImage;
+Sampler2D bloomImage;
 
 [[vk::push_constant]]
 cbuffer TonemapSettings
@@ -138,25 +140,6 @@ struct LogConverter
     }
 }
 
-float gmax3(float x, float y, float z)
-{
-    return max(x, max(y, z));
-}
-
-// adapted from https://gpuopen.com/learn/optimized-reversible-tonemapper-for-resolve/
-struct AMDReversibleTonemapper
-{
-    float3 Tonemap(float3 color)
-    {
-        return color * rcp(gmax3(color.r, color.g, color.b) + 1.0);
-    }
-    
-    float3 TonemapInvert(float3 color)
-    {
-        return color * rcp(1.0 - gmax3(color.r, color.g, color.b));
-    }
-}
-
 struct TonemapTextureSettings
 {
     uint msaaSamples;
@@ -214,9 +197,8 @@ void main(uint3 threadID : SV_DispatchThreadID)
     float3 accumulator = 0.0;
     float2 uv = (float2(threadID.xy) + 0.5) / (texSettings.HDRResolution / resolutionScale);
 
-    //float3 bloom = bloomImage.Sample(float3(uv * resolutionScale, idx)).xyz;
-    //bloom = max(bloom, float3(0.0));
-    float3 bloom = 0.0;
+    float3 bloom = bloomImage.SampleLevel(uv * resolutionScale, 0).xyz;
+    bloom = max(bloom, float3(0.0));
 
 #ifdef MSAA
     // If we're using MSAA, resolve using the reversible tonemapper

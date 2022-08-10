@@ -24,10 +24,11 @@ namespace worlds
         float resolutionScale;
     };
 
-    Tonemapper::Tonemapper(VK::Core* core, VK::Texture* colorBuffer, VK::Texture* target)
+    Tonemapper::Tonemapper(VK::Core* core, VK::Texture* colorBuffer, VK::Texture* target, VK::Texture* bloom)
         : core(core)
         , colorBuffer(colorBuffer)
         , target(target)
+        , bloom(bloom)
     {
         AssetID tonemapShader = colorBuffer->GetSamples() == 1 ? AssetDB::pathToId("Shaders/tonemap.comp.spv") : AssetDB::pathToId("Shaders/tonemap_msaa.comp.spv");
         ShaderReflector sr{tonemapShader};
@@ -56,6 +57,7 @@ namespace worlds
 
         VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet.Get()};
         sr.bindSampledTexture(dsu, "hdrImage_0", colorBuffer, sampler.Get());
+        sr.bindSampledTexture(dsu, "bloomImage_0", bloom, sampler.Get());
         sr.bindStorageTexture(dsu, "resultImage_0", target);
 
         dsu.Update();
@@ -63,6 +65,7 @@ namespace worlds
 
     void Tonemapper::Execute(VK::CommandBuffer& cb)
     {
+        bloom->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderSampledRead);
         colorBuffer->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderSampledRead);
         target->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderStorageWrite);
 

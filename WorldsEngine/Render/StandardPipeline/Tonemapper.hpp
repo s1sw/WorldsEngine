@@ -20,13 +20,14 @@ namespace worlds
         R2::VK::Core* core;
         R2::VK::Texture* colorBuffer;
         R2::VK::Texture* target;
+        R2::VK::Texture* bloom;
         UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
         UniquePtr<R2::VK::Pipeline> pipeline;
         UniquePtr<R2::VK::DescriptorSetLayout> descriptorSetLayout;
         UniquePtr<R2::VK::DescriptorSet> descriptorSet;
         UniquePtr<R2::VK::Sampler> sampler;
     public:
-        Tonemapper(R2::VK::Core* core, R2::VK::Texture* colorBuffer, R2::VK::Texture* target);
+        Tonemapper(R2::VK::Core* core, R2::VK::Texture* colorBuffer, R2::VK::Texture* target, R2::VK::Texture* bloom);
         void Execute(R2::VK::CommandBuffer& cb);
     };
 }
