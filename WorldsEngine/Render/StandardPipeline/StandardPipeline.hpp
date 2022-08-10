@@ -27,6 +27,7 @@ namespace worlds
     class VKTextureManager;
     class CubemapConvoluter;
     class DebugLineDrawer;
+    class Frustum;
 
     class StandardPipeline : public IRenderPipeline
     {
@@ -50,7 +51,7 @@ namespace worlds
         VKRenderer* renderer;
         VKRTTPass* rttPass;
 
-        void drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices);
+        void drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices, Frustum& frustum);
         void fillLightBuffer(entt::registry& reg, VKTextureManager* textureManager);
       public:
         StandardPipeline(VKRenderer* renderer);

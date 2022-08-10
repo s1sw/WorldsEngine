@@ -9,7 +9,7 @@ namespace worlds
     RenderMeshManager::RenderMeshManager(R2::VK::Core* core) : core(core)
     {
         R2::VK::BufferCreateInfo createInfo{};
-        createInfo.Size = 16 * 1000 * 1000; // 16MB
+        createInfo.Size = 8 * 1000 * 1000; // 8MB
         createInfo.Usage = R2::VK::BufferUsage::Vertex | R2::VK::BufferUsage::Storage;
         vertexBuffer = new R2::SubAllocatedBuffer(core, createInfo);
 
@@ -78,6 +78,17 @@ namespace worlds
 
         core->QueueBufferUpload(vertexBuffer->GetBuffer(), lmd.vertices.data(), lmd.vertices.size() * sizeof(Vertex),
                                 meshInfo.vertsOffset);
+
+        meshInfo.aabbMax = glm::vec3(std::numeric_limits<float>::lowest());
+        meshInfo.aabbMin = glm::vec3(std::numeric_limits<float>::max());
+        meshInfo.boundingSphereRadius = 0.0f;
+
+        for (const Vertex& vtx : lmd.vertices)
+        {
+            meshInfo.boundingSphereRadius = glm::max(glm::length(vtx.position), meshInfo.boundingSphereRadius);
+            meshInfo.aabbMax = glm::max(meshInfo.aabbMax, vtx.position);
+            meshInfo.aabbMin = glm::min(meshInfo.aabbMin, vtx.position);
+        }
 
         meshes.insert({asset, std::move(meshInfo)});
 

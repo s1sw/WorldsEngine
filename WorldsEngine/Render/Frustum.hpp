@@ -105,34 +105,6 @@ namespace worlds
             }
         }
 
-        void fromViewAndProj(glm::mat4 view, glm::mat4 proj)
-        {
-            glm::mat4 vp = proj * view;
-
-            planes[FrustumPlane::Left] = glm::vec4(1.0f, 0.0f, 0.0f, -1.0f);
-            planes[FrustumPlane::Right] = glm::vec4(-1.0f, 0.0f, 0.0f, -1.0f);
-
-            planes[FrustumPlane::Bottom] = glm::vec4(0.0f, -1.0f, 0.0f, -1.0f);
-            planes[FrustumPlane::Top] = glm::vec4(0.0f, 1.0f, 0.0f, -1.0f);
-
-            planes[FrustumPlane::Near] = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-            planes[FrustumPlane::Far] = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
-
-            for (int i = 0; i < 4; i++)
-            {
-                planes[i] = planes[i] * vp;
-                planes[i].normalize();
-            }
-
-            logMsg("post-transform left normal: %.3f, %.3f, %.3f", planes[0].a, planes[0].b, planes[0].c);
-
-            planes[FrustumPlane::Near] = view * planes[FrustumPlane::Near];
-            planes[FrustumPlane::Near].normalize();
-
-            planes[FrustumPlane::Far] = view * planes[FrustumPlane::Far];
-            planes[FrustumPlane::Far].normalize();
-        }
-
         bool containsSphere(glm::vec3 center, float radius)
         {
             for (int i = 0; i < 6; i++)

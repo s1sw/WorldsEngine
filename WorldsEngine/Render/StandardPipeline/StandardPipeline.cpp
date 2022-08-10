@@ -3,9 +3,9 @@
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/SubAllocatedBuffer.hpp>
 #include <R2/VK.hpp>
+#include <Render/Frustum.hpp>
 #include <Render/MaterialManager.hpp>
 #include <Render/RenderInternal.hpp>
-#include <Render/ShaderReflector.hpp>
 #include <Render/ShaderCache.hpp>
 #include <Render/StandardPipeline/LightCull.hpp>
 #include <Render/StandardPipeline/Tonemapper.hpp>
@@ -13,6 +13,7 @@
 #include <Render/StandardPipeline/DebugLineDrawer.hpp>
 #include <entt/entity/registry.hpp>
 #include <Util/JsonUtil.hpp>
+#include <Util/AABB.hpp>
 
 #include <deque>
 
@@ -272,7 +273,7 @@ namespace worlds
         return mix(higher, lower, cutoff);
     }
 
-    void StandardPipeline::drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices)
+    void StandardPipeline::drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices, Frustum& frustum)
     {
         RenderMeshManager* meshManager = renderer->getMeshManager();
         VK::Core* core = renderer->getCore();
@@ -285,7 +286,13 @@ namespace worlds
 
         reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t)
         {
-            RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
+            const RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
+
+            float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
+            if (!frustum.containsSphere(t.position, maxScale * rmi.boundingSphereRadius)) return;
+
+            AABB aabb = AABB{rmi.aabbMin, rmi.aabbMax}.transform(t);
+            if (!frustum.containsAABB(aabb.min, aabb.max)) return;
 
             if (writeMatrices)
                 modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
@@ -300,10 +307,10 @@ namespace worlds
 
             for (int i = 0; i < rmi.numSubmeshes; i++)
             {
-                RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
+                const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
 
                 StandardPushConstants spc{};
-                spc.modelMatrixID = modelMatrixIndex-1;
+                spc.modelMatrixID = modelMatrixIndex - 1;
                 spc.textureScale = glm::vec2(wo.texScaleOffset.x, wo.texScaleOffset.y);
                 spc.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
                 uint8_t materialIndex = rsi.materialIndex;
@@ -467,6 +474,9 @@ namespace worlds
         multiVPs.inverseVP[0] =  glm::inverse(multiVPs.projections[0] * multiVPs.views[0]);
         multiVPs.viewPos[0] = glm::vec4(camera->position, 0.0f);
 
+        Frustum frustum{};
+        frustum.fromVPMatrix(multiVPs.projections[0] * multiVPs.views[0]);
+
         core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
 
         cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
@@ -474,7 +484,7 @@ namespace worlds
         cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
         cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
 
-        drawLoop(reg, cb, true);
+        drawLoop(reg, cb, true, frustum);
         depthPass.End(cb);
 
         cb.EndDebugLabel();
@@ -492,7 +502,7 @@ namespace worlds
             .RenderArea(rttPass->width, rttPass->height)
             .Begin(cb);
 
-        drawLoop(reg, cb, false);
+        drawLoop(reg, cb, false, frustum);
 
         size_t dbgLinesCount;
         const DebugLine* dbgLines = renderer->getCurrentDebugLines(&dbgLinesCount);
