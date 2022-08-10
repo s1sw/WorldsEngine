@@ -160,7 +160,7 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
     return lo;
 }
 
-float3 EnvBRDFApprox(float3 F, float roughness, float NoV)
+float3 EnvBRDFApprox(float3 specColor, float roughness, float NoV)
 {
     const float4 c0 = { -1, -0.0275, -0.572, 0.022 };
     const float4 c1 = { 1, 0.0425, 1.04, -0.04 };
@@ -169,7 +169,7 @@ float3 EnvBRDFApprox(float3 F, float roughness, float NoV)
     float a004 = min(r.x * r.x, exp2( -9.28 * NoV )) * r.x + r.y;
     float2 AB = float2(-1.04, 1.04) * a004 + r.zw;
 
-    return F * AB.x + AB.y;
+    return specColor * AB.x + AB.y;
 }
 
 float3 sampleCubemap(Cubemap cubemap, float3 dir, float mip, float3 worldPos)
@@ -200,7 +200,6 @@ float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos)
     float3 R = reflect(-shadeInfo.viewDir, shadeInfo.normal);
     float3 f0 = lerp(0.04, shadeInfo.albedoColor, shadeInfo.metallic);
 
-    float3 F = fresnelSchlickRoughness(saturate(dot(shadeInfo.normal, shadeInfo.viewDir)), f0, shadeInfo.roughness);
     float3 specularAmbient = float3(0.0);
     float3 diffuseAmbient = float3(0.0);
 
@@ -262,16 +261,18 @@ float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos)
         diffuseAmbient = sampleCubemap(lbl.GetCubemap(0), R, 12.0, worldPos);
     }
 
+    float3 F = SchlickFresnelWithRoughness(saturate(dot(shadeInfo.normal, shadeInfo.viewDir)), f0, shadeInfo.roughness);
     //float2 coord = float2(roughness, max(dot(normal, viewDir), 0.0));
     //float2 brdf = textureLod(brdfLutSampler, coord, 0.0).rg;
     //float3 specularColor = F * (brdf.x + brdf.y);
+    
     float3 specularColor = EnvBRDFApprox(F, shadeInfo.roughness, max(dot(shadeInfo.normal, shadeInfo.viewDir), 0.0));
 
     float3 totalAmbient = specularAmbient * specularColor;
 
     if (shadeInfo.metallic < 1.0)
     {
-        float3 kD = (1.0 - F) * (1.0 - shadeInfo.metallic);
+        float3 kD = (1.0 - f0) * (1.0 - shadeInfo.metallic);
         totalAmbient += kD * diffuseAmbient * shadeInfo.albedoColor;
     }
 
