@@ -166,6 +166,10 @@ namespace worlds
         IndexType indexType;
         uint8_t numSubmeshes;
         RenderSubmeshInfo submeshInfo[NUM_SUBMESH_MATS];
+
+        float boundingSphereRadius;
+        glm::vec3 aabbMin;
+        glm::vec3 aabbMax;
     };
 
     class RenderMeshManager
