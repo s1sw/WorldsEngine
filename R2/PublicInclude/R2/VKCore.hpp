@@ -84,7 +84,7 @@ namespace R2::VK
 	class Core
 	{
 	public:
-		Core(IDebugOutputReceiver* dbgOutRecv = nullptr);
+		Core(IDebugOutputReceiver* dbgOutRecv = nullptr, bool enableValidation = false);
 
 		GraphicsDeviceInfo GetDeviceInfo();
 

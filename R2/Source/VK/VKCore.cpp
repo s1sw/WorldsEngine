@@ -26,14 +26,14 @@ namespace R2::VK
 	const uint32_t NUM_FRAMES_IN_FLIGHT = 2;
 	const size_t STAGING_BUFFER_SIZE = 16_MB;
 
-	Core::Core(IDebugOutputReceiver* dbgOutRecv)
+	Core::Core(IDebugOutputReceiver* dbgOutRecv, bool enableValidation)
 		: inFrame(false)
 		, frameIndex(0)
 	{
 		vmaDebugOutputRecv = dbgOutRecv;
 
 		setAllocCallbacks();
-		createInstance(true);
+		createInstance(enableValidation);
 		findQueueFamilies();
 		createDevice();
 		createCommandPool();

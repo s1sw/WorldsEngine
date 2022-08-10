@@ -1,5 +1,6 @@
 #include <Core/AssetDB.hpp>
 #include <Core/Log.hpp>
+#include <Core/Engine.hpp>
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/VK.hpp>
 #include <R2/VKSwapchain.hpp>
@@ -27,6 +28,13 @@ namespace worlds
 
     VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     {
+        bool enableValidation = true;
+
+#ifdef NDEBUG
+        enableValidation = false;
+#endif
+        enableValidation |= EngineArguments::hasArgument("validation-layers");
+
         core = new VK::Core(new LogDebugOutputReceiver);
         VK::SwapchainCreateInfo sci{};
 
