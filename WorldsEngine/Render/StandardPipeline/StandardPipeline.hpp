@@ -31,12 +31,12 @@ namespace worlds
     class StandardPipeline : public IRenderPipeline
     {
         UniquePtr<R2::VK::DescriptorSetLayout> descriptorSetLayout;
-        UniquePtr<R2::VK::DescriptorSet> descriptorSet;
+        UniquePtr<R2::VK::DescriptorSet> descriptorSets[2];
         UniquePtr<R2::VK::Pipeline> pipeline;
         UniquePtr<R2::VK::Pipeline> depthPrePipeline;
         UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
         UniquePtr<R2::VK::Buffer> multiVPBuffer;
-        UniquePtr<R2::VK::Buffer> modelMatrixBuffer;
+        UniquePtr<R2::VK::Buffer> modelMatrixBuffers[2];
         UniquePtr<R2::VK::Buffer> lightBuffer;
         UniquePtr<R2::VK::Buffer> lightTileBuffer;
         UniquePtr<R2::VK::Texture> depthBuffer;

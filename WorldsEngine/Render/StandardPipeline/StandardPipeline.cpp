@@ -120,7 +120,8 @@ namespace worlds
         multiVPBuffer = core->CreateBuffer(vpBci);
 
         VK::BufferCreateInfo modelMatrixBci{VK::BufferUsage::Storage, sizeof(glm::mat4) * 4096, true};
-        modelMatrixBuffer = core->CreateBuffer(modelMatrixBci);
+        modelMatrixBuffers[0] = core->CreateBuffer(modelMatrixBci);
+        modelMatrixBuffers[1] = core->CreateBuffer(modelMatrixBci);
 
         if (materialBuffer == nullptr)
         {
@@ -147,15 +148,18 @@ namespace worlds
         dslb.UpdateAfterBind();
         descriptorSetLayout = dslb.Build();
 
-        descriptorSet = core->CreateDescriptorSet(descriptorSetLayout.Get());
+        for (int i = 0; i < 2; i++)
+        {
+            descriptorSets[i] = core->CreateDescriptorSet(descriptorSetLayout.Get());
 
-        VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet.Get()};
-        dsu.AddBuffer(0, 0, VK::DescriptorType::UniformBuffer, multiVPBuffer.Get());
-        dsu.AddBuffer(1, 0, VK::DescriptorType::StorageBuffer, modelMatrixBuffer.Get());
-        dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, materialBuffer->GetBuffer());
-        dsu.AddBuffer(3, 0, VK::DescriptorType::StorageBuffer, lightBuffer.Get());
-        dsu.AddBuffer(4, 0, VK::DescriptorType::StorageBuffer, lightTileBuffer.Get());
-        dsu.Update();
+            VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSets[i].Get()};
+            dsu.AddBuffer(0, 0, VK::DescriptorType::UniformBuffer, multiVPBuffer.Get());
+            dsu.AddBuffer(1, 0, VK::DescriptorType::StorageBuffer, modelMatrixBuffers[i].Get());
+            dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, materialBuffer->GetBuffer());
+            dsu.AddBuffer(3, 0, VK::DescriptorType::StorageBuffer, lightBuffer.Get());
+            dsu.AddBuffer(4, 0, VK::DescriptorType::StorageBuffer, lightTileBuffer.Get());
+            dsu.Update();
+        }
 
         VK::PipelineLayoutBuilder plb{core->GetHandles()};
         plb.PushConstants(VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, 0, sizeof(StandardPushConstants))
@@ -247,9 +251,12 @@ namespace worlds
         VK::BufferCreateInfo lightTileBci{ VK::BufferUsage::Storage, sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32), true };
         lightTileBuffer = core->CreateBuffer(lightTileBci);
 
-        VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet.Get()};
-        dsu.AddBuffer(4, 0, VK::DescriptorType::StorageBuffer, lightTileBuffer.Get());
-        dsu.Update();
+        for (int i = 0; i < 2; i++)
+        {
+            VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSets[i].Get()};
+            dsu.AddBuffer(4, 0, VK::DescriptorType::StorageBuffer, lightTileBuffer.Get());
+            dsu.Update();
+        }
 
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget());
         lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
@@ -268,12 +275,13 @@ namespace worlds
     void StandardPipeline::drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices)
     {
         RenderMeshManager* meshManager = renderer->getMeshManager();
+        VK::Core* core = renderer->getCore();
 
         uint32_t modelMatrixIndex = 0;
         glm::mat4* modelMatricesMapped;
 
         if (writeMatrices)
-            modelMatricesMapped = (glm::mat4*)modelMatrixBuffer->Map();
+            modelMatricesMapped = (glm::mat4*)modelMatrixBuffers[core->GetFrameIndex()]->Map();
 
         reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t)
         {
@@ -350,7 +358,7 @@ namespace worlds
         });
 
         if (writeMatrices)
-            modelMatrixBuffer->Unmap();
+            modelMatrixBuffers[core->GetFrameIndex()]->Unmap();
     }
 
     std::deque<AssetID> convoluteQueue;
@@ -439,6 +447,7 @@ namespace worlds
             cb.EndDebugLabel();
         }
 
+        modelMatrixBuffers[core->GetFrameIndex()]->Acquire(cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::VertexShader);
         cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
         cb.BindPipeline(depthPrePipeline.Get());
         VK::RenderPass depthPass;
@@ -460,7 +469,7 @@ namespace worlds
 
         core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
 
-        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSet->GetNativeHandle(), 0);
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
         cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
         cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
         cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
