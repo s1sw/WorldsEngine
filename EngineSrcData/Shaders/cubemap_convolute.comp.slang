@@ -10,20 +10,6 @@ cbuffer PC
 SamplerCube<float4> fullCubemap;
 RWTexture2D<float4> outFace;
 
-float DistributionGGX(float3 N, float3 H, float roughness)
-{
-    float a = roughness * roughness;
-    float a2 = a * a;
-    float NdotH = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH * NdotH;
-
-    float nom   = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = PI * denom * denom;
-
-    return nom / denom;
-}
-
 // Adapted from http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 float VdCRadicalInverse(uint bits)
 {
@@ -35,66 +21,54 @@ float VdCRadicalInverse(uint bits)
     return float(bits) * 2.3283064365386963e-10; // / 0x100000000
 }
 
-float2 Hammersley(uint i, uint N)
+float2 Hammersley2D(uint i, uint N)
 {
     return float2(float(i) / float(N), VdCRadicalInverse(i));
 }
 
 float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness)
 {
-    float a = roughness * roughness;
+    float alpha = roughness * roughness;
+    float alphaSq = alpha * alpha;
 
     float phi = 2.0 * PI * Xi.x;
-    float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
-    float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
+    float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (alphaSq - 1.0) * Xi.y));
+    // and here i was thinking trig identities wouldn't be useful
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta); 
 
-    // from spherical coordinates to cartesian coordinates - halfway vector
     float3 H;
-    H.x = cos(phi) * sinTheta;
-    H.y = sin(phi) * sinTheta;
+    H.x = sinTheta * cos(phi);
+    H.y = sinTheta * sin(phi);
     H.z = cosTheta;
 
-    // from tangent-space H vector to world-space sample vector
-    float3 up = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
-    float3 tangent   = normalize(cross(up, N));
-    float3 bitangent = cross(N, tangent);
+    float3 upVec = abs(N.z) < 0.999 ? float3(0, 0, 1) : float3(1, 0, 0);
+    float3 tangentX = normalize(cross(upVec, N));
+    float3 tangentY = cross(N, tangentX);
 
-    float3 samplefloat = tangent * H.x + bitangent * H.y + N * H.z;
-
-    return normalize(samplefloat);
+    return tangentX * H.x + tangentY * H.y + N * H.z;
 }
 
-float3 getSamplingVector(uint2 pixCoord)
+float3 GetSamplingVector(float2 uv)
 {
-    uint2 texSize;
-    outFace.GetDimensions(texSize.x, texSize.y);
-
-    float2 st = float2(pixCoord) / float2(texSize);
-    float2 uv = 2.0 * float2(st.x, 1.0 - st.y) - 1.0;
+    // Flip Y and change to -1 -> 1
+    uv = 2.0 * float2(uv.x, 1.0 - uv.y) - 1.0;
 
     float3 ret;
     switch (faceIdx)
     {
         case 0:
-            ret = float3(1.0, uv.y, -uv.x);
-            break;
+            return normalize(float3(1.0, uv.y, -uv.x));
         case 1:
-            ret = float3(-1.0, uv.y, uv.x);
-            break;
+            return normalize(float3(-1.0, uv.y, uv.x));
         case 2:
-            ret = float3(uv.x, 1.0, -uv.y);
-            break;
+            return normalize(float3(uv.x, 1.0, -uv.y));
         case 3:
-            ret = float3(uv.x, -1.0, uv.y);
-            break;
+            return normalize(float3(uv.x, -1.0, uv.y));
         case 4:
-            ret = float3(uv.x, uv.y, 1.0);
-            break;
+            return normalize(float3(uv.x, uv.y, 1.0));
         case 5:
-            ret = float3(-uv.x, uv.y, -1.0);
-            break;
+            return normalize(float3(-uv.x, uv.y, -1.0));
     }
-    return normalize(ret);
 }
 
 [shader("compute")]
@@ -111,41 +85,29 @@ void main(uint3 threadID : SV_DispatchThreadID)
 
     float2 uv = float2(threadID.xy) / float2(texSize);
 
-    float3 N = normalize(getSamplingVector(threadID.xy));
+    float3 N = GetSamplingVector(uv);
     float3 R = N;
     float3 V = R;
 
-    float totalWeight = 0.0f;
-    float3 prefilteredColor = float3(0.0f, 0.0f, 0.0f);
+    float3 prefilteredColor = 0.0;
+    float totalWeight = 0.0;
 
-    const uint SAMPLE_COUNT = 1024;
-    for (uint i = 0u; i < SAMPLE_COUNT; i++)
+    const uint NumSamples = 2048;
+    for (uint i = 0; i < NumSamples; i++)
     {
-        float2 Xi = Hammersley(i, SAMPLE_COUNT);
+        float2 Xi = Hammersley2D(i, NumSamples);
         float3 H = ImportanceSampleGGX(Xi, N, roughness);
         float3 L = normalize(2.0 * dot(V, H) * H - V);
 
-        float NdotL = max(dot(N, L), 0.0f);
-        if (NdotL > 0.0f)
+        float ndl = saturate(dot(N, L));
+        if (ndl > 0)
         {
-            // sample from the environment's mip level based on roughness/pdf
-            float D = DistributionGGX(N, H, roughness);
-            float NdotH = max(dot(N, H), 0.0);
-            float HdotV = max(dot(H, V), 0.0);
-            float pdf = D * NdotH / (4.0 * HdotV) + 0.0001;
-
-            float saTexel  = 4.0 * PI / (6.0 * texSize.x * texSize.y * 2.5);
-            float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + 0.0001);
-
-            float mipLevel = roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
-
-            prefilteredColor += clamp(fullCubemap.SampleLevel(L, 0.0).xyz, float3(0.0), float3(5.0)) * NdotL;
-            totalWeight += NdotL;
+            prefilteredColor += clamp(fullCubemap.SampleLevel(L, 0.0).xyz * ndl, 0.0, 1.0);
+            totalWeight += ndl;
         }
     }
 
     prefilteredColor = prefilteredColor / totalWeight;
 
-    //imageStore(outFace, ifloat2(gl_GlobalInvocationID.xy), float4(prefilteredColor, 1.0f));
     outFace[threadID.xy] = float4(prefilteredColor, 1.0f);
 }

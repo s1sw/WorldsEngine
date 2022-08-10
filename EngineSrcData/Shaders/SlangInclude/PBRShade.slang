@@ -120,22 +120,22 @@ float3 calculateLighting(Light light, ShadeInfo shadeInfo, float3 worldPos)
     
     if (light.Type != LightType.Tube)
     {
-        NDF = ndfGGX(cosLh, shadeInfo.roughness);
+        NDF = GGXNDF(cosLh, shadeInfo.roughness);
     }
     else
     {
-        NDF = ndfGGXSphereLight(cosLh, shadeInfo.roughness, light.pack1.w, lsi.lightDist);
+        NDF = GGXNDFSphereLight(cosLh, shadeInfo.roughness, light.pack1.w, lsi.lightDist);
     }
 
     float3 f0 = lerp(float3(0.04), shadeInfo.albedoColor, shadeInfo.metallic);
 
-    float G = gaSchlickGGX(cosLi, cosLo, shadeInfo.roughness);
-    float3 f = fresnelSchlick(f0, max(dot(norm, shadeInfo.viewDir), 0.0f));
-    f *= fresnelSchlick(f0, max(dot(norm, lsi.L), 0.0f));
+    float G = GGXSmithG(cosLi, cosLo, shadeInfo.roughness);
+    float3 f = SchlickFresnel(max(dot(norm, shadeInfo.viewDir), 0.0f), f0);
+    f *= SchlickFresnel(max(dot(norm, lsi.L), 0.0f), f0);
 
     float3 kd = lerp(float3(1.0) - f, float3(0.0), shadeInfo.metallic);
 
-    float3 numerator = NDF * G * fresnelSchlick(f0, max(dot(halfway, norm), 0.0f));
+    float3 numerator = NDF * G * SchlickFresnel(max(dot(halfway, norm), 0.0f), f0);
     float denominator = 4.0f * cosLo * cosLi;
     float3 specular = numerator / max(denominator, 0.001f);
     float3 diffuse = kd * shadeInfo.albedoColor;

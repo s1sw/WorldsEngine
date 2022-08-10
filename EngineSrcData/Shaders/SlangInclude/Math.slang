@@ -47,3 +47,8 @@ float3 parallaxCorrectCubemap(float3 v, float3 center, float3 ma, float3 mi, flo
 
     return intersection - center;
 }
+
+float pow5(float a)
+{
+    return a * a * a * a * a;
+}
