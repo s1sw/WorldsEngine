@@ -72,6 +72,12 @@ namespace R2::VK
         return false;
     }
 
+    void TextureCreateInfo::SetFullMipChain()
+    {
+        int biggerDimension = Width > Height ? Width : Height;
+        NumMips = ceil(log2(biggerDimension)) + 1;
+    }
+
     Texture::Texture(Core* core, const TextureCreateInfo& createInfo)
         : core(core)
         , lastLayout(ImageLayout::Undefined)

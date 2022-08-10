@@ -437,6 +437,8 @@ namespace R2::VK
         VmaAllocation allocation;
         ImageLayout lastLayout;
         AccessFlags lastAccess;
+
+        friend class CommandBuffer;
     };
 
     struct TextureSubset

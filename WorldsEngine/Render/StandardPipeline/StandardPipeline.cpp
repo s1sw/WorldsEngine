@@ -7,10 +7,11 @@
 #include <Render/MaterialManager.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
-#include <Render/StandardPipeline/LightCull.hpp>
-#include <Render/StandardPipeline/Tonemapper.hpp>
+#include <Render/StandardPipeline/Bloom.hpp>
 #include <Render/StandardPipeline/CubemapConvoluter.hpp>
 #include <Render/StandardPipeline/DebugLineDrawer.hpp>
+#include <Render/StandardPipeline/LightCull.hpp>
+#include <Render/StandardPipeline/Tonemapper.hpp>
 #include <entt/entity/registry.hpp>
 #include <Util/JsonUtil.hpp>
 #include <Util/AABB.hpp>
@@ -226,9 +227,10 @@ namespace worlds
 
         cubemapConvoluter = new CubemapConvoluter(core);
 
-        tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget());
         lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
         debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel);
+        bloom = new Bloom(core, colorBuffer.Get());
+        tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget(), bloom->GetOutput());
     }
 
     void StandardPipeline::onResize(int width, int height)
@@ -259,9 +261,10 @@ namespace worlds
             dsu.Update();
         }
 
-        tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget());
         lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
         debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel);
+        bloom = new Bloom(core, colorBuffer.Get());
+        tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget(), bloom->GetOutput());
     }
 
     glm::vec3 toLinear(glm::vec3 sRGB)
@@ -513,6 +516,8 @@ namespace worlds
 
         colorPass.End(cb);
         cb.EndDebugLabel();
+
+        bloom->Execute(cb);
 
         tonemapper->Execute(cb);
     }

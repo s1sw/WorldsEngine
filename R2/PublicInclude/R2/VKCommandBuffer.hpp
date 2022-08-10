@@ -54,6 +54,9 @@ namespace R2::VK
 
     class Pipeline;
     class PipelineLayout;
+    class Texture;
+    enum class AccessFlags : uint64_t;
+    enum class PipelineStageFlags : uint64_t;
 
     class CommandBuffer
     {
@@ -79,6 +82,8 @@ namespace R2::VK
 
         void BeginDebugLabel(const char* label, float r, float g, float b);
         void EndDebugLabel();
+
+        void TextureBarrier(Texture* tex, PipelineStageFlags srcStage, PipelineStageFlags dstStage, AccessFlags srcAccess, AccessFlags dstAccess);
 
         VkCommandBuffer GetNativeHandle();
     private:

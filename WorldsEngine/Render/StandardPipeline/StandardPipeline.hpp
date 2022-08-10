@@ -28,6 +28,7 @@ namespace worlds
     class CubemapConvoluter;
     class DebugLineDrawer;
     class Frustum;
+    class Bloom;
 
     class StandardPipeline : public IRenderPipeline
     {
@@ -47,6 +48,7 @@ namespace worlds
         UniquePtr<LightCull> lightCull;
         UniquePtr<CubemapConvoluter> cubemapConvoluter;
         UniquePtr<DebugLineDrawer> debugLineDrawer;
+        UniquePtr<Bloom> bloom;
 
         VKRenderer* renderer;
         VKRTTPass* rttPass;
