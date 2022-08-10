@@ -1,4 +1,4 @@
 [wrap-git]
 directory = slib.git
 url = https://github.com/someonesomewheredev/slib.git
-revision = c9f855d2fbf677cb37254956cf5febef16122e8e
+revision = 2378d99692b6071ddb8c340f9f351c0fc885114a
