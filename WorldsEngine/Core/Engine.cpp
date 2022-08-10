@@ -676,6 +676,7 @@ namespace worlds
                 .resScale = 1.0f,
                 .useForPicking = false,
                 .enableShadows = true,
+                .msaaLevel = 4
             };
 
             screenRTTPass = renderer->createRTTPass(screenRTTCI);
@@ -813,6 +814,16 @@ namespace worlds
                 };
 
                 screenRTTPass = renderer->createRTTPass(screenRTTCI);
+            }
+        }
+        else
+        {
+            int width, height;
+            window->getSize(&width, &height);
+
+            if (width != screenRTTPass->width || height != screenRTTPass->height)
+            {
+                screenRTTPass->resize(width, height);
             }
         }
 
