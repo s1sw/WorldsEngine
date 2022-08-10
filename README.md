@@ -3,4 +3,4 @@
 
 [![forthebadge](https://forthebadge.com/images/badges/powered-by-black-magic.svg)](https://forthebadge.com)
 
-Worlds engine. Worlds engine? Worlds engine.
+A C++ and Vulkan game engine that's been my hobby project for the past couple years. Don't count on building anything off of it (or getting it to build for that matter)!
