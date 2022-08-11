@@ -8,7 +8,6 @@
 #include "ImGui/imgui_internal.h"
 #include "Scripting/NetVM.hpp"
 #include <Audio/Audio.hpp>
-#include <PathTracer/PathTracer.hpp>
 
 namespace worlds
 {
@@ -401,12 +400,6 @@ namespace worlds
             sceneViewPass->active = false;
         }
         ImGui::End();
-
-        // if (interfaces.inputManager->keyPressed(SDL_SCANCODE_P)) {
-        //    PathTracer pt{ed->reg};
-        //    pt.buildAS();
-        //    pt.trace(cam, "trace.png");
-        //}
 
         if (noScenePad)
             ImGui::PopStyleVar();

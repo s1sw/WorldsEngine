@@ -11,7 +11,7 @@
 #include "slib/StaticAllocList.hpp"
 #include "Scripting/NetVM.hpp"
 #include <Editor/Editor.hpp>
-#include <tracy/Tracy.hpp>
+#include <Tracy.hpp>
 
 namespace worlds
 {

@@ -1,7 +1,7 @@
 ﻿#include "Engine.hpp"
 #include "JobSystem.hpp"
 #include "Transform.hpp"
-#include "tracy/Tracy.hpp"
+#include "Tracy.hpp"
 #include <Audio/Audio.hpp>
 #include <Core/Console.hpp>
 #include <Core/ISystem.hpp>

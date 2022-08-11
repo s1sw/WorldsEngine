@@ -13,11 +13,12 @@
 #include <filesystem>
 #include <slib/DynamicLibrary.hpp>
 #include <string>
-#include <tracy/Tracy.hpp>
+#include <Tracy.hpp>
 
 #if defined(_WIN32)
 #define NET_LIBRARY_PATH "./NetAssemblies/coreclr.dll"
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <windows.h>
 #elif defined(__linux__)
 #define NET_LIBRARY_PATH "NetAssemblies/libcoreclr.so"

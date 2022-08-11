@@ -1,5 +1,5 @@
 #include "CubemapLoader.hpp"
-#include "tracy/Tracy.hpp"
+#include "Tracy.hpp"
 #include <Core/Engine.hpp>
 #include <Core/JobSystem.hpp>
 #include <Core/Log.hpp>
