@@ -13,7 +13,7 @@
 #include "AssetEditors.hpp"
 #include "EditorWindows/EditorWindows.hpp"
 #include "ImGui/imgui_internal.h"
-#include "tracy/Tracy.hpp"
+#include "Tracy.hpp"
 #include <AssetCompilation/AssetCompilers.hpp>
 #include <Audio/Audio.hpp>
 #include <ComponentMeta/ComponentFuncs.hpp>

@@ -2,7 +2,7 @@
 #include "TextureLoader.hpp"
 #include "crn_decomp.h"
 #include "stb_image.h"
-#include "tracy/Tracy.hpp"
+#include "Tracy.hpp"
 #include <Core/Engine.hpp>
 #include <Core/Fatal.hpp>
 #include <Core/Log.hpp>

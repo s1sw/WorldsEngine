@@ -12,12 +12,15 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <vulkan/vulkan.h>
 #ifdef _WIN32
 const char PATH_SEP = '\\';
 #else
 const char PATH_SEP = '/';
 #endif
+
+#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
+VK_DEFINE_HANDLE(VkPhysicalDevice)
+#undef VK_DEFINE_HANDLE
 
 namespace worlds
 {

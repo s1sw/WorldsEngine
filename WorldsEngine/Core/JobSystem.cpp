@@ -1,7 +1,7 @@
 #include "JobSystem.hpp"
 #include <iostream>
 #ifdef TRACY_ENABLE
-#include "tracy/Tracy.hpp"
+#include "Tracy.hpp"
 #endif
 #ifdef __linux__
 #include <pthread.h>

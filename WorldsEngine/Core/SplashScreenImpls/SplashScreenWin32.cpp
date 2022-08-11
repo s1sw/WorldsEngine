@@ -109,6 +109,7 @@ namespace worlds
 
         s->t = new std::thread([this, small] {
             const char* CLASS_NAME = "WorldsSplashScreen";
+            s->mutex.lock();
 
             Gdiplus::GdiplusStartupInput gdiplusStartupInput;
             ULONG_PTR gdiplusToken;
@@ -150,6 +151,7 @@ namespace worlds
             HDC winDc = GetDC(s->hwnd);
             s->background = createImageFromFile(small ? "splash_game.png" : "splash.png");
 
+            s->mutex.unlock();
             ShowWindow(s->hwnd, SW_SHOW);
             checkWinErr();
             eventLoop();
@@ -167,7 +169,8 @@ namespace worlds
         const char* splashTextDir = "EngineData/SplashText/";
         const char* ext = ".png";
 
-        char* buf = (char*)alloca(strlen(overlay) + strlen(basePath) + strlen(splashTextDir) + strlen(ext) + 1);
+        size_t pathLength = strlen(overlay) + strlen(basePath) + strlen(splashTextDir) + strlen(ext) + 1;
+        char* buf = (char*)alloca(pathLength);
         buf[0] = 0;
         strcat(buf, basePath);
         strcat(buf, splashTextDir);
@@ -176,11 +179,9 @@ namespace worlds
 
         SDL_free(basePath);
 
-        wchar_t* wbuf = (wchar_t*)alloca(
-            (strlen(overlay) + strlen(basePath) + strlen(splashTextDir) + strlen(ext) + 1) * sizeof(wchar_t));
+        wchar_t* wbuf = (wchar_t*)alloca(pathLength * sizeof(wchar_t));
 
-        mbstowcs(wbuf, buf,
-                 (strlen(overlay) + strlen(basePath) + strlen(splashTextDir) + strlen(ext) + 1) * sizeof(wchar_t));
+        mbstowcs(wbuf, buf, pathLength * sizeof(wchar_t));
 
         s->foreground = new Gdiplus::Image(wbuf);
         RedrawWindow(s->hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_INTERNALPAINT);
