@@ -6,7 +6,7 @@
 #include <Audio/Audio.hpp>
 #include <Navigation/Navigation.hpp>
 #include <physfs.h>
-#include <tracy/Tracy.hpp>
+#include <Tracy.hpp>
 
 namespace worlds
 {

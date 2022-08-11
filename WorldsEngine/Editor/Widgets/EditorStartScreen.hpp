@@ -122,7 +122,7 @@ namespace worlds
 
                 if (ImGui::Button("Create"))
                 {
-                    if (projectName.contains(' '))
+                    if (projectName.find(' ') != std::string::npos)
                     {
                         showSpaceWarning = true;
                     }

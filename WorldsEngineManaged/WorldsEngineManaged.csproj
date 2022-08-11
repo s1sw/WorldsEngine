@@ -7,14 +7,13 @@
         <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
         <RootNamespace>WorldsEngine</RootNamespace>
         <Nullable>enable</Nullable>
+        <OutDir>../NetAssemblies</OutDir>
     </PropertyGroup>
     <PropertyGroup Condition="'$(IsWindows)' == 'true'">
         <DefineConstants>Windows</DefineConstants>
-        <OutDir>../build_ninja_release/LonelyGalaxy/NetAssemblies</OutDir>
     </PropertyGroup>
     <PropertyGroup Condition="'$(IsLinux)' == 'true'">
         <DefineConstants>Linux</DefineConstants>
-        <OutDir>../build_release/LonelyGalaxy/NetAssemblies</OutDir>
     </PropertyGroup>
     <ItemGroup>
       <PackageReference Include="JetBrains.Annotations" Version="2021.2.0" />

@@ -3,7 +3,6 @@
 #include <Render/DebugLines.hpp>
 #include <Render/Render.hpp>
 #include <robin_hood.h>
-#include <tracy/TracyVulkan.hpp>
 
 #define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 struct ImDrawData;
@@ -116,9 +115,6 @@ namespace worlds
     struct RenderDebugContext
     {
         RenderDebugStats* stats;
-#ifdef TRACY_ENABLE
-        std::vector<TracyVkCtx>* tracyContexts;
-#endif
     };
 
     struct MeshBone

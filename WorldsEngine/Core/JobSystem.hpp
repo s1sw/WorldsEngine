@@ -1,6 +1,6 @@
 #pragma once
 #include "concurrentqueue.h"
-#include "tracy/Tracy.hpp"
+#include "Tracy.hpp"
 #include <SDL_mutex.h>
 #include <atomic>
 #include <condition_variable>
