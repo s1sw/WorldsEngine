@@ -13,7 +13,7 @@ namespace worlds
 
     ImTextureID VKUITextureManager::loadOrGet(AssetID id)
     {
-        return (ImTextureID)texMan->loadOrGet(id);
+        return (ImTextureID)(uint64_t)texMan->loadOrGet(id);
     }
 
     void VKUITextureManager::unload(AssetID id)

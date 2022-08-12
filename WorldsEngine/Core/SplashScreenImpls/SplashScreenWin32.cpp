@@ -12,13 +12,14 @@
 #include <windowsx.h>
 
 // ew ew ew ew ew
-#ifndef __MINGW32__
+#ifndef min
+#define MINMAX_REDEFINED
 #define min(a, b) a < b ? a : b
 #define max(a, b) a > b ? a : b
 #endif
 #include <gdiplus.h>
 #undef small
-#ifndef __MINGW32__
+#ifdef MINMAX_REDEFINED
 #undef min
 #undef max
 #endif

@@ -12,4 +12,4 @@ set(FMOD_DIR "C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows/ap
 
 add_subdirectory(R2)
 add_subdirectory(WorldsEngine)
-add_subdirectory(LonelyGalaxy)
+add_subdirectory(EngineLoader)

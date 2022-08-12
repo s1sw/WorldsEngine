@@ -56,8 +56,8 @@ namespace worlds
         //sr.bindVertexAttribute(vb, "Position", VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, position));
         //sr.bindVertexAttribute(vb, "Normal", VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, normal));
 
-        vb.Attributes.emplace_back(0, VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, position));
-        vb.Attributes.emplace_back(1, VK::TextureFormat::R32G32B32_SFLOAT, offsetof(Vertex, position));
+        vb.Attributes.emplace_back(0, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+        vb.Attributes.emplace_back(1, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
 
         VK::ShaderModule& stdVert = ShaderCache::getModule(vs);
         VK::ShaderModule& stdFrag = ShaderCache::getModule(fs);

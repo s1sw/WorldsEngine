@@ -33,8 +33,8 @@ namespace worlds
         VK::VertexBinding vb;
         vb.Size = sizeof(DebugLineVert);
         vb.Binding = 0;
-        vb.Attributes.emplace_back(0, VK::TextureFormat::R32G32B32_SFLOAT, offsetof(DebugLineVert, point));
-        vb.Attributes.emplace_back(1, VK::TextureFormat::R32G32B32A32_SFLOAT, offsetof(DebugLineVert, color));
+        vb.Attributes.emplace_back(0, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(DebugLineVert, point));
+        vb.Attributes.emplace_back(1, VK::TextureFormat::R32G32B32A32_SFLOAT, (uint32_t)offsetof(DebugLineVert, color));
 
         VK::ShaderModule& vert = ShaderCache::getModule(AssetDB::pathToId("Shaders/debug_line.vert.spv"));
         VK::ShaderModule& frag = ShaderCache::getModule(AssetDB::pathToId("Shaders/debug_line.frag.spv"));
