@@ -76,6 +76,8 @@ namespace worlds
             return "rgba";
         case TextureAssetType::PBR:
             return "pbr";
+        default:
+            return "unknown";
         }
     }
 

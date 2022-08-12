@@ -69,7 +69,7 @@ namespace worlds
 
     ImTextureID VKRTTPass::getUITextureID()
     {
-        return (ImTextureID)finalTargetBindlessID;
+        return (ImTextureID)(uint64_t)finalTargetBindlessID;
     }
 
     const RTTPassCreateInfo& VKRTTPass::getSettings()

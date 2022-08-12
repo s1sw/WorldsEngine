@@ -142,7 +142,7 @@ namespace worlds
 
         std::string tpaList = "";
 
-        for (const auto& dirEntry : recursive_directory_iterator(std::filesystem::current_path() / "NetAssemblies"))
+        for (const auto& dirEntry : recursive_directory_iterator(std::filesystem::path(exePath).parent_path() / "NetAssemblies"))
         {
             if (dirEntry.is_regular_file() && dirEntry.path().extension() == ".dll")
             {

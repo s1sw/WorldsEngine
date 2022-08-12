@@ -1233,7 +1233,7 @@ namespace crnlib
 
          max_codebook_entries = math::clamp<uint>(max_codebook_entries, cCRNMinPaletteSize, cCRNMaxPaletteSize);
 
-         float quality = math::clamp<float>((float)m_pParams->m_quality_level / cCRNMaxQualityLevel, 0.0f, 1.0f);
+         float quality = math::clamp<float>((float)m_pParams->m_quality_level / (int)cCRNMaxQualityLevel, 0.0f, 1.0f);
          float color_quality_power_mul = 1.0f;
          float alpha_quality_power_mul = 1.0f;
          if (m_pParams->m_format == cCRNFmtDXT5_CCxY)

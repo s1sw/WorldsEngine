@@ -32,7 +32,7 @@ namespace WorldsEngine
         private static extern void worldlight_setColor(IntPtr registryPtr, uint entityId, Vector3 color);
 
         [DllImport(Engine.NativeModule)]
-        private static extern Vector3 worldlight_getColor(IntPtr registryPtr, uint entityId);
+        private static extern void worldlight_getColor(IntPtr registryPtr, uint entityId, out Vector3 color);
 
         [DllImport(Engine.NativeModule)]
         private static extern float worldlight_getRadius(IntPtr registryPtr, uint entityId);
@@ -60,7 +60,12 @@ namespace WorldsEngine
 
         public Vector3 Color
         {
-            get => worldlight_getColor(regPtr, entityId);
+            get
+            {
+                worldlight_getColor(regPtr, entityId, out Vector3 color);
+                return color;
+            }
+
             set => worldlight_setColor(regPtr, entityId, value);
         }
 

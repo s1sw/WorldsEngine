@@ -25,9 +25,9 @@ extern "C"
         registry->get<WorldLight>(entity).intensity = intensity;
     }
 
-    EXPORT glm::vec3 worldlight_getColor(entt::registry* registry, entt::entity entity)
+    EXPORT void worldlight_getColor(entt::registry* registry, entt::entity entity, glm::vec3* out)
     {
-        return registry->get<WorldLight>(entity).color;
+        *out = registry->get<WorldLight>(entity).color;
     }
 
     EXPORT void worldlight_setColor(entt::registry* registry, entt::entity entity, glm::vec3 color)

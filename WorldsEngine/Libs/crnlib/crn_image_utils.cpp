@@ -15,7 +15,9 @@
 #include "crn_buffer_stream.h"
 
 #define STBI_HEADER_FILE_ONLY
-#include "crn_stb_image.cpp"
+#include <stb_image.h>
+
+#include <stb_image_write.h>
 
 #include "crn_jpgd.h"
 
