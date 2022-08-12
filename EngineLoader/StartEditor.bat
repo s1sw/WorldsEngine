@@ -1,2 +1,2 @@
 @echo off
-./EngineLoader.exe --novr --editor
+WorldsEngine.exe --novr --editor

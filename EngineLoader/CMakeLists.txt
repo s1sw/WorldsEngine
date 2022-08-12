@@ -49,6 +49,11 @@ add_custom_command (TARGET ${PROJECT_NAME} POST_BUILD
 
 add_custom_command (TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${PROJECT_SOURCE_DIR}/../External/bin/phonon.dll" $<TARGET_FILE_DIR:${PROJECT_NAME}>
+)
+
+add_custom_command (TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${PROJECT_SOURCE_DIR}/../External/bin/$<IF:$<CONFIG:Debug>,win64dbg,win64rel>/freetype.dll" $<TARGET_FILE_DIR:${PROJECT_NAME}>
 )
 

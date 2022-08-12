@@ -51,6 +51,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 file(GLOB_RECURSE wsrc ./*.cpp ./*.cc ./*.c)
 
 add_library(${PROJECT_NAME} STATIC ${wsrc})
+target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_STEAM_AUDIO)
 
 if(WIN32)
     set(LIB_PATH ../External/Lib/windows64dbg)
@@ -65,9 +66,10 @@ if(WIN32)
         "${LIB_PATH}/PhysX_static_64"
         "${LIB_PATH}/PhysXVehicle_static_64"
     )
+    target_link_libraries(${PROJECT_NAME} "${FMOD_DIR}/core/lib/x64/fmod_vc.lib" "${FMOD_DIR}/studio/lib/x64/fmodstudio_vc.lib")
+    target_link_libraries(${PROJECT_NAME} "../External/Lib/phonon")
 endif()
 
 target_link_libraries(${PROJECT_NAME} R2 SDL2::SDL2 physfs TracyClient slib Recast Detour assimp::assimp)
-target_link_libraries(${PROJECT_NAME} "${FMOD_DIR}/core/lib/x64/fmod_vc.lib" "${FMOD_DIR}/studio/lib/x64/fmodstudio_vc.lib")
 target_include_directories(${PROJECT_NAME} PUBLIC . ../External/Include ../TextureFormat ../ModelFormat)
 target_include_directories(${PROJECT_NAME} PUBLIC "${FMOD_DIR}/core/inc" "${FMOD_DIR}/studio/inc")
