@@ -183,7 +183,7 @@ float3 sampleCubemap(Cubemap cubemap, float3 dir, float mip, float3 worldPos)
     dir.x = -dir.x;
     dir = normalize(dir);
 
-    if (cubemap.TextureID == ~0u) return float3(1.0f, 0.0f, 1.0f);
+    if (cubemap.TextureID == ~0u) return pow(float3(0.392f, 0.584f, 0.992f), 2.2);
     return Cubemaps[NonUniformResourceIndex(cubemap.TextureID)].SampleLevel(dir, mip).rgb;
 }
 

@@ -69,6 +69,8 @@ namespace worlds
 
       private:
         std::string _eventPath;
+        bool inPhononSim = false;
+        friend class AudioSystem;
     };
 
     struct AudioTrigger

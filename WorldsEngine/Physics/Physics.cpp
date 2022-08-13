@@ -461,7 +461,9 @@ namespace worlds
         _cooking->setParams(params);
         physx::PxSceneDesc desc(tolerancesScale);
         desc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
-        desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(std::max(SDL_GetCPUCount(), 1));
+        int numThreads = std::min(SDL_GetCPUCount(), 8);
+        desc.cpuDispatcher = physx::PxDefaultCpuDispatcherCreate(numThreads);
+        logMsg(WELogCategoryPhysics, "Using %u threads.", desc.cpuDispatcher->getWorkerCount());
         desc.filterShader = filterShader;
         desc.solverType = physx::PxSolverType::eTGS;
         desc.flags = PxSceneFlag::eENABLE_CCD | PxSceneFlag::eENABLE_PCM;

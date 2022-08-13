@@ -31,6 +31,7 @@ namespace WorldsEngine.Hotloading
 
         private FileSystemWatcher? watcher;
         private bool needsReload = false;
+        private bool currentlyReloading = false;
         private static int loadCounter = 0;
 
         static LoadedAssembly()
@@ -105,10 +106,12 @@ namespace WorldsEngine.Hotloading
         {
             if (needsReload)
             {
+                currentlyReloading = true;
                 if (Loaded)
                     SwapReload();
                 else
                     Load();
+                currentlyReloading = false;
 
                 needsReload = false;
             }
@@ -174,6 +177,7 @@ namespace WorldsEngine.Hotloading
 
         private void OnAssemblyChanged(object sender, FileSystemEventArgs e)
         {
+            if (currentlyReloading) return;
             needsReload = true;
         }
     }

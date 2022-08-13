@@ -61,8 +61,8 @@ namespace worlds
         style.WindowBorderSize = 1.0f;
         style.PopupBorderSize = 0.0f;
         style.FrameRounding = 6.0f;
-        style.PopupRounding = 1.0f;
-        style.WindowRounding = 3.0f;
+        style.PopupRounding = 6.0f;
+        style.WindowRounding = 6.0f;
         style.ScrollbarRounding = 3.0f;
         style.GrabRounding = 2.0f;
         style.ChildBorderSize = 0.0f;

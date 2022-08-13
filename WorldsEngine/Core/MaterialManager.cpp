@@ -1,9 +1,11 @@
-#include <Render/MaterialManager.hpp>
+#include <Core/MaterialManager.hpp>
 #include <Core/AssetDB.hpp>
 #include <Core/Log.hpp>
 
 namespace worlds
 {
+    robin_hood::unordered_map<AssetID, nlohmann::json> MaterialManager::mats;
+
     nlohmann::json& MaterialManager::loadOrGet(AssetID id)
     {
         if (mats.contains(id))
@@ -47,5 +49,10 @@ namespace worlds
         }
 
         return mats.at(id);
+    }
+    
+    void MaterialManager::reload()
+    {
+        mats.clear();
     }
 }

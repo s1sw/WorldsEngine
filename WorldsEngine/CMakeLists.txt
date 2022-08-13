@@ -54,7 +54,7 @@ add_library(${PROJECT_NAME} STATIC ${wsrc})
 target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_STEAM_AUDIO)
 
 if(WIN32)
-    set(LIB_PATH ../External/Lib/windows64dbg)
+    set(LIB_PATH ../External/Lib/windows64$<IF:$<CONFIG:Debug>,dbg,rel>)
     target_compile_definitions(${PROJECT_NAME} PUBLIC PX_PHYSX_STATIC_LIB)
     target_link_libraries(${PROJECT_NAME} dbghelp gdiplus dwmapi "${LIB_PATH}/openvr_api" "${LIB_PATH}/freetype")
     target_link_libraries(${PROJECT_NAME}

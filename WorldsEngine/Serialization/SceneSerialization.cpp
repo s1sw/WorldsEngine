@@ -89,7 +89,7 @@ namespace worlds
 
     entt::entity SceneLoader::createPrefab(AssetID id, entt::registry& reg)
     {
-        if (id == INVALID_ASSET)
+        if (id == INVALID_ASSET || !AssetDB::exists(id))
         {
             logWarn(WELogCategoryScripting, "Invalid asset ID!");
             return entt::null;

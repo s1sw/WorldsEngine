@@ -1,12 +1,12 @@
 #include <Core/AssetDB.hpp>
-#include <Core/Log.hpp>
 #include <Core/Engine.hpp>
+#include <Core/Log.hpp>
+#include <Core/MaterialManager.hpp>
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/VK.hpp>
 #include <R2/VKSwapchain.hpp>
 #include <R2/VKSyncPrims.hpp>
 #include <Render/FakeLitPipeline.hpp>
-#include <Render/MaterialManager.hpp>
 #include <Render/R2ImGui.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
@@ -45,7 +45,6 @@ namespace worlds
 
         debugStats = RenderDebugStats{};
 
-        materialManager = new MaterialManager();
         bindlessTextureManager = new R2::BindlessTextureManager(core);
         textureManager = new VKTextureManager(core, bindlessTextureManager);
         uiTextureManager = new VKUITextureManager(textureManager);
@@ -66,6 +65,11 @@ namespace worlds
     {
         delete frameFence;
         delete swapchain;
+
+        for (VKRTTPass* pass : rttPasses)
+        {
+            delete pass;
+        }
 
         delete renderMeshManager;
         delete uiTextureManager;
@@ -204,11 +208,6 @@ namespace worlds
     RenderMeshManager* VKRenderer::getMeshManager()
     {
         return renderMeshManager;
-    }
-
-    MaterialManager* VKRenderer::getMaterialManager()
-    {
-        return materialManager;
     }
 
     R2::BindlessTextureManager* VKRenderer::getBindlessTextureManager()

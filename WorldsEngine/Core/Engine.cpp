@@ -6,6 +6,7 @@
 #include <Core/Console.hpp>
 #include <Core/ISystem.hpp>
 #include <Core/Log.hpp>
+#include <Core/MaterialManager.hpp>
 #include <Core/Window.hpp>
 #include <Editor/Editor.hpp>
 #include <ImGui/imgui.h>
@@ -580,7 +581,7 @@ namespace worlds
 
             console->registerCommand([&](void*, const char*) {}, "reloadTextures", "Reloads textures.");
 
-            console->registerCommand([&](void*, const char*) {}, "reloadMaterials", "Reloads materials.");
+            console->registerCommand([&](void*, const char*) { MaterialManager::reload(); }, "reloadMaterials", "Reloads materials.");
 
             console->registerCommand(
                 [&](void*, const char*) {

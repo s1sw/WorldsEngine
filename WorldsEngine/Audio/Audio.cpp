@@ -2,6 +2,7 @@
 #include <Core/Engine.hpp>
 #include <Core/Log.hpp>
 #include <Core/Transform.hpp>
+#include <Core/MaterialManager.hpp>
 #include <IO/IOUtil.hpp>
 #include <ImGui/imgui.h>
 #include <Libs/IconsFontaudio.h>
@@ -224,6 +225,99 @@ namespace worlds
         return FMOD_OK;
     }
 
+    class AudioSystem::SteamAudioSimThread
+    {
+      public:
+        std::mutex commitMutex;
+
+        SteamAudioSimThread(IPLSimulator simulator, AudioSystem* system) : simulator{simulator}, system(system)
+        {
+            thread = std::thread([this]() { actualThread(); });
+        }
+
+        bool isSimRunning()
+        {
+            return simRunning;
+        }
+        void runSimulation()
+        {
+            simThreadKickoff = true;
+            conVar.notify_one();
+        }
+
+        double lastStepTime()
+        {
+            return lastRunTime;
+        }
+
+        ~SteamAudioSimThread()
+        {
+            threadAlive = false;
+            simThreadKickoff = true;
+            conVar.notify_one();
+            thread.join();
+        }
+
+      private:
+        void actualThread()
+        {
+            while (threadAlive)
+            {
+                {
+                    std::unique_lock lock{mutex};
+                    conVar.wait(lock, [this]() { return simThreadKickoff.load(); });
+                    simThreadKickoff.store(false);
+                }
+
+                if (system->needsSimCommit)
+                {
+#ifdef ENABLE_STEAM_AUDIO
+                    std::unique_lock lock{commitMutex};
+                    while (!system->sourcesToAdd.empty())
+                    {
+                        IPLSource source = system->sourcesToAdd.front();
+                        iplSourceAdd(source, simulator);
+                        system->sourcesToAdd.pop();
+                    }
+                    iplSimulatorCommit(simulator);
+
+                    while (!system->sourcesToRemove.empty())
+                    {
+                        IPLSource source = system->sourcesToRemove.front();
+                        iplSourceRemove(source, simulator);
+                        iplSourceRelease(&source);
+                        system->sourcesToRemove.pop();
+                    }
+
+                    iplSimulatorCommit(simulator);
+#endif
+                    system->needsSimCommit = false;
+                }
+
+                {
+                    PerfTimer pt;
+                    simRunning = true;
+#ifdef ENABLE_STEAM_AUDIO
+                    iplSimulatorRunReflections(simulator);
+                    iplSimulatorRunPathing(simulator);
+#endif
+                    simRunning = false;
+                    lastRunTime = pt.stopGetMs();
+                }
+            }
+        }
+
+        std::atomic<bool> simRunning = false;
+        std::atomic<bool> simThreadKickoff;
+        std::condition_variable conVar;
+        std::mutex mutex;
+        std::thread thread;
+        std::atomic<bool> threadAlive = true;
+        IPLSimulator simulator;
+        AudioSystem* system;
+        double lastRunTime = 0.0;
+    };
+
     FMOD_RESULT audioSourcePhononEventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* cevent,
                                                void* param)
     {
@@ -298,8 +392,7 @@ namespace worlds
 
             AudioSystem* as = AudioSystem::getInstance();
             SACHECK(iplSourceCreate(as->simulator, &sourceSettings, &phononSource));
-            as->sourcesToAdd.push(phononSource);
-            as->needsSimCommit = true;
+            std::unique_lock lock{_this->simThread->commitMutex};
 
             eventInstance->setUserData(phononSource);
             eventInstance->setCallback(audioSourcePhononEventCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATED);
@@ -314,95 +407,6 @@ namespace worlds
         return ret;
     }
 
-    class AudioSystem::SteamAudioSimThread
-    {
-      public:
-        SteamAudioSimThread(IPLSimulator simulator, AudioSystem* system) : simulator{simulator}, system(system)
-        {
-            thread = std::thread([this]() { actualThread(); });
-        }
-
-        bool isSimRunning()
-        {
-            return simRunning;
-        }
-        void runSimulation()
-        {
-            simThreadKickoff = true;
-            conVar.notify_one();
-        }
-
-        double lastStepTime()
-        {
-            return lastRunTime;
-        }
-
-        ~SteamAudioSimThread()
-        {
-            threadAlive = false;
-            simThreadKickoff = true;
-            conVar.notify_one();
-            thread.join();
-        }
-
-      private:
-        void actualThread()
-        {
-            while (threadAlive)
-            {
-                {
-                    std::unique_lock lock{mutex};
-                    conVar.wait(lock, [this]() { return simThreadKickoff.load(); });
-                    simThreadKickoff.store(false);
-                }
-
-                if (system->needsSimCommit)
-                {
-#ifdef ENABLE_STEAM_AUDIO
-                    while (!system->sourcesToAdd.empty())
-                    {
-                        IPLSource source = system->sourcesToAdd.front();
-                        iplSourceAdd(source, simulator);
-                        system->sourcesToAdd.pop();
-                    }
-                    iplSimulatorCommit(simulator);
-
-                    while (!system->sourcesToRemove.empty())
-                    {
-                        IPLSource source = system->sourcesToRemove.front();
-                        iplSourceRemove(source, simulator);
-                        iplSourceRelease(&source);
-                        system->sourcesToRemove.pop();
-                    }
-
-                    iplSimulatorCommit(simulator);
-#endif
-                    system->needsSimCommit = false;
-                }
-
-                {
-                    PerfTimer pt;
-                    simRunning = true;
-#ifdef ENABLE_STEAM_AUDIO
-                    iplSimulatorRunReflections(simulator);
-                    iplSimulatorRunPathing(simulator);
-#endif
-                    simRunning = false;
-                    lastRunTime = pt.stopGetMs();
-                }
-            }
-        }
-
-        std::atomic<bool> simRunning = false;
-        std::atomic<bool> simThreadKickoff;
-        std::condition_variable conVar;
-        std::mutex mutex;
-        std::thread thread;
-        std::atomic<bool> threadAlive = true;
-        IPLSimulator simulator;
-        AudioSystem* system;
-        double lastRunTime = 0.0;
-    };
 
     ConVar a_showDebugInfo{"a_showDebugInfo", "0"};
 
@@ -593,7 +597,9 @@ namespace worlds
 
         if (as.phononSource)
         {
+            std::unique_lock lock{simThread->commitMutex};
             sourcesToRemove.push(as.phononSource);
+            iplSourceRetain(as.phononSource);
         }
     }
 
@@ -628,6 +634,17 @@ namespace worlds
     }
 #endif
 
+    glm::vec3 checkV(glm::vec3 v)
+    {
+        if (glm::any(glm::isnan(v) || glm::isinf(v)))
+        {
+            logErr("invalid vec in audio");
+            v = glm::vec3 { 1.0f, 0.0f, 0.0f };
+        }
+
+        return v;
+    }
+
     ConVar a_phononUpdateRate{"a_phononUpdateRate", "0.1"};
     void AudioSystem::updateSteamAudio(entt::registry& registry, float deltaTime, glm::vec3 listenerPos,
                                        glm::quat listenerRot)
@@ -638,10 +655,23 @@ namespace worlds
 
         IPLSimulationInputs inputs{};
         inputs.flags = simFlags;
-        inputs.source.right = convVecSA(listenerRot * glm::vec3(1.0f, 0.0f, 0.0f));
-        inputs.source.up = convVecSA(listenerRot * glm::vec3(0.0f, 1.0f, 0.0f));
-        inputs.source.ahead = convVecSA(listenerRot * glm::vec3(0.0f, 0.0f, 1.0f));
-        inputs.source.origin = convVecSA(listenerPos);
+
+        if (glm::any(glm::isnan(listenerPos) || glm::isinf(listenerPos)))
+        {
+            logWarn(WELogCategoryAudio, "Listener position was NaN or infinity");
+            listenerPos = glm::vec3{ 0.0f };
+        }
+
+        if (glm::any(glm::isnan(listenerRot) || glm::isinf(listenerRot)))
+        {
+            logWarn(WELogCategoryAudio, "Listener rotation was NaN or infinity");
+            listenerRot = glm::quat { 1.0f, 0.0f, 0.0f, 0.0f };
+        }
+
+        inputs.source.right = convVecSA(checkV(listenerRot * glm::vec3(1.0f, 0.0f, 0.0f)));
+        inputs.source.up = convVecSA(checkV(listenerRot * glm::vec3(0.0f, 1.0f, 0.0f)));
+        inputs.source.ahead = convVecSA(checkV(listenerRot * glm::vec3(0.0f, 0.0f, 1.0f)));
+        inputs.source.origin = convVecSA(checkV(listenerPos));
         inputs.distanceAttenuationModel.type = IPL_DISTANCEATTENUATIONTYPE_DEFAULT;
         inputs.airAbsorptionModel.type = IPL_AIRABSORPTIONTYPE_DEFAULT;
         inputs.reverbScale[0] = 1.0f;
@@ -679,14 +709,37 @@ namespace worlds
             iplSourceSetInputs(oneshot->phononSource, simFlags, &inputs);
         }
 
-        registry.view<AudioSource, Transform>().each([simFlags](AudioSource& as, Transform& t) {
+        registry.view<AudioSource, Transform>().each([simFlags, this](AudioSource& as, Transform& t) {
             if (!as.eventInstance->isValid())
                 return;
 
             FMOD_STUDIO_PLAYBACK_STATE playbackState;
             FMCHECK(as.eventInstance->getPlaybackState(&playbackState));
-            if (as.phononSource == nullptr || playbackState == FMOD_STUDIO_PLAYBACK_STOPPED)
+            if (as.phononSource == nullptr)
                 return;
+
+            if (playbackState == FMOD_STUDIO_PLAYBACK_STOPPED)
+            {
+                if (as.inPhononSim)
+                {
+                    as.inPhononSim = false;
+                    std::unique_lock lock{simThread->commitMutex};
+                    needsSimCommit = true; 
+                    iplSourceRetain(as.phononSource);
+                    this->sourcesToRemove.push(as.phononSource);
+                }
+
+                return;
+            }
+
+            if (!as.inPhononSim)
+            {
+                as.inPhononSim = true;
+                std::unique_lock lock{simThread->commitMutex};
+                needsSimCommit = true; 
+                this->sourcesToAdd.push(as.phononSource);
+            }
+
             IPLSimulationInputs inputs{};
             inputs.flags = simFlags;
             inputs.source.right = convVecSA(t.rotation * glm::vec3(1.0f, 0.0f, 0.0f));
@@ -802,19 +855,25 @@ namespace worlds
             FMCHECK(ao->instance->set3DAttributes(&sourceAttributes));
         }
 
-        attachedOneshots.erase(std::remove_if(attachedOneshots.begin(), attachedOneshots.end(),
-                                              [this](AttachedOneshot* ao) {
-                                                  bool marked = ao->markForRemoval;
-                                                  if (marked)
-                                                  {
-                                                      if (ao->phononSource)
-                                                          sourcesToRemove.push(ao->phononSource);
-                                                      needsSimCommit = true;
-                                                      delete ao;
-                                                  }
-                                                  return marked;
-                                              }),
-                               attachedOneshots.end());
+        {
+            std::unique_lock lock{simThread->commitMutex};
+            attachedOneshots.erase(std::remove_if(attachedOneshots.begin(), attachedOneshots.end(),
+                [this](AttachedOneshot* ao) {
+                    bool marked = ao->markForRemoval;
+                    if (marked)
+                    {
+                        if (ao->phononSource)
+                        {
+                            iplSourceRetain(ao->phononSource);
+                            sourcesToRemove.push(ao->phononSource);
+                        }
+                        needsSimCommit = true;
+                        delete ao;
+                    }
+                    return marked;
+                }),
+                attachedOneshots.end());
+        }
 
         FMCHECK(studioSystem->update());
 
@@ -996,6 +1055,8 @@ namespace worlds
                     (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS | IPL_SIMULATIONFLAGS_DIRECT)};
 
                 SACHECK(iplSourceCreate(simulator, &sourceSettings, &attachedOneshot->phononSource));
+
+                std::unique_lock lock{simThread->commitMutex};
                 sourcesToAdd.push(attachedOneshot->phononSource);
                 needsSimCommit = true;
             }
@@ -1009,10 +1070,11 @@ namespace worlds
     {
         if (!available)
             return;
-        if (simThread)
-            delete simThread;
 
         worldState.clear<AudioSource>();
+
+        if (simThread)
+            delete simThread;
 
         FMCHECK(studioSystem->release());
     }
@@ -1114,6 +1176,7 @@ namespace worlds
     struct CacheableMeshInfo
     {
         std::vector<IPLTriangle> triangles;
+        std::vector<IPLMaterial> materials;
         std::vector<int> materialIndices;
     };
     robin_hood::unordered_map<AssetID, CacheableMeshInfo> cachedMeshes;
@@ -1135,7 +1198,6 @@ namespace worlds
             glm::mat4 tMat = t.getMatrix();
 
             // oh boy
-            IPLMaterial mat{{0.1f, 0.2f, 0.3f}, 0.05f, {0.1f, 0.05f, 0.03f}};
             std::vector<IPLVector3> verts;
 
             const LoadedMesh& lm = MeshManager::loadOrGet(wo.mesh);
@@ -1146,14 +1208,47 @@ namespace worlds
                 cmi.triangles.resize(lm.indices.size() / 3);
                 cmi.materialIndices.resize(cmi.triangles.size());
 
-                for (uint32_t i = 0; i < lm.indices.size(); i += 3)
+                uint32_t triCount = 0;
+
+                cmi.materials.resize(32);
+                for (int materialIndex = 0; materialIndex < 32; materialIndex++)
                 {
-                    cmi.triangles[i / 3] = {(int)lm.indices[i], (int)lm.indices[i + 1], (int)lm.indices[i + 2]};
+                    IPLMaterial mat{{0.1f, 0.2f, 0.3f}, 0.05f, {0.1f, 0.05f, 0.03f}};
+
+                    if (wo.presentMaterials[materialIndex])
+                    {
+                        auto& jMat = MaterialManager::loadOrGet(wo.materials[materialIndex]);
+                        mat.scattering = jMat.value("soundScattering", mat.scattering);
+
+                        if (jMat.contains("soundAbsorption"))
+                        {
+                            for (int i = 0; i < 3; i++)
+                            {
+                                mat.absorption[i] = jMat["soundAbsorption"][i];
+                            }
+                        }
+
+                        if (jMat.contains("soundTransmission"))
+                        {
+                            for (int i = 0; i < 3; i++)
+                            {
+                                mat.transmission[i] = jMat["soundTransmission"][i];
+                            }
+                        }
+                    }
+
+                    cmi.materials[materialIndex] = mat;
                 }
 
-                for (uint32_t i = 0; i < cmi.materialIndices.size(); i++)
+                for (int submeshIdx = 0; submeshIdx < lm.numSubmeshes; submeshIdx++)
                 {
-                    cmi.materialIndices[i] = 0;
+                    const SubmeshInfo& submesh = lm.submeshes[submeshIdx];
+
+                    for (uint32_t i = 0; i < submesh.indexCount; i += 3)
+                    {
+                        cmi.materialIndices[triCount] = submesh.materialIndex;
+                        cmi.triangles[triCount++] = {(int)lm.indices[submesh.indexOffset + i], (int)lm.indices[submesh.indexOffset + i + 1], (int)lm.indices[submesh.indexOffset + i + 2]};
+                    }
                 }
 
                 cachedMeshes.insert({wo.mesh, std::move(cmi)});
@@ -1174,11 +1269,11 @@ namespace worlds
             IPLStaticMeshSettings settings{};
             settings.numVertices = verts.size();
             settings.numTriangles = cmi.triangles.size();
-            settings.numMaterials = 1;
+            settings.numMaterials = cmi.materials.size();
             settings.vertices = verts.data();
             settings.triangles = cmi.triangles.data();
             settings.materialIndices = cmi.materialIndices.data();
-            settings.materials = &mat;
+            settings.materials = cmi.materials.data();
 
             IPLStaticMesh mesh = nullptr;
             SACHECK(iplStaticMeshCreate(scene, &settings, &mesh));

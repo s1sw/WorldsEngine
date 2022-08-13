@@ -246,8 +246,6 @@ namespace worlds
         Camera* getCamera();
     };
 
-    class MaterialManager;
-
     class VKRenderer : public Renderer
     {
         R2::VK::Core* core;
@@ -257,7 +255,6 @@ namespace worlds
         VKUITextureManager* uiTextureManager;
         VKTextureManager* textureManager;
         RenderMeshManager* renderMeshManager;
-        MaterialManager* materialManager;
 
         std::vector<VKRTTPass*> rttPasses;
 
@@ -293,7 +290,6 @@ namespace worlds
 
         R2::VK::Core* getCore();
         RenderMeshManager* getMeshManager();
-        MaterialManager* getMaterialManager();
         R2::BindlessTextureManager* getBindlessTextureManager();
         VKTextureManager* getTextureManager();
         const DebugLine* getCurrentDebugLines(size_t* count);

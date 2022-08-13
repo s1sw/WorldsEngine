@@ -1,10 +1,10 @@
 #include "StandardPipeline.hpp"
 #include <Core/AssetDB.hpp>
+#include <Core/MaterialManager.hpp>
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/SubAllocatedBuffer.hpp>
 #include <R2/VK.hpp>
 #include <Render/Frustum.hpp>
-#include <Render/MaterialManager.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
 #include <Render/StandardPipeline/Bloom.hpp>
@@ -66,13 +66,12 @@ namespace worlds
             return allocedMaterials[id].offset;
         }
 
-        MaterialManager* materialManager = renderer->getMaterialManager();
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* tm = renderer->getTextureManager();
 
         MaterialAllocInfo mai{};
 
-        auto& j = materialManager->loadOrGet(id);
+        auto& j = MaterialManager::loadOrGet(id);
 
         mai.offset = materialBuffer->Allocate(sizeof(StandardPBRMaterial), mai.handle);
 
@@ -438,7 +437,6 @@ namespace worlds
     {
         VK::Core* core = renderer->getCore();
         RenderMeshManager* meshManager = renderer->getMeshManager();
-        MaterialManager* materialManager = renderer->getMaterialManager();
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* textureManager = renderer->getTextureManager();
 

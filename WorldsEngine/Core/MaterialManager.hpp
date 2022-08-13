@@ -8,8 +8,9 @@ namespace worlds
     class MaterialManager
     {
     public:
-        nlohmann::json& loadOrGet(AssetID id);
+        static nlohmann::json& loadOrGet(AssetID id);
+        static void reload();
     private:
-        robin_hood::unordered_map<AssetID, nlohmann::json> mats;
+        static robin_hood::unordered_map<AssetID, nlohmann::json> mats;
     };
 }
