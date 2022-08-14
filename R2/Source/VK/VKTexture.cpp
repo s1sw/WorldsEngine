@@ -260,7 +260,7 @@ namespace R2::VK
         return format;
     }
 
-    void Texture::Acquire(CommandBuffer cb, ImageLayout layout, AccessFlags access)
+    void Texture::Acquire(CommandBuffer cb, ImageLayout layout, AccessFlags access, PipelineStageFlags stage)
     {
         VkImageMemoryBarrier2 imb{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
         imb.oldLayout = (VkImageLayout)lastLayout;
@@ -272,8 +272,8 @@ namespace R2::VK
         imb.srcAccessMask = (VkAccessFlags2)lastAccess;
         imb.dstAccessMask = (VkAccessFlags2)access;
 
-        imb.srcStageMask = (VkPipelineStageFlags2)getPipelineStage(lastAccess);
-        imb.dstStageMask = (VkPipelineStageFlags2)getPipelineStage(access);
+        imb.srcStageMask = (VkPipelineStageFlags2)lastPipelineStage;
+        imb.dstStageMask = (VkPipelineStageFlags2)stage;
 
         VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
         depInfo.imageMemoryBarrierCount = 1;
@@ -284,6 +284,7 @@ namespace R2::VK
 
         lastLayout = layout;
         lastAccess = access;
+        lastPipelineStage = stage;
     }
 
     void Texture::WriteLayoutTransition(CommandBuffer cb, ImageLayout layout)

@@ -439,6 +439,8 @@ namespace worlds
         EditorActions::bindAction("editor.openActionSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control});
         EditorActions::bindAction("editor.openAssetSearch",
                                   ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift});
+        
+        SceneLoader::registerLoadCallback(this, sceneLoadCallback);
     }
 
     Editor::~Editor()
@@ -464,7 +466,8 @@ namespace worlds
         // A null entity means we should deselect the current entity
         for (auto ent : selectedEntities)
         {
-            reg.remove_if_exists<EditorGlow>(ent);
+            if (reg.valid(ent))
+                reg.remove_if_exists<EditorGlow>(ent);
         }
         selectedEntities.clear();
 
@@ -1073,7 +1076,14 @@ namespace worlds
 
         if (inputManager.keyPressed(SDL_SCANCODE_C) && inputManager.ctrlHeld() && reg.valid(currentSelectedEntity))
         {
-            std::string entityJson = JsonSceneSerializer::entityToJson(reg, currentSelectedEntity);
+            std::vector<entt::entity> allSelectedEntities;
+            allSelectedEntities.push_back(currentSelectedEntity);
+            for (entt::entity e : selectedEntities)
+            {
+                allSelectedEntities.push_back(e);
+            }
+
+            std::string entityJson = JsonSceneSerializer::entitiesToJson(reg, allSelectedEntities.data(), allSelectedEntities.size());
             SDL_SetClipboardText(entityJson.c_str());
         }
 
@@ -1082,7 +1092,16 @@ namespace worlds
             const char* txt = SDL_GetClipboardText();
             try
             {
-                select(JsonSceneSerializer::jsonToEntity(reg, txt));
+                auto pastedEnts = JsonSceneSerializer::jsonToEntities(reg, txt);
+                if (pastedEnts.size() > 0)
+                {
+                    select(pastedEnts[0]);
+
+                    for (size_t i = 1; i < pastedEnts.size(); i++)
+                    {
+                        multiSelect(pastedEnts[i]);
+                    }
+                }
                 addNotification("Entity pasted! :)");
             }
             catch (nlohmann::detail::exception& e)
@@ -1307,5 +1326,11 @@ namespace worlds
 
         entityEyedropperActive = false;
         handleOverrideEntity = entt::null;
+    }
+
+    void Editor::sceneLoadCallback(void* ctx, entt::registry& reg)
+    {
+        Editor* _this = (Editor*)ctx;
+        _this->select(entt::null);
     }
 }

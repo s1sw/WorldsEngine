@@ -105,7 +105,7 @@ namespace worlds
             cb.BeginDebugLabel("RTT Pass", 0.0f, 0.0f, 0.0f);
             pass->pipeline->draw(registry, cb);
 
-            pass->getFinalTarget()->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderSampledRead);
+            pass->getFinalTarget()->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::FragmentShader);
 
             cb.EndDebugLabel();
         }
@@ -115,7 +115,7 @@ namespace worlds
         rp.ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.f, 0.f, 0.f, 1.0f));
         rp.RenderArea(width, height);
 
-        swapchainImage->Acquire(cb, VK::ImageLayout::AttachmentOptimal, VK::AccessFlags::ColorAttachmentWrite);
+        swapchainImage->Acquire(cb, VK::ImageLayout::AttachmentOptimal, VK::AccessFlags::ColorAttachmentWrite, VK::PipelineStageFlags::ColorAttachmentOutput);
 
         rp.Begin(cb);
 
@@ -125,7 +125,7 @@ namespace worlds
 
         rp.End(core->GetFrameCommandBuffer());
 
-        swapchainImage->Acquire(cb, VK::ImageLayout::PresentSrc, VK::AccessFlags::MemoryRead);
+        swapchainImage->Acquire(cb, VK::ImageLayout::PresentSrc, VK::AccessFlags::MemoryRead, VK::PipelineStageFlags::AllCommands);
 
         core->EndFrame();
         swapchain->Present();

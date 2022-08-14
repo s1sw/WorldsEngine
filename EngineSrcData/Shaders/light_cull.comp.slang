@@ -51,7 +51,7 @@ struct AABB
 
 #define CULL_DEPTH
 #define CULL_AABB
-#define USE_SUBGROUPS
+//#define USE_SUBGROUPS
 
 groupshared Frustum tileFrustum;
 groupshared AABB tileAABB;
@@ -482,7 +482,7 @@ float depthBufferLoad(int2 coord, int msaaSample)
     #ifdef MULTIVP
         return depthBuffer.Load(int3(coord, eyeIdx), msaaSample).x;
     #else
-        return depthBuffer.Load(int2(coord), msaaSample).x;
+        return depthBuffer.Load(int2(coord), 0).x;
     #endif
 #else
     #ifdef MULTIVP
@@ -514,9 +514,9 @@ uint getDepthBufferSamples()
 void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dispatchID : SV_DispatchThreadID)
 {
     LightTileInfo tileInfo = CalculateTileInfo(screenWidth, screenHeight);
-    uint x = groupID.x;
-    uint y = groupID.y;
-    uint tileIndex = ((y * tileInfo.numTilesX) + x) + (eyeIdx * tileInfo.tilesPerEye);
+    int tileIdxX = groupID.x; 
+    int tileIdxY = groupID.y;
+    uint tileIndex = ((tileIdxY * tileInfo.numTilesX) + tileIdxX);
 
     clearBuffers(tileIndex, groupIndex);
 
@@ -531,7 +531,7 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
     float maxDepthAtCurrent = 0.0;
     int2 coord = int2(dispatchID.xy * 2);
 
-    for (int samp = 0; samp < samples; samp++)
+    for (int samp = 0; samp < 1; samp++)
     {
         float d1 = depthBufferLoad(coord, samp);
         float d2 = depthBufferLoad(coord + int2(0, 1), samp);
@@ -557,13 +557,15 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
     // the depth bounds of the tile to receive the lighting.
     if (minDepthAtCurrent > 0.0f)
     {
-        uint sgMinDepth = WaveActiveMin(minDepthAsUint);
-        uint sgMaxDepth = WaveActiveMax(maxDepthAsUint);
-        if (WaveIsFirstLane())
-        {
-            InterlockedMin(minDepthU, sgMinDepth);
-            InterlockedMax(maxDepthU, sgMaxDepth);
-        }
+        //uint sgMinDepth = WaveActiveMin(minDepthAsUint);
+        //uint sgMaxDepth = WaveActiveMax(maxDepthAsUint);
+        //if (WaveIsFirstLane())
+        //{
+        //    InterlockedMin(minDepthU, sgMinDepth);
+        //    InterlockedMax(maxDepthU, sgMaxDepth);
+        //}
+        InterlockedMin(minDepthU, minDepthAsUint);
+        InterlockedMax(maxDepthU, maxDepthAsUint);
     }
 
     GroupMemoryBarrierWithGroupSync();
@@ -571,7 +573,7 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
     // Stage 2: Calculate frustum points.
     if (groupIndex == 0)
     {
-        setupTile(tileIndex, x, y, tileInfo.tileSize);
+        setupTile(tileIndex, tileIdxX, tileIdxY, tileInfo.tileSize);
     }
 
     GroupMemoryBarrierWithGroupSync();

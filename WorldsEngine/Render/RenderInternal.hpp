@@ -205,6 +205,7 @@ namespace worlds
         R2::VK::Core* core;
         R2::BindlessTextureManager* textureManager;
         robin_hood::unordered_map<AssetID, TexInfo> textureIds;
+        uint32_t missingTextureID;
     };
 
     class VKUITextureManager : public IUITextureManager

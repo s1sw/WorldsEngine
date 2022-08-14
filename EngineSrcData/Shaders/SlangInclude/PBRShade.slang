@@ -96,6 +96,27 @@ LightShadeInfo calcLightShadeInfo(Light light, ShadeInfo shadeInfo, float3 world
         lsi.radiance *= falloff;
         lsi.lightDist = distLight;
     }
+    else if (light.Type == LightType.Sphere)
+    {
+        float3 lightPos = light.pack2.xyz;
+        float sphereRadius = light.pack1.w;
+        float sphereRadiusSq = sphereRadius * sphereRadius;
+
+        float3 r = reflect(-shadeInfo.viewDir, shadeInfo.normal);
+        
+        lsi.L = lightPos - worldPos;
+
+        float3 centerToRay = (dot(lsi.L, r) * r) - lsi.L;
+        float3 closestPoint = lsi.L + centerToRay * saturate(sphereRadius / length(centerToRay));
+        lsi.L = normalize(closestPoint);
+        float lightDist = length(closestPoint);
+        float sqrDist = lightDist * lightDist;
+        float falloff = (sphereRadiusSq / (max(sphereRadiusSq, sqrDist)));
+        falloff *= max((1.0 - (distance(lightPos, worldPos) / (light.DistanceCutoff))), 0.0);
+
+        lsi.radiance *= falloff;
+        lsi.lightDist = lightDist;
+    }
 
 
     return lsi;
@@ -118,13 +139,13 @@ float3 calculateLighting(Light light, ShadeInfo shadeInfo, float3 worldPos)
 
     float NDF;
     
-    if (light.Type != LightType.Tube)
+    if (light.Type == LightType.Tube || light.Type == LightType.Sphere)
     {
-        NDF = GGXNDF(cosLh, shadeInfo.roughness);
+        NDF = GGXNDFSphereLight(cosLh, shadeInfo.roughness, light.pack1.w, lsi.lightDist);
     }
     else
     {
-        NDF = GGXNDFSphereLight(cosLh, shadeInfo.roughness, light.pack1.w, lsi.lightDist);
+        NDF = GGXNDF(cosLh, shadeInfo.roughness);
     }
 
     float3 f0 = lerp(float3(0.04), shadeInfo.albedoColor, shadeInfo.metallic);

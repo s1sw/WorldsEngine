@@ -24,6 +24,7 @@ namespace worlds
     VKTextureManager::VKTextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager)
         : core(core), textureManager(textureManager)
     {
+        missingTextureID = loadOrGet(AssetDB::pathToId("Textures/missing.wtex"));
     }
 
     VKTextureManager::~VKTextureManager()
@@ -53,6 +54,11 @@ namespace worlds
     void VKTextureManager::unload(AssetID id)
     {
         TexInfo info = textureIds[id];
+        if (info.bindlessId == missingTextureID)
+        {
+            // Unloading the missing texture will break a lot of things so... let's just not
+            return;
+        }
         delete info.tex;
         textureIds.erase(id);
         textureManager->FreeTextureHandle(info.bindlessId);

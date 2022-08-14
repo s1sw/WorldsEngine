@@ -154,6 +154,7 @@ namespace WorldsEngine.ECS
         {
             foreach (Entity entity in packedEntities)
             {
+                System.Diagnostics.Debug.Assert(Contains(entity));
                 ((ISimulatedComponent)components[GetIndexOf(entity)]!).Simulate();
             }
         }

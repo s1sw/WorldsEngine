@@ -26,7 +26,7 @@ namespace worlds
 
     void CubemapConvoluter::Convolute(R2::VK::CommandBuffer cb, R2::VK::Texture* tex)
     {
-        tex->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderRead | VK::AccessFlags::ShaderWrite);
+        tex->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderRead | VK::AccessFlags::ShaderWrite, VK::PipelineStageFlags::ComputeShader);
 
         int w = tex->GetWidth() / 2;
         int h = tex->GetHeight() / 2;

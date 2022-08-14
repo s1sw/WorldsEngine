@@ -133,6 +133,7 @@ namespace worlds
             entt::entity entity;
             glm::vec3 lastPosition;
             bool markForRemoval = false;
+            float timeSinceStop = 0.0f;
         };
 
         friend struct AudioSource;

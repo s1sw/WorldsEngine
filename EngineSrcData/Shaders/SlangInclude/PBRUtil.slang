@@ -11,7 +11,7 @@ float GGXSmithG1(float cosNv, float roughness)
 {
     float k = RoughRemap(roughness);
 
-    return cosNv / (cosNv * (1 - k) + k);
+    return cosNv / max(cosNv * (1 - k) + k, 0.000001);
 }
 
 float GGXSmithG(float cosNl, float cosNv, float roughness)
@@ -28,7 +28,7 @@ float GGXNDF(float cosNh, float roughness)
     float partialDenom = (cosNhSq * (alphaSq - 1.0) + 1.0);
     partialDenom *= partialDenom;
 
-    return alphaSq / (PI * partialDenom);
+    return alphaSq / max(PI * partialDenom, 0.000001);
 }
 
 float GGXNDFSphereLight(float cosNh, float roughness, float sphereRadius, float lightDist)
@@ -41,7 +41,7 @@ float GGXNDFSphereLight(float cosNh, float roughness, float sphereRadius, float 
     float partialDenom = (cosNhSq * (alphaSq - 1.0) + 1.0);
     partialDenom *= partialDenom;
 
-    return alphaSq / (PI * partialDenom);
+    return alphaSq / max(PI * partialDenom, 0.000001);
 }
 
 float3 SchlickFresnel(float cosVh, float3 f0)
@@ -62,4 +62,5 @@ struct ShadeInfo
     float3 normal;
     float roughness;
     float3 viewDir;
+    float ao;
 };

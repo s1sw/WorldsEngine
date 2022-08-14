@@ -2,11 +2,13 @@
 #include <cstdint>
 #include <entt/entt.hpp>
 #include <physfs.h>
+#include <vector>
 
 namespace worlds
 {
     class DotNetScriptEngine;
     typedef uint32_t AssetID;
+    typedef void (*SceneLoadCallback)(void* ctx, entt::registry& reg);
 
     // This class acts as a dispatcher for the two supported scene serialization formats.
     // Given a file, it will determine which format that file is and call the appropriate
@@ -21,6 +23,7 @@ namespace worlds
         static entt::entity loadEntity(PHYSFS_File* file, entt::registry& reg);
         static entt::entity loadEntity(AssetID id, entt::registry& reg);
         static entt::entity createPrefab(AssetID id, entt::registry& reg);
+        static void registerLoadCallback(void* ctx, SceneLoadCallback callback);
 
       private:
         SceneLoader()
@@ -71,6 +74,9 @@ namespace worlds
         static std::string entityToJson(entt::registry& reg, entt::entity ent);
         // Returns entt::null if the entity JSON is invalid.
         static entt::entity jsonToEntity(entt::registry& reg, std::string json);
+
+        static std::string entitiesToJson(entt::registry& reg, entt::entity* entities, size_t entityCount);
+        static std::vector<entt::entity> jsonToEntities(entt::registry& reg, std::string json);
 
         static void setScriptEngine(DotNetScriptEngine* scriptEngine);
 

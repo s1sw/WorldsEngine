@@ -45,6 +45,21 @@ namespace WorldsEngine
         {
             if (libraryName == NativeModule)
                 return GetModuleHandleA(null);
+            
+            if (libraryName == "PHYSFS")
+            {
+                // When using a debug build, the DLL is named "physfsd.dll", whereas in a release build it's named
+                // "physfs.dll". DllImports must have constant arguments, so to deal with this we intercept
+                // the DLL loading call and redirect it to the correct place.
+                if (_isDebug)
+                {
+                    return GetModuleHandleA("physfsd.dll");
+                }
+                else
+                {
+                    return GetModuleHandleA("physfs.dll");
+                }
+            }
 
             return IntPtr.Zero;
         }
@@ -57,6 +72,7 @@ namespace WorldsEngine
 
         static double _simulationTime = 0.0;
         static double _updateTime = 0.0;
+        static bool _isDebug = false;
 
         public static bool SceneRunning { get; private set; }
 
@@ -70,13 +86,15 @@ namespace WorldsEngine
 
             if (!editorActive)
                 AssemblyLoadManager.RegisterAssembly(Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName) + @"\GameAssemblies\Game.dll");
+            Log.Msg($".NET initialised, isDebug: {_isDebug}");
         }
 
         [UsedImplicitly]
         [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members",
             Justification = "Called from native C++")]
-        static bool Init(IntPtr registryPtr, bool editorActive)
+        static bool Init(IntPtr registryPtr, bool editorActive, bool isDebug)
         {
+            _isDebug = isDebug;
             try
             {
                 ActualInit(registryPtr, editorActive);

@@ -10,31 +10,33 @@ namespace WorldsEngine.PhysFS
 {
     internal class PhysFSNative
     {
-        [DllImport(Engine.NativeModule)]
+        private const string PhysFSModule = "PHYSFS";
+
+        [DllImport(PhysFSModule)]
         public static extern IntPtr PHYSFS_openRead(string filename);
 
-        [DllImport(Engine.NativeModule)]
+        [DllImport(PhysFSModule)]
         public static extern IntPtr PHYSFS_openWrite(string filename);
 
-        [DllImport(Engine.NativeModule)]
+        [DllImport(PhysFSModule)]
         public static extern int PHYSFS_close(IntPtr fileHandle);
 
-        [DllImport(Engine.NativeModule)]
+        [DllImport(PhysFSModule)]
         public static extern long PHYSFS_readBytes(IntPtr fileHandle, IntPtr buffer, ulong len);
 
-        [DllImport(Engine.NativeModule)]
+        [DllImport(PhysFSModule)]
         public static extern long PHYSFS_writeBytes(IntPtr fileHandle, IntPtr buffer, ulong len);
 
-        [DllImport(Engine.NativeModule)]
+        [DllImport(PhysFSModule)]
         public static extern int PHYSFS_flush(IntPtr fileHandle);
 
-        [DllImport(Engine.NativeModule)]
+        [DllImport(PhysFSModule)]
         public static extern long PHYSFS_fileLength(IntPtr fileHandle);
 
-        [DllImport(Engine.NativeModule)]
+        [DllImport(PhysFSModule)]
         public static extern long PHYSFS_tell(IntPtr fileHandle);
 
-        [DllImport(Engine.NativeModule)]
+        [DllImport(PhysFSModule)]
         public static extern int PHYSFS_seek(IntPtr fileHandle, ulong position);
     }
 

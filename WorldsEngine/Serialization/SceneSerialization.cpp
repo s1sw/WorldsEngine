@@ -10,6 +10,14 @@
 
 namespace worlds
 {
+    struct LoadCallbackWithContext
+    {
+        void* ctx;
+        SceneLoadCallback callback;
+    };
+
+    std::vector<LoadCallbackWithContext> loadCallbacks;
+
     void clearEntities(entt::registry& reg)
     {
         std::vector<entt::entity> entitiesToClear;
@@ -80,6 +88,11 @@ namespace worlds
         PHYSFS_close(file);
         AudioSystem::getInstance()->updateAudioScene(reg);
         NavigationSystem::updateNavMesh(reg);
+
+        for (LoadCallbackWithContext loadCallback : loadCallbacks)
+        {
+            loadCallback.callback(loadCallback.ctx, reg);
+        }
     }
 
     entt::entity SceneLoader::loadEntity(PHYSFS_File* file, entt::registry& reg)
@@ -102,5 +115,10 @@ namespace worlds
             pic.prefab = id;
         }
         return ent;
+    }
+
+    void SceneLoader::registerLoadCallback(void* ctx, SceneLoadCallback callback)
+    {
+        loadCallbacks.emplace_back(ctx, callback);
     }
 }

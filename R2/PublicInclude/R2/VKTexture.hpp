@@ -35,6 +35,7 @@ namespace R2::VK
     };
 
     enum class AccessFlags : uint64_t;
+    enum class PipelineStageFlags : uint64_t;
 
     enum class TextureFormat
     {
@@ -415,7 +416,7 @@ namespace R2::VK
         int GetSamples();
         TextureFormat GetFormat();
 
-        void Acquire(CommandBuffer cb, ImageLayout layout, AccessFlags access);
+        void Acquire(CommandBuffer cb, ImageLayout layout, AccessFlags access, PipelineStageFlags stage);
         ~Texture();
     private:
         int width;
@@ -437,6 +438,7 @@ namespace R2::VK
         VmaAllocation allocation;
         ImageLayout lastLayout;
         AccessFlags lastAccess;
+        PipelineStageFlags lastPipelineStage;
 
         friend class CommandBuffer;
     };

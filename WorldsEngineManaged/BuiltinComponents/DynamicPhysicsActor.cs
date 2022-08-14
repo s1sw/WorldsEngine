@@ -115,6 +115,13 @@ namespace WorldsEngine
         [DllImport(Engine.NativeModule)]
         private static extern bool dynamicpa_setEnabled(IntPtr reg, uint entity, [MarshalAs(UnmanagedType.I1)] bool val);
 
+        [DllImport(Engine.NativeModule)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool dynamicpa_getCCD(IntPtr reg, uint entity);
+
+        [DllImport(Engine.NativeModule)]
+        private static extern bool dynamicpa_setCCD(IntPtr reg, uint entity, [MarshalAs(UnmanagedType.I1)] bool val);
+
         internal static ComponentMetadata Metadata
         {
             get
@@ -239,6 +246,16 @@ namespace WorldsEngine
             {
                 dynamicpa_setUseContactMod(regPtr, entityId, value);
                 ForceShapeUpdate();
+            }
+        }
+
+        public bool EnableCCD
+        {
+            get => dynamicpa_getCCD(regPtr, entityId);
+
+            set
+            {
+                dynamicpa_setCCD(regPtr, entityId, value);
             }
         }
 

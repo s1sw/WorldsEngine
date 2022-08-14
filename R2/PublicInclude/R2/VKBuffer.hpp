@@ -42,6 +42,7 @@ namespace R2::VK
     public:
         Buffer(Core* renderer, const BufferCreateInfo& createInfo);
         VkBuffer GetNativeHandle();
+        void SetDebugName(const char* dbgName);
 
         uint64_t GetSize();
         BufferUsage GetUsage();

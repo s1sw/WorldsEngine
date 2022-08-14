@@ -65,9 +65,9 @@ namespace worlds
 
     void Tonemapper::Execute(VK::CommandBuffer& cb)
     {
-        bloom->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderSampledRead);
-        colorBuffer->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderSampledRead);
-        target->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderStorageWrite);
+        bloom->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
+        colorBuffer->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
+        target->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderStorageWrite, VK::PipelineStageFlags::ComputeShader);
 
         TonemapSettings ts{};
         ts.exposureBias = 0.5f;

@@ -119,6 +119,7 @@ namespace worlds
         
         VK::BufferCreateInfo vpBci{VK::BufferUsage::Uniform, sizeof(MultiVP), true};
         multiVPBuffer = core->CreateBuffer(vpBci);
+        multiVPBuffer->SetDebugName("View Info Buffer");
 
         VK::BufferCreateInfo modelMatrixBci{VK::BufferUsage::Storage, sizeof(glm::mat4) * 4096, true};
         modelMatrixBuffers[0] = core->CreateBuffer(modelMatrixBci);
@@ -128,13 +129,16 @@ namespace worlds
         {
             VK::BufferCreateInfo materialBci{ VK::BufferUsage::Storage, sizeof(uint32_t) * 4 * 128, true };
             materialBuffer = new SubAllocatedBuffer(core, materialBci);
+            materialBuffer->GetBuffer()->SetDebugName("Material Buffer");
         }
 
         VK::BufferCreateInfo lightBci{ VK::BufferUsage::Storage, sizeof(LightUB), true };
         lightBuffer = core->CreateBuffer(lightBci);
+        lightBuffer->SetDebugName("Light Buffer");
 
         VK::BufferCreateInfo lightTileBci{ VK::BufferUsage::Storage, sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32), true };
         lightTileBuffer = core->CreateBuffer(lightTileBci);
+        lightTileBuffer->SetDebugName("Light Tile Buffer");
 
         AssetID vs = AssetDB::pathToId("Shaders/standard.vert.spv");
         AssetID fs = AssetDB::pathToId("Shaders/standard.frag.spv");
@@ -217,12 +221,14 @@ namespace worlds
 
         depthBufferCI.Samples = rttPass->getSettings().msaaLevel;
         depthBuffer = core->CreateTexture(depthBufferCI);
+        depthBuffer->SetDebugName("Depth Buffer");
 
         VK::TextureCreateInfo colorBufferCI =
             VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
 
         colorBufferCI.Samples = rttPass->getSettings().msaaLevel;
         colorBuffer = core->CreateTexture(colorBufferCI);
+        colorBuffer->SetDebugName("Color Buffer");
 
         cubemapConvoluter = new CubemapConvoluter(core);
 
@@ -243,15 +249,18 @@ namespace worlds
 
         depthBufferCI.Samples = rttPass->getSettings().msaaLevel;
         depthBuffer = core->CreateTexture(depthBufferCI);
+        depthBuffer->SetDebugName("Depth Buffer");
 
         VK::TextureCreateInfo colorBufferCI =
             VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
 
         colorBufferCI.Samples = rttPass->getSettings().msaaLevel;
         colorBuffer = core->CreateTexture(colorBufferCI);
+        colorBuffer->SetDebugName("Color Buffer");
 
         VK::BufferCreateInfo lightTileBci{ VK::BufferUsage::Storage, sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32), true };
         lightTileBuffer = core->CreateBuffer(lightTileBci);
+        lightTileBuffer->SetDebugName("Light Tile Buffer");
 
         for (int i = 0; i < 2; i++)
         {
@@ -380,7 +389,6 @@ namespace worlds
         reg.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t)
         {
             if (!wl.enabled) return;
-            if (wl.type == LightType::Sphere) return;
 
             glm::vec3 lightForward = glm::normalize(t.transformDirection(glm::vec3(0.0f, 0.0f, -1.0f)));
 
@@ -389,7 +397,7 @@ namespace worlds
             pl.setLightType(wl.type);
             pl.distanceCutoff = wl.maxDistance;
             pl.direction = lightForward;
-            pl.spotCutoff = glm::cos(wl.spotCutoff);
+            pl.spotCutoff = wl.type == LightType::Sphere ? wl.spotCutoff : glm::cos(wl.spotCutoff);
             pl.setOuterCutoff(wl.spotOuterCutoff);
             pl.position = t.position;
 
@@ -455,6 +463,8 @@ namespace worlds
             cb.EndDebugLabel();
         }
 
+        lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
+
         modelMatrixBuffers[core->GetFrameIndex()]->Acquire(cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::VertexShader);
         cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
         cb.BindPipeline(depthPrePipeline.Get());
@@ -492,7 +502,7 @@ namespace worlds
 
         lightCull->Execute(cb);
 
-        lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::FragmentShader);
+        lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
         
         cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
         cb.BindPipeline(pipeline.Get());

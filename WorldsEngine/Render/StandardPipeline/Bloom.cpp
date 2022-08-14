@@ -113,8 +113,8 @@ namespace worlds
     {
         cb.BeginDebugLabel("Bloom", 0.1f, 0.1f, 0.1f);
 
-        mipChain->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderWrite | VK::AccessFlags::ShaderRead);
-        hdrSource->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead);
+        mipChain->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderWrite | VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
+        hdrSource->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
 
         cb.BindComputePipeline(seedPipeline.Get());
         cb.BindComputeDescriptorSet(pipelineLayout.Get(), seedDS->GetNativeHandle(), 0);

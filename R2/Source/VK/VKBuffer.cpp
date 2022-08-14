@@ -67,6 +67,22 @@ namespace R2::VK
         return buffer;
     }
 
+    void Buffer::SetDebugName(const char* name)
+    {
+        // If there isn't a layer present that uses these names,
+        // the function will be null.
+        if (vkSetDebugUtilsObjectNameEXT != nullptr)
+        {
+            VkDebugUtilsObjectNameInfoEXT nameInfo;
+            nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+            nameInfo.pObjectName = name;
+            nameInfo.objectHandle = (uint64_t)buffer;
+            nameInfo.objectType = VK_OBJECT_TYPE_BUFFER;
+            nameInfo.pNext = nullptr;
+            vkSetDebugUtilsObjectNameEXT(renderer->GetHandles()->Device, &nameInfo);
+        }
+    }
+
     size_t Buffer::GetSize()
     {
         return size;
@@ -116,6 +132,8 @@ namespace R2::VK
         vkCmdPipelineBarrier2(cb.GetNativeHandle(), &di);
         lastAccess = access;
         lastPipelineStage = getPipelineStage(access);
+
+        vkCmdPipelineBarrier2(cb.GetNativeHandle(), &di);
     }
 
     void Buffer::Acquire(CommandBuffer cb, AccessFlags access, PipelineStageFlags stage)
@@ -135,6 +153,8 @@ namespace R2::VK
         vkCmdPipelineBarrier2(cb.GetNativeHandle(), &di);
         lastAccess = access;
         lastPipelineStage = stage;
+
+        vkCmdPipelineBarrier2(cb.GetNativeHandle(), &di);
     }
 
     Buffer::~Buffer()

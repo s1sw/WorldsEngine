@@ -200,4 +200,15 @@ extern "C"
     {
         reg->get<RigidBody>(entity).setEnabled(value);
     }
+
+    EXPORT bool dynamicpa_getCCD(entt::registry* reg, entt::entity entity)
+    {
+        return reg->get<RigidBody>(entity).enableCCD;
+    }
+
+    EXPORT void dynamicpa_setCCD(entt::registry* reg, entt::entity entity, bool value)
+    {
+        reg->get<RigidBody>(entity).enableCCD = value;
+        updateMass(reg->get<RigidBody>(entity));
+    }
 }

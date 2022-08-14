@@ -106,40 +106,45 @@ namespace worlds
         return f;
     }
 
+    void serializeEntityInScene(nlohmann::json& entities, entt::entity ent, entt::registry& reg)
+    {
+        nlohmann::json entity;
+
+        if (reg.has<PrefabInstanceComponent>(ent))
+        {
+            PrefabInstanceComponent& pic = reg.get<PrefabInstanceComponent>(ent);
+            nlohmann::json instanceJson = getEntityJson(ent, reg);
+            nlohmann::json prefab = getPrefabJson(pic.prefab);
+
+            // HACK: To avoid generating patch data for the transform, set the serialized instances's transform
+            // to the prefab's.
+            instanceJson["Transform"] = prefab["Transform"];
+            nlohmann::json transform;
+            ComponentMetadataManager::byName["Transform"]->toJson(ent, reg, transform);
+
+            std::string path = AssetDB::idToPath(pic.prefab);
+
+            if (path.find("SourceData/") != std::string::npos)
+                path = path.substr(11);
+
+            entity = {{"diff", nlohmann::json::diff(prefab, instanceJson)},
+                        {"prefabPath", path},
+                        {"Transform", transform}};
+        }
+        else
+        {
+            entity = getEntityJson(ent, reg);
+        }
+
+        entities[std::to_string((uint32_t)ent)] = entity;
+    }
+
     nlohmann::json sceneToJsonObject(entt::registry& reg)
     {
         nlohmann::json entities;
 
         reg.view<Transform>(entt::exclude_t<DontSerialize>{}).each([&](entt::entity ent, Transform&) {
-            nlohmann::json entity;
-
-            if (reg.has<PrefabInstanceComponent>(ent))
-            {
-                PrefabInstanceComponent& pic = reg.get<PrefabInstanceComponent>(ent);
-                nlohmann::json instanceJson = getEntityJson(ent, reg);
-                nlohmann::json prefab = getPrefabJson(pic.prefab);
-
-                // HACK: To avoid generating patch data for the transform, set the serialized instances's transform
-                // to the prefab's.
-                instanceJson["Transform"] = prefab["Transform"];
-                nlohmann::json transform;
-                ComponentMetadataManager::byName["Transform"]->toJson(ent, reg, transform);
-
-                std::string path = AssetDB::idToPath(pic.prefab);
-
-                if (path.find("SourceData/") != std::string::npos)
-                    path = path.substr(11);
-
-                entity = {{"diff", nlohmann::json::diff(prefab, instanceJson)},
-                          {"prefabPath", path},
-                          {"Transform", transform}};
-            }
-            else
-            {
-                entity = getEntityJson(ent, reg);
-            }
-
-            entities[std::to_string((uint32_t)ent)] = entity;
+            serializeEntityInScene(entities, ent, reg);
         });
 
         nlohmann::json scene{{"entities", entities},
@@ -288,6 +293,8 @@ namespace worlds
     {
         ZoneScoped;
         logMsg("scene has %lu entities", j.size());
+        idRemap.clear();
+
         // 1. Create all the scene's entities
         for (const auto& p : j.items())
         {
@@ -300,7 +307,7 @@ namespace worlds
         // 2. Load prefabs
         for (const auto& p : j.items())
         {
-            entt::entity newEnt = (entt::entity)std::stoul(p.key());
+            entt::entity newEnt = idRemap[(entt::entity)std::stoul(p.key())];
 
             if (p.value().contains("prefabPath"))
             {
@@ -385,7 +392,7 @@ namespace worlds
                     if (entityJson.contains(meta->getName()))
                     {
                         ZoneScopedN("meta->fromJson");
-                        meta->fromJson(newEnt, reg, idRemap, entityJson[meta->getName()]);
+                        meta->fromJson(idRemap[newEnt], reg, idRemap, entityJson[meta->getName()]);
                     }
                 }
             }
@@ -402,7 +409,7 @@ namespace worlds
             {
                 if (ComponentMetadataManager::byName.count(v.key()) == 0)
                 {
-                    scriptEngine->deserializeManagedComponent(v.key().c_str(), v.value(), newEnt);
+                    scriptEngine->deserializeManagedComponent(v.key().c_str(), v.value(), idRemap[newEnt]);
                 }
             }
         }
@@ -546,6 +553,40 @@ namespace worlds
     {
         auto j = nlohmann::json::parse(jText);
         return createJsonEntity(j, reg);
+    }
+
+    std::string JsonSceneSerializer::entitiesToJson(entt::registry& reg, entt::entity* entities, size_t entityCount)
+    {
+        nlohmann::json entitiesJ;
+
+        for (size_t i = 0; i < entityCount; i++)
+        {
+            serializeEntityInScene(entitiesJ, entities[i], reg);
+        }
+
+        return entitiesJ.dump();
+    }
+
+    std::vector<entt::entity> JsonSceneSerializer::jsonToEntities(entt::registry& reg, std::string json)
+    {
+        nlohmann::json j = nlohmann::json::parse(json);
+
+        if (!j.is_object())
+        {
+            logErr("Invalid multiple entity json");
+            return std::vector<entt::entity>{};
+        }
+
+        loadSceneEntities(reg, j);
+
+        std::vector<entt::entity> loadedEntities;
+
+        for (const auto& p : j.items())
+        {
+            loadedEntities.push_back(idRemap[(entt::entity)std::stoul(p.key())]);
+        }
+
+        return loadedEntities;
     }
 
     void JsonSceneSerializer::setScriptEngine(DotNetScriptEngine* scriptEngine)

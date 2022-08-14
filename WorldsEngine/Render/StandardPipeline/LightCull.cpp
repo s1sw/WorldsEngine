@@ -49,13 +49,13 @@ namespace worlds
 
     void LightCull::Execute(VK::CommandBuffer& cb)
     {
-        depthBuffer->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderSampledRead);
+        depthBuffer->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
         lightTiles->Acquire(cb, VK::AccessFlags::ShaderWrite, VK::PipelineStageFlags::ComputeShader);
         LightCullPushConstants pcs{};
         pcs.eyeIndex = 0;
 
         int w = depthBuffer->GetWidth();
         int h = depthBuffer->GetHeight();
-        cs->Dispatch(cb, pcs, (w + 15) / 16, (h + 15) / 16, 1);
+        cs->Dispatch(cb, pcs, (w + 31) / 32, (h + 31) / 32, 1);
     }
 }

@@ -71,12 +71,14 @@ struct PBRMaterial
         {
             si.metallic = DefaultMetallic;
             si.roughness = DefaultRoughness;
+            si.ao = 1;
             return;
         }
 
         float3 texVals = Textures[NonUniformResourceIndex(MRATexture)].Sample(uv).xyz;
         si.metallic = texVals.r;
         si.roughness = texVals.g;
+        si.ao = texVals.b;
     }
 }
 
@@ -297,6 +299,23 @@ uint GetCubemapTileCount(float2 fragCoord)
     return numCubemaps;
 }
 
+uint GetLightTileCount(float2 fragCoord)
+{
+    int tileIdxX = int(fragCoord.x / 32);
+    int tileIdxY = int(fragCoord.y / 32);
+
+    LightTileInfo lti = CalculateTileInfo(VPBuffer.screenWidth, VPBuffer.screenHeight);
+    uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX);
+    uint foundLightCount = 0;
+    for (int i = 0; i < 8; i++)
+    {
+        uint lightBits = LightTiles[tileIdx].lightIdMasks[i];
+        foundLightCount += countbits(lightBits);
+    }
+
+    return foundLightCount;
+}
+
 float3 GetHeatmapColor(uint number, float2 fragCoord)
 {
     float3 heatmapCol = float3(saturate((number - 8.0) / 4.0), saturate(number / 4.0), saturate((number - 4.0) / 4.0));
@@ -319,14 +338,15 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position) : SV_T
     shadeInfo.albedoColor = Textures[NonUniformResourceIndex(material.AlbedoTexture)].Sample(input.UV).xyz;
     shadeInfo.normal = normalize(normal);
     shadeInfo.viewDir = normalize(VPBuffer.viewPos[0].xyz - input.WorldPosition.xyz);
+    shadeInfo.ao = 1;
 
     material.LoadPBRInfo(shadeInfo, input.UV);
 
     float3 lo = ComputeIncomingLight(shadeInfo, fragCoord, input.WorldPosition.xyz);
     float3 ambient = ComputeAmbient(shadeInfo, fragCoord, input.WorldPosition.xyz);
 
-    return float4(ambient + lo + material.EmissiveColor, 1.0);
-    //return float4(GetHeatmapColor(GetCubemapTileCount(fragCoord), fragCoord), 1.0);
+    return float4(ambient * shadeInfo.ao + lo + material.EmissiveColor, 1.0);
+    //return float4(GetHeatmapColor(GetLightTileCount(fragCoord), fragCoord), 1.0);
 }
 
 [shader("fragment")]

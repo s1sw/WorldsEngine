@@ -316,6 +316,8 @@ namespace worlds
         slib::List<QueuedKeydown> queuedKeydowns;
         GameState currentState = GameState::Editing;
 
+        static void sceneLoadCallback(void* ctx, entt::registry& reg);
+
         friend class EditorSceneView;
     };
 }

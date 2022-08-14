@@ -63,6 +63,15 @@ namespace WorldsEngine
         internal static int typeCounter = 0;
 
         private readonly static Queue<Entity> _destroyQueue = new();
+
+
+        struct ComponentRemoval
+        {
+            public Entity Entity;
+            public Type ComponentType;
+        }
+
+        private readonly static Queue<ComponentRemoval> _componentRemovals = new();
         private readonly static List<IComponentStorage> _collisionHandlers = new();
         private readonly static List<IComponentStorage> _startListeners = new();
 
@@ -436,14 +445,31 @@ namespace WorldsEngine
                 meta.Destroy(entity);
             }
 
-            var storage = AssureStorage<T>();
-
-            if (!builtin || storage.Contains(entity))
-                storage.Remove(entity);
+            _componentRemovals.Enqueue(new ComponentRemoval() {
+                ComponentType = type,
+                Entity = entity
+            });
         }
 
         public static void RemoveComponent(Type type, Entity entity)
         {
+            if (type.IsAssignableTo(typeof(BuiltinComponent)))
+            {
+                if (!GetBuiltinComponentMetadata(type).ExistsOn(entity))
+                    throw new ArgumentException($"Trying to remove component {type.Name} that isn't on the given entity");
+            }
+
+            _componentRemovals.Enqueue(new ComponentRemoval() {
+                ComponentType = type,
+                Entity = entity
+            });
+        }
+
+        private static void RemoveComponentActual(Type type, Entity entity)
+        {
+            // Assuming that the checks have been done ahead of time
+            // by the publically accessible methods
+
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
                 GetBuiltinComponentMetadata(type).Destroy(entity);
@@ -658,6 +684,12 @@ namespace WorldsEngine
             {
                 if (Valid(ent))
                     Destroy(ent);
+            }
+
+            while (_componentRemovals.TryDequeue(out ComponentRemoval cr))
+            {
+                if (Valid(cr.Entity))
+                    RemoveComponentActual(cr.ComponentType, cr.Entity);
             }
         }
 

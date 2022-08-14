@@ -346,7 +346,7 @@ namespace R2::VK
 			cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 			VKCHECK(vkBeginCommandBuffer(frameResources.UploadCommandBuffer, &cbbi));
 
-			texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite);
+			texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite, PipelineStageFlags::Transfer);
 
 			uint64_t offset = 0;
 			int currWidth = texture->GetWidth();
@@ -372,7 +372,7 @@ namespace R2::VK
 				currHeight /= 2;
 			}
 
-			texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead);
+			texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead, PipelineStageFlags::FragmentShader | PipelineStageFlags::ComputeShader);
 
 			VKCHECK(vkEndCommandBuffer(frameResources.UploadCommandBuffer));
 
@@ -519,7 +519,7 @@ namespace R2::VK
 
 		for (BufferToTextureCopy& bttc : frameResources.BufferToTextureCopies)
 		{
-			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite);
+			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite, PipelineStageFlags::Transfer);
 
 			uint64_t offset = 0;
 			int currWidth = bttc.Texture->GetWidth();
@@ -545,7 +545,7 @@ namespace R2::VK
 				currHeight /= 2;
 			}
 
-			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead);
+			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead, PipelineStageFlags::FragmentShader | PipelineStageFlags::ComputeShader);
 		}
 
 		// Reset the queue

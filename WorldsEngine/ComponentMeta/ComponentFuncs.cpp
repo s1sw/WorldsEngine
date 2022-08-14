@@ -883,12 +883,12 @@ namespace worlds
             if (transformingShape && i == currentShapeIdx)
             {
                 ed->overrideHandle(&t);
+                Transform shapeTransform = t.transformByInverse(actorTransform);
+                it->pos = shapeTransform.position;
+                it->rot = shapeTransform.rotation;
                 if (ImGui::Button("Done"))
                 {
                     transformingShape = false;
-                    Transform shapeTransform = t.transformByInverse(actorTransform);
-                    it->pos = shapeTransform.position;
-                    it->rot = shapeTransform.rotation;
                 }
             }
             else
@@ -1103,7 +1103,6 @@ namespace worlds
             physx::PxTransform pTf(glm2px(t.position), glm2px(t.rotation));
             auto* actor = interfaces->physics->physics()->createRigidDynamic(pTf);
             actor->setSolverIterationCounts(32, 6);
-            actor->setMaxDepenetrationVelocity(10.0f);
             actor->setMaxAngularVelocity(1000.0f);
             reg.emplace<RigidBody>(ent, actor);
             interfaces->physics->scene()->addActor(*actor);
@@ -1233,7 +1232,6 @@ namespace worlds
             auto* pActor = interfaces->physics->physics()->createRigidDynamic(glm2px(reg.get<Transform>(ent)));
             pActor->setSolverIterationCounts(32, 6);
             pActor->setSleepThreshold(0.005f);
-            pActor->setMaxDepenetrationVelocity(10.0f);
             pActor->setMaxAngularVelocity(1000.0f);
             interfaces->physics->scene()->addActor(*pActor);
 

@@ -197,7 +197,7 @@ namespace R2::VK
         VkCommandBuffer cb = Utils::AcquireImmediateCommandBuffer();
         for (Texture* tex : imageTextures)
         {
-            tex->Acquire(cb, ImageLayout::PresentSrc, AccessFlags::MemoryRead);
+            tex->Acquire(cb, ImageLayout::PresentSrc, AccessFlags::MemoryRead, VK::PipelineStageFlags::AllCommands);
         }
         Utils::ExecuteImmediateCommandBuffer();
     }
