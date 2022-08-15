@@ -3,6 +3,7 @@
 #include <Render/DebugLines.hpp>
 #include <Render/Render.hpp>
 #include <robin_hood.h>
+#include <Util/UniquePtr.hpp>
 
 #define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 struct ImDrawData;
@@ -233,6 +234,7 @@ namespace worlds
         RTTPassCreateInfo settings;
 
       public:
+        void setView(int viewIndex, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) override;
         void drawNow(entt::registry& world) override;
 
         void requestPick(int x, int y) override;
@@ -247,6 +249,20 @@ namespace worlds
         Camera* getCamera();
     };
 
+    class XRPresentManager
+    {
+        UniquePtr<R2::VK::Texture> leftEye;
+        UniquePtr<R2::VK::Texture> rightEye;
+        int width, height;
+        R2::VK::Core* core;
+        void createTextures();
+    public:
+        XRPresentManager(R2::VK::Core* core, int width, int height);
+        void resize(int width, int height);
+        void copyFromLayered(R2::VK::CommandBuffer cb, R2::VK::Texture* layeredTexture);
+        void submit(glm::mat4 usedPose);
+    };
+
     class VKRenderer : public Renderer
     {
         R2::VK::Core* core;
@@ -256,6 +272,8 @@ namespace worlds
         VKUITextureManager* uiTextureManager;
         VKTextureManager* textureManager;
         RenderMeshManager* renderMeshManager;
+        UniquePtr<XRPresentManager> xrPresentManager;
+        glm::mat4 vrUsedPose;
 
         std::vector<VKRTTPass*> rttPasses;
 
@@ -275,6 +293,7 @@ namespace worlds
 
         float getLastGPUTime() const override;
         void setVRPredictAmount(float amt) override;
+        void setVRUsedPose(glm::mat4 pose) override;
 
         void setVsync(bool vsync) override;
         bool getVsync() const override;

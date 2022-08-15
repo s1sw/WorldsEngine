@@ -180,6 +180,12 @@ namespace R2::VK
         return *this;
     }
 
+    PipelineBuilder& PipelineBuilder::ViewMask(uint32_t viewMask)
+    {
+        this->viewMask = viewMask;
+        return *this;
+    }
+
     Pipeline* PipelineBuilder::Build()
     {
         // Rendering state
@@ -188,6 +194,7 @@ namespace R2::VK
         if (attachmentFormats.size() > 0)
             renderingCI.pColorAttachmentFormats = reinterpret_cast<VkFormat*>(&attachmentFormats[0]);
         renderingCI.depthAttachmentFormat = static_cast<VkFormat>(depthFormat);
+        renderingCI.viewMask = viewMask;
 
         // Convert vertex bindings
         std::vector<VkVertexInputBindingDescription> bindingDescs;

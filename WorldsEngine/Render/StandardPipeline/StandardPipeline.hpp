@@ -1,6 +1,8 @@
 #pragma once
 #include <Render/IRenderPipeline.hpp>
 #include <Util/UniquePtr.hpp>
+#include <vector>
+#include <glm/mat4x4.hpp>
 
 namespace R2
 {
@@ -53,14 +55,19 @@ namespace worlds
         VKRenderer* renderer;
         VKRTTPass* rttPass;
 
+        bool useViewOverrides = false;
+        std::vector<glm::mat4> overrideViews;
+        std::vector<glm::mat4> overrideProjs;
+
         void drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices, Frustum& frustum);
         void fillLightBuffer(entt::registry& reg, VKTextureManager* textureManager);
       public:
         StandardPipeline(VKRenderer* renderer);
         ~StandardPipeline();
 
-        void setup(VKRTTPass* rttPass);
+        void setup(VKRTTPass* rttPass) override;
         void onResize(int width, int height) override;
         void draw(entt::registry& reg, R2::VK::CommandBuffer& cb) override;
+        void setView(int viewIndex, glm::mat4 viewMatrix, glm::mat4 projectionMatrix);
     };
 }

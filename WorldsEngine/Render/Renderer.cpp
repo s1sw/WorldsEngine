@@ -32,10 +32,12 @@ namespace worlds
 
 #ifdef NDEBUG
         enableValidation = false;
-#endif
         enableValidation |= EngineArguments::hasArgument("validation-layers");
+#else
+        enableValidation = !EngineArguments::hasArgument("no-validation-layers");
+#endif
 
-        core = new VK::Core(new LogDebugOutputReceiver);
+        core = new VK::Core(new LogDebugOutputReceiver, enableValidation);
         VK::SwapchainCreateInfo sci{};
 
         SDL_Vulkan_CreateSurface(initInfo.window, core->GetHandles()->Instance, &sci.surface);
@@ -57,6 +59,12 @@ namespace worlds
         logMsg(WELogCategoryRender, "Device name: %s", deviceInfo.Name);
 
         ShaderCache::setDevice(core);
+
+        if (initInfo.enableVR)
+        {
+            // 0 means the size is set automatically
+            xrPresentManager = new XRPresentManager(core, 0, 0);
+        }
 
         *success = true;
     }
@@ -98,6 +106,7 @@ namespace worlds
 
         VK::CommandBuffer cb = core->GetFrameCommandBuffer();
 
+        bool xrRendered = false;
         for (VKRTTPass* pass : rttPasses)
         {
             if (!pass->active)
@@ -107,27 +116,38 @@ namespace worlds
 
             pass->getFinalTarget()->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::FragmentShader);
 
+            if (pass->settings.numViews == 2)
+            {
+                xrPresentManager->copyFromLayered(cb, pass->getFinalTarget());
+                xrRendered = true;
+            }
+
             cb.EndDebugLabel();
         }
+
+        swapchainImage->Acquire(cb, VK::ImageLayout::AttachmentOptimal, VK::AccessFlags::ColorAttachmentWrite, VK::PipelineStageFlags::ColorAttachmentOutput);
 
         VK::RenderPass rp;
         rp.ColorAttachment(swapchainImage, VK::LoadOp::Clear, VK::StoreOp::Store);
         rp.ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.f, 0.f, 0.f, 1.0f));
         rp.RenderArea(width, height);
 
-        swapchainImage->Acquire(cb, VK::ImageLayout::AttachmentOptimal, VK::AccessFlags::ColorAttachmentWrite, VK::PipelineStageFlags::ColorAttachmentOutput);
-
-        rp.Begin(cb);
 
         cb.BeginDebugLabel("Dear ImGui", 0.0f, 0.0f, 0.0f);
-        ImGui_ImplR2_RenderDrawData(imguiDrawData, cb);
-        cb.EndDebugLabel();
 
+        rp.Begin(cb);
+        ImGui_ImplR2_RenderDrawData(imguiDrawData, cb);
         rp.End(core->GetFrameCommandBuffer());
+
+        cb.EndDebugLabel();
 
         swapchainImage->Acquire(cb, VK::ImageLayout::PresentSrc, VK::AccessFlags::MemoryRead, VK::PipelineStageFlags::AllCommands);
 
         core->EndFrame();
+
+        if (this->xrPresentManager && xrRendered)
+            xrPresentManager->submit(vrUsedPose);
+
         swapchain->Present();
     }
 
@@ -138,6 +158,11 @@ namespace worlds
 
     void VKRenderer::setVRPredictAmount(float amt)
     {
+    }
+
+    void VKRenderer::setVRUsedPose(glm::mat4 usedPose)
+    {
+        vrUsedPose = usedPose;
     }
 
     void VKRenderer::setVsync(bool vsync)

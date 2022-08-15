@@ -12,6 +12,13 @@ namespace worlds
         : renderer(renderer), pipeline(pipeline)
     {
         TextureCreateInfo tci = TextureCreateInfo::Texture2D(TextureFormat::R8G8B8A8_SRGB, ci.width, ci.height);
+
+        if (ci.numViews > 1)
+        {
+            tci.Dimension = TextureDimension::Array2D;
+            tci.Layers = ci.numViews;
+        }
+
         tci.IsRenderTarget = true;
         finalTarget = renderer->core->CreateTexture(tci);
         finalTargetBindlessID = renderer->bindlessTextureManager->AllocateTextureHandle(finalTarget);
@@ -26,6 +33,11 @@ namespace worlds
     {
         renderer->core->DestroyTexture(finalTarget);
         delete pipeline;
+    }
+
+    void VKRTTPass::setView(int viewIndex, glm::mat4 viewMatrix, glm::mat4 projectionMatrix)
+    {
+        pipeline->setView(viewIndex, viewMatrix, projectionMatrix);
     }
 
     void VKRTTPass::drawNow(entt::registry& world)
@@ -50,6 +62,7 @@ namespace worlds
     {
         TextureCreateInfo tci = TextureCreateInfo::Texture2D(TextureFormat::R8G8B8A8_SRGB, newWidth, newHeight);
         tci.IsRenderTarget = true;
+        tci.Layers = settings.numViews;
         renderer->core->DestroyTexture(finalTarget);
 
         finalTarget = renderer->core->CreateTexture(tci);

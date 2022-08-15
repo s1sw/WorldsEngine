@@ -23,7 +23,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     SLIB
     GIT_REPOSITORY https://github.com/someonesomewheredev/slib
-    GIT_TAG 2384413b90155ccb4f6ee7e5fa1a66434818438a
+    GIT_TAG 5045e863fd29fd0877d7d73cc008b826ae58f982
 )
 
 FetchContent_Declare(

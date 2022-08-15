@@ -199,7 +199,7 @@ namespace worlds
             return (uint32_t)(height * resScale);
         }
 
-        void setView(int viewIndex, glm::mat4 viewProjection);
+        virtual void setView(int viewIndex, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) = 0;
 
         //! Draws the render pass immediately. Slow!!
         virtual void drawNow(entt::registry& world) = 0;
@@ -222,8 +222,6 @@ namespace worlds
     protected:
         virtual ~RTTPass()
         {}
-
-        std::vector<glm::mat4> overrideViews;
 
         friend class Renderer;
     };
@@ -267,6 +265,7 @@ namespace worlds
         virtual float getLastGPUTime() const = 0;
         //! Sets the prediction amount used on head transforms for VR.
         virtual void setVRPredictAmount(float amt) = 0;
+        virtual void setVRUsedPose(glm::mat4x4 pose) = 0;
 
         virtual void setVsync(bool vsync) = 0;
         virtual bool getVsync() const = 0;

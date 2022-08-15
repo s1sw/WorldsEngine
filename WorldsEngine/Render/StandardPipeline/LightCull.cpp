@@ -29,12 +29,15 @@ namespace worlds
         if (depthBuffer->GetSamples() != 1)
         {
             // MSAA
-            shaderPath += "_msaa.comp.spv";
+            shaderPath += "_msaa";
         }
-        else
+
+        if (depthBuffer->GetLayers() != 1)
         {
-            shaderPath += ".comp.spv";
+            shaderPath += "_multivp";
         }
+
+        shaderPath += ".comp.spv";
 
         AssetID lightCullShader = AssetDB::pathToId(shaderPath);
 
@@ -57,5 +60,14 @@ namespace worlds
         int w = depthBuffer->GetWidth();
         int h = depthBuffer->GetHeight();
         cs->Dispatch(cb, pcs, (w + 31) / 32, (h + 31) / 32, 1);
+
+        if (depthBuffer->GetLayers() == 2)
+        {
+            pcs.eyeIndex = 1;
+
+            int w = depthBuffer->GetWidth();
+            int h = depthBuffer->GetHeight();
+            cs->Dispatch(cb, pcs, (w + 31) / 32, (h + 31) / 32, 1);
+        }
     }
 }

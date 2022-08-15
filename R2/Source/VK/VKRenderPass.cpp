@@ -35,6 +35,7 @@ namespace R2::VK
 
     RenderPass::RenderPass()
         : numColorAttachments(0)
+        , viewMask(0)
     {
         depthAttachment.Texture = nullptr;
     }
@@ -85,6 +86,12 @@ namespace R2::VK
         return *this;
     }
 
+    RenderPass& RenderPass::ViewMask(uint32_t viewMask)
+    {
+        this->viewMask = viewMask;
+        return *this;
+    }
+
     void RenderPass::Begin(CommandBuffer cb)
     {
         for (int i = 0; i < numColorAttachments; i++)
@@ -99,6 +106,7 @@ namespace R2::VK
         renderInfo.renderArea = VkRect2D{ { 0, 0 }, { width, height }, };
         renderInfo.layerCount = 1;
         renderInfo.colorAttachmentCount = numColorAttachments;
+        renderInfo.viewMask = viewMask;
 
         VkRenderingAttachmentInfo depthAttachmentInfo{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
         if (depthAttachment.Texture)

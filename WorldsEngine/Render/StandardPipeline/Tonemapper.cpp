@@ -31,9 +31,16 @@ namespace worlds
         , bloom(bloom)
     {
         AssetID tonemapShader = colorBuffer->GetSamples() == 1 ? AssetDB::pathToId("Shaders/tonemap.comp.spv") : AssetDB::pathToId("Shaders/tonemap_msaa.comp.spv");
+
+        if (colorBuffer->GetLayers() > 1)
+        {
+            tonemapShader = AssetDB::pathToId("Shaders/tonemap_msaa_multivp.comp.spv");
+        }
+
         ShaderReflector sr{tonemapShader};
 
         descriptorSetLayout = sr.createDescriptorSetLayout(core, 0);
+
 
         VK::PipelineLayoutBuilder plb{core->GetHandles()};
         plb.DescriptorSet(descriptorSetLayout.Get());
@@ -46,8 +53,6 @@ namespace worlds
 
         pipeline = cpb.Build();
 
-        descriptorSet = core->CreateDescriptorSet(descriptorSetLayout.Get());
-
         VK::SamplerBuilder sb{core};
         sampler = sb.AddressMode(VK::SamplerAddressMode::Repeat)
         .MagFilter(VK::Filter::Linear)
@@ -55,12 +60,25 @@ namespace worlds
         .MipmapMode(VK::SamplerMipmapMode::Linear)
         .Build();
 
-        VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet.Get()};
-        sr.bindSampledTexture(dsu, "hdrImage_0", colorBuffer, sampler.Get());
-        sr.bindSampledTexture(dsu, "bloomImage_0", bloom, sampler.Get());
-        sr.bindStorageTexture(dsu, "resultImage_0", target);
+        for (int i = 0; i < colorBuffer->GetLayers(); i++)
+        {
+            VK::TextureSubset subset{};
+            subset.Dimension = VK::TextureDimension::Dim2D;
+            subset.LayerCount = 1;
+            subset.LayerStart = i;
+            subset.MipCount = 1;
+            subset.MipStart = 0;
 
-        dsu.Update();
+            outputViews.push_back(new VK::TextureView(core, target, subset));
+
+            descriptorSets.push_back(core->CreateDescriptorSet(descriptorSetLayout.Get()));
+
+            VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSets[i].Get()};
+            sr.bindSampledTexture(dsu, "hdrImage_0", colorBuffer, sampler.Get());
+            sr.bindSampledTexture(dsu, "bloomImage_0", bloom, sampler.Get());
+            dsu.AddTextureView(0, 0, VK::DescriptorType::StorageImage, outputViews[i].Get());
+            dsu.Update();
+        }
     }
 
     void Tonemapper::Execute(VK::CommandBuffer& cb)
@@ -69,14 +87,18 @@ namespace worlds
         colorBuffer->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
         target->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderStorageWrite, VK::PipelineStageFlags::ComputeShader);
 
-        TonemapSettings ts{};
-        ts.exposureBias = 0.5f;
-        ts.resolutionScale = 1.0f;
-        ts.vignetteRadius = 1.0f;
-
-        cb.BindComputeDescriptorSet(pipelineLayout.Get(), descriptorSet->GetNativeHandle(), 0);
         cb.BindComputePipeline(pipeline.Get());
-        cb.PushConstants(ts, VK::ShaderStage::Compute, pipelineLayout.Get());
-        cb.Dispatch((target->GetWidth() + 15) / 16, (target->GetHeight() + 15) / 16, 1);
+        for (int i = 0; i < colorBuffer->GetLayers(); i++)
+        {
+            TonemapSettings ts{};
+            ts.exposureBias = 0.5f;
+            ts.resolutionScale = 1.0f;
+            ts.vignetteRadius = 1.0f;
+            ts.idx = i;
+
+            cb.BindComputeDescriptorSet(pipelineLayout.Get(), descriptorSets[i]->GetNativeHandle(), 0);
+            cb.PushConstants(ts, VK::ShaderStage::Compute, pipelineLayout.Get());
+            cb.Dispatch((target->GetWidth() + 15) / 16, (target->GetHeight() + 15) / 16, 1);
+        }
     }
 }

@@ -39,6 +39,11 @@ namespace worlds
             return ptr;
         }
 
+        operator bool()
+        {
+            return ptr != nullptr;
+        }
+
         ~UniquePtr()
         {
             delete ptr;

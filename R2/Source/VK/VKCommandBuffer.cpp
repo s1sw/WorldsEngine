@@ -137,6 +137,43 @@ namespace R2::VK
         vkCmdPipelineBarrier2(cb, &di);
     }
 
+    VkOffset3D convertOffset(BlitOffset offset)
+    {
+        return VkOffset3D { offset.X, offset.Y, offset.Z };
+    }
+
+    void CommandBuffer::TextureBlit(Texture* source, Texture* destination, R2::VK::TextureBlit blitInfo)
+    {
+        source->Acquire(*this, ImageLayout::TransferSrcOptimal, AccessFlags::TransferRead, PipelineStageFlags::Transfer);
+        destination->Acquire(*this, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite, PipelineStageFlags::Transfer);
+
+        VkImageBlit imageBlit{};
+        imageBlit.srcSubresource.aspectMask = source->getAspectFlags();
+        imageBlit.srcSubresource.baseArrayLayer = blitInfo.Source.LayerStart;
+        imageBlit.srcSubresource.layerCount = blitInfo.Source.LayerCount;
+        imageBlit.srcSubresource.mipLevel = blitInfo.Source.MipLevel;
+
+        imageBlit.dstSubresource.aspectMask = destination->getAspectFlags();
+        imageBlit.dstSubresource.baseArrayLayer = blitInfo.Destination.LayerStart;
+        imageBlit.dstSubresource.layerCount = blitInfo.Destination.LayerCount;
+        imageBlit.dstSubresource.mipLevel = blitInfo.Destination.MipLevel;
+
+        imageBlit.srcOffsets[0] = convertOffset(blitInfo.SourceOffsets[0]);
+        imageBlit.srcOffsets[1] = convertOffset(blitInfo.SourceOffsets[1]);
+
+        imageBlit.dstOffsets[0] = convertOffset(blitInfo.DestinationOffsets[0]);
+        imageBlit.dstOffsets[1] = convertOffset(blitInfo.DestinationOffsets[1]);
+
+        vkCmdBlitImage(cb,
+            source->GetNativeHandle(),
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            destination->GetNativeHandle(),
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1, &imageBlit,
+            VK_FILTER_LINEAR
+        );
+    }
+
     VkCommandBuffer CommandBuffer::GetNativeHandle()
     {
         return cb;

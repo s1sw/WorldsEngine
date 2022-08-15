@@ -26,7 +26,7 @@ namespace worlds
         UniquePtr<R2::VK::DescriptorSetLayout> dsl;
         UniquePtr<R2::VK::DescriptorSet> ds;
     public:
-        DebugLineDrawer(R2::VK::Core* core, R2::VK::Buffer* vpBuffer, int msaaLevel);
+        DebugLineDrawer(R2::VK::Core* core, R2::VK::Buffer* vpBuffer, int msaaLevel, unsigned int viewMask);
         void Execute(R2::VK::CommandBuffer& cb, const DebugLine* debugLines, size_t debugLineCount);
     };
 }

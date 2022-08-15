@@ -114,8 +114,16 @@ namespace worlds
 
     void StandardPipeline::setup(VKRTTPass* rttPass)
     {
+        const RTTPassCreateInfo& settings = rttPass->getSettings();
         VK::Core* core = renderer->getCore();
         this->rttPass = rttPass;
+
+        if (rttPass->getSettings().numViews > 1)
+        {
+            useViewOverrides = true;
+            overrideViews.resize(rttPass->getSettings().numViews);
+            overrideProjs.resize(rttPass->getSettings().numViews);
+        }
         
         VK::BufferCreateInfo vpBci{VK::BufferUsage::Uniform, sizeof(MultiVP), true};
         multiVPBuffer = core->CreateBuffer(vpBci);
@@ -136,7 +144,7 @@ namespace worlds
         lightBuffer = core->CreateBuffer(lightBci);
         lightBuffer->SetDebugName("Light Buffer");
 
-        VK::BufferCreateInfo lightTileBci{ VK::BufferUsage::Storage, sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32), true };
+        VK::BufferCreateInfo lightTileBci{ VK::BufferUsage::Storage, sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32) * settings.numViews, true };
         lightTileBuffer = core->CreateBuffer(lightTileBci);
         lightTileBuffer->SetDebugName("Light Tile Buffer");
 
@@ -198,6 +206,9 @@ namespace worlds
             .DepthCompareOp(VK::CompareOp::Equal)
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
             .MSAASamples(rttPass->getSettings().msaaLevel);
+        
+        if (settings.numViews > 1)
+            pb.ViewMask(0b11);
 
         pipeline = pb.Build();
 
@@ -214,12 +225,22 @@ namespace worlds
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
             .MSAASamples(rttPass->getSettings().msaaLevel);
 
+        if (settings.numViews > 1)
+            pb2.ViewMask(0b11);
+
         depthPrePipeline = pb2.Build();
 
         VK::TextureCreateInfo depthBufferCI =
             VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, rttPass->width, rttPass->height);
 
         depthBufferCI.Samples = rttPass->getSettings().msaaLevel;
+
+        if (settings.numViews > 1)
+        {
+            depthBufferCI.Dimension = VK::TextureDimension::Array2D;
+            depthBufferCI.Layers = settings.numViews;
+        }
+
         depthBuffer = core->CreateTexture(depthBufferCI);
         depthBuffer->SetDebugName("Depth Buffer");
 
@@ -227,19 +248,27 @@ namespace worlds
             VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
 
         colorBufferCI.Samples = rttPass->getSettings().msaaLevel;
+
+        if (settings.numViews > 1)
+        {
+            colorBufferCI.Dimension = VK::TextureDimension::Array2D;
+            colorBufferCI.Layers = settings.numViews;
+        }
+
         colorBuffer = core->CreateTexture(colorBufferCI);
         colorBuffer->SetDebugName("Color Buffer");
 
         cubemapConvoluter = new CubemapConvoluter(core);
 
         lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
-        debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel);
+        debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel, settings.numViews > 1 ? 0b11 : 0);
         bloom = new Bloom(core, colorBuffer.Get());
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget(), bloom->GetOutput());
     }
 
     void StandardPipeline::onResize(int width, int height)
     {
+        const RTTPassCreateInfo& settings = rttPass->getSettings();
         VK::Core* core = renderer->getCore();
         depthBuffer.Reset();
         colorBuffer.Reset();
@@ -248,6 +277,7 @@ namespace worlds
             VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, rttPass->width, rttPass->height);
 
         depthBufferCI.Samples = rttPass->getSettings().msaaLevel;
+        depthBufferCI.Layers = settings.numViews;
         depthBuffer = core->CreateTexture(depthBufferCI);
         depthBuffer->SetDebugName("Depth Buffer");
 
@@ -255,10 +285,11 @@ namespace worlds
             VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
 
         colorBufferCI.Samples = rttPass->getSettings().msaaLevel;
+        colorBufferCI.Layers = settings.numViews;
         colorBuffer = core->CreateTexture(colorBufferCI);
         colorBuffer->SetDebugName("Color Buffer");
 
-        VK::BufferCreateInfo lightTileBci{ VK::BufferUsage::Storage, sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32), true };
+        VK::BufferCreateInfo lightTileBci{ VK::BufferUsage::Storage, sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32) * settings.numViews, true };
         lightTileBuffer = core->CreateBuffer(lightTileBci);
         lightTileBuffer->SetDebugName("Light Tile Buffer");
 
@@ -270,7 +301,7 @@ namespace worlds
         }
 
         lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
-        debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel);
+        debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel, settings.numViews > 1 ? 0b11 : 0);
         bloom = new Bloom(core, colorBuffer.Get());
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget(), bloom->GetOutput());
     }
@@ -472,18 +503,39 @@ namespace worlds
         depthPass
             .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
             .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
-            .RenderArea(rttPass->width, rttPass->height)
-            .Begin(cb);
+            .RenderArea(rttPass->width, rttPass->height);
+
+        if (rttPass->getSettings().numViews > 1)
+            depthPass.ViewMask(0b11);
+
+        depthPass.Begin(cb);
 
         Camera* camera = rttPass->getCamera();
 
         MultiVP multiVPs{};
         multiVPs.screenWidth = rttPass->width;
         multiVPs.screenHeight = rttPass->height;
-        multiVPs.views[0] = camera->getViewMatrix();
-        multiVPs.projections[0] = camera->getProjectionMatrix((float)rttPass->width / rttPass->height);
-        multiVPs.inverseVP[0] =  glm::inverse(multiVPs.projections[0] * multiVPs.views[0]);
-        multiVPs.viewPos[0] = glm::vec4(camera->position, 0.0f);
+        if (!useViewOverrides)
+        {
+            multiVPs.views[0] = camera->getViewMatrix();
+            multiVPs.projections[0] = camera->getProjectionMatrix((float)rttPass->width / rttPass->height);
+            multiVPs.inverseVP[0] =  glm::inverse(multiVPs.projections[0] * multiVPs.views[0]);
+            multiVPs.viewPos[0] = glm::vec4(camera->position, 0.0f);
+        }
+        else
+        {
+            for (int i = 0; i < rttPass->getSettings().numViews; i++)
+            {
+                // don't want to read these back from vram so cache them
+                glm::mat4 view = overrideViews[i] * camera->getViewMatrix();
+                glm::mat4 proj = overrideProjs[i];
+
+                multiVPs.views[i] = view;
+                multiVPs.projections[i] = proj;
+                multiVPs.inverseVP[i] = glm::inverse(proj * view);
+                multiVPs.viewPos[i] = glm::vec4((glm::vec3)glm::inverse(view)[3], 0.0f);
+            }
+        }
 
         Frustum frustum{};
         frustum.fromVPMatrix(multiVPs.projections[0] * multiVPs.views[0]);
@@ -506,12 +558,17 @@ namespace worlds
         
         cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
         cb.BindPipeline(pipeline.Get());
+
         VK::RenderPass colorPass;
         colorPass.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
             .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(glm::pow(0.392f, 2.2f), glm::pow(0.584f, 2.2f), glm::pow(0.929f, 2.2f), 1.0f))
             .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Load, VK::StoreOp::Store)
-            .RenderArea(rttPass->width, rttPass->height)
-            .Begin(cb);
+            .RenderArea(rttPass->width, rttPass->height);
+
+        if (rttPass->getSettings().numViews > 1)
+            colorPass.ViewMask(0b11);
+
+        colorPass.Begin(cb);
 
         drawLoop(reg, cb, false, frustum);
 
@@ -528,5 +585,11 @@ namespace worlds
         bloom->Execute(cb);
 
         tonemapper->Execute(cb);
+    }
+
+    void StandardPipeline::setView(int viewIndex, glm::mat4 viewMatrix, glm::mat4 projectionMatrix)
+    {
+        overrideViews[viewIndex] = viewMatrix;
+        overrideProjs[viewIndex] = projectionMatrix;
     }
 }

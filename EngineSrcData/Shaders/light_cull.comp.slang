@@ -516,7 +516,7 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
     LightTileInfo tileInfo = CalculateTileInfo(screenWidth, screenHeight);
     int tileIdxX = groupID.x; 
     int tileIdxY = groupID.y;
-    uint tileIndex = ((tileIdxY * tileInfo.numTilesX) + tileIdxX);
+    uint tileIndex = ((tileIdxY * tileInfo.numTilesX) + tileIdxX) + tileInfo.tilesPerEye * eyeIdx;
 
     clearBuffers(tileIndex, groupIndex);
 

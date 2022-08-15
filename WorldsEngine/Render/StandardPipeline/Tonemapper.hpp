@@ -1,9 +1,11 @@
 #pragma once
 #include <Util/UniquePtr.hpp>
+#include <vector>
 
 namespace R2::VK
 {
     class Texture;
+    class TextureView;
     class Pipeline;
     class PipelineLayout;
     class Core;
@@ -24,7 +26,8 @@ namespace worlds
         UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
         UniquePtr<R2::VK::Pipeline> pipeline;
         UniquePtr<R2::VK::DescriptorSetLayout> descriptorSetLayout;
-        UniquePtr<R2::VK::DescriptorSet> descriptorSet;
+        std::vector<UniquePtr<R2::VK::DescriptorSet>> descriptorSets;
+        std::vector<UniquePtr<R2::VK::TextureView>> outputViews;
         UniquePtr<R2::VK::Sampler> sampler;
     public:
         Tonemapper(R2::VK::Core* core, R2::VK::Texture* colorBuffer, R2::VK::Texture* target, R2::VK::Texture* bloom);

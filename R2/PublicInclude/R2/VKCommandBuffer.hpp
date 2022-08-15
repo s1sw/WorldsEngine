@@ -50,6 +50,28 @@ namespace R2::VK
         uint32_t Height;
     };
 
+    struct BlitSubtexture
+    {
+        uint32_t MipLevel;
+        uint32_t LayerStart;
+        uint32_t LayerCount;
+    };
+
+    struct BlitOffset
+    {
+        int X;
+        int Y;
+        int Z;
+    };
+
+    struct TextureBlit
+    {
+        BlitSubtexture Source;
+        BlitOffset SourceOffsets[2];
+        BlitSubtexture Destination;
+        BlitOffset DestinationOffsets[2];
+    };
+
     enum class ShaderStage;
 
     class Pipeline;
@@ -84,6 +106,7 @@ namespace R2::VK
         void EndDebugLabel();
 
         void TextureBarrier(Texture* tex, PipelineStageFlags srcStage, PipelineStageFlags dstStage, AccessFlags srcAccess, AccessFlags dstAccess);
+        void TextureBlit(Texture* source, Texture* destination, TextureBlit blitInfo);
 
         VkCommandBuffer GetNativeHandle();
     private:

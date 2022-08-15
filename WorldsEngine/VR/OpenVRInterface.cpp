@@ -287,6 +287,11 @@ namespace worlds
                          glm::quat{bt.orientation.w, bt.orientation.x, bt.orientation.y, bt.orientation.z}};
     }
 
+    void OpenVRInterface::waitGetPoses()
+    {
+        vr::VRCompositor()->WaitGetPoses(nullptr, 0, nullptr, 0);
+    }
+
     const char* inputErrorStrings[] = {"None",
                                        "NameNotFound",
                                        "WrongType",

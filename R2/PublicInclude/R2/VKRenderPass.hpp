@@ -72,6 +72,8 @@ namespace R2::VK
         RenderPass& DepthAttachment(Texture* tex, LoadOp loadOp, StoreOp storeOp);
         RenderPass& DepthAttachmentClearValue(ClearValue val);
 
+        RenderPass& ViewMask(uint32_t viewMask);
+
         void Begin(CommandBuffer cb);
         void End(CommandBuffer cb);
     private:
@@ -88,5 +90,6 @@ namespace R2::VK
         AttachmentInfo depthAttachment;
         uint32_t width;
         uint32_t height;
+        uint32_t viewMask;
     };
 }

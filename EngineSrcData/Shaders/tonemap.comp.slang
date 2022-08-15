@@ -16,7 +16,6 @@ RWTexture2D<float4> resultImage;
     #endif
 #endif
 
-// TODO: Bloom
 Sampler2D bloomImage;
 
 [[vk::push_constant]]
@@ -198,7 +197,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
     float2 uv = (float2(threadID.xy) + 0.5) / (texSettings.HDRResolution / resolutionScale);
 
     float3 bloom = bloomImage.SampleLevel(uv * resolutionScale, 0).xyz;
-    bloom = max(bloom, float3(0.0));
+    bloom = 0.0;//max(bloom, float3(0.0));
 
 #ifdef MSAA
     // If we're using MSAA, resolve using the reversible tonemapper

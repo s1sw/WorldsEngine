@@ -128,7 +128,7 @@ float3x3 ConstructTBN(VertexOutput input)
     return transpose(float3x3(tangent, bitangent, input.Normal));
 }
 
-float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos)
+float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, uint viewIndex)
 {
     LightBufferLoader lbl;
     lbl.rawLightBuffer = RawLightBuffer;
@@ -138,7 +138,7 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
 
     LightTileInfo lti = CalculateTileInfo(VPBuffer.screenWidth, VPBuffer.screenHeight);
 
-    uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX);
+    uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX) + (viewIndex * lti.tilesPerEye);
 
     float3 lo = 0.0f;
     for (int i = 0; i < 8; i++)
@@ -197,7 +197,7 @@ float calcBlendWeight(Cubemap c, float3 worldPos)
     return 1.0 - saturate(max(t.x, max(t.y, t.z)));
 }
 
-float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos)
+float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, uint viewIndex)
 {
     const float MAX_REFLECTION_LOD = 5.0;
     float3 R = reflect(-shadeInfo.viewDir, shadeInfo.normal);
@@ -210,7 +210,7 @@ float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos)
     int tileIdxY = int(fragCoord.y / 32);
 
     LightTileInfo lti = CalculateTileInfo(VPBuffer.screenWidth, VPBuffer.screenHeight);
-    uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX);
+    uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX) + (viewIndex * lti.tilesPerEye);
 
     float specMipLevel = shadeInfo.roughness * MAX_REFLECTION_LOD;
 
@@ -327,7 +327,7 @@ float3 GetHeatmapColor(uint number, float2 fragCoord)
 }
 
 [shader("fragment")]
-float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position) : SV_TARGET
+float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position, uint viewIndex : SV_ViewID) : SV_TARGET
 {
     PBRMaterial material = MaterialBuffer.Load<PBRMaterial>(MaterialOffset);
 
@@ -342,8 +342,8 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position) : SV_T
 
     material.LoadPBRInfo(shadeInfo, input.UV);
 
-    float3 lo = ComputeIncomingLight(shadeInfo, fragCoord, input.WorldPosition.xyz);
-    float3 ambient = ComputeAmbient(shadeInfo, fragCoord, input.WorldPosition.xyz);
+    float3 lo = ComputeIncomingLight(shadeInfo, fragCoord, input.WorldPosition.xyz, viewIndex);
+    float3 ambient = ComputeAmbient(shadeInfo, fragCoord, input.WorldPosition.xyz, viewIndex);
 
     return float4(ambient * shadeInfo.ao + lo + material.EmissiveColor, 1.0);
     //return float4(GetHeatmapColor(GetLightTileCount(fragCoord), fragCoord), 1.0);

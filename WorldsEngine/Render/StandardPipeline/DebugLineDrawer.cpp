@@ -14,7 +14,7 @@ namespace worlds
         glm::vec4 color;
     };
 
-    DebugLineDrawer::DebugLineDrawer(VK::Core* core, VK::Buffer* vpBuffer, int msaaLevel)
+    DebugLineDrawer::DebugLineDrawer(VK::Core* core, VK::Buffer* vpBuffer, int msaaLevel, uint32_t viewMask)
         : core(core)
     {
         VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
@@ -51,7 +51,8 @@ namespace worlds
             .DepthWrite(true)
             .DepthCompareOp(VK::CompareOp::Greater)
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
-            .MSAASamples(msaaLevel);
+            .MSAASamples(msaaLevel)
+            .ViewMask(viewMask);
 
         pipeline = pb.Build();
     }

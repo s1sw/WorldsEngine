@@ -65,6 +65,8 @@ namespace worlds
 
         Transform getHandBoneTransform(Hand hand, int boneIdx);
 
+        void waitGetPoses();
+
         bool getJumpInput() override;
         bool getSprintInput() override;
         bool hasFocus()

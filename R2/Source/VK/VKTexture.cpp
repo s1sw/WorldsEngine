@@ -82,6 +82,7 @@ namespace R2::VK
         : core(core)
         , lastLayout(ImageLayout::Undefined)
         , lastAccess(AccessFlags::None)
+        , lastPipelineStage(PipelineStageFlags::AllCommands)
     {
         VkImageCreateInfo ici{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
         ici.extent.width = createInfo.Width;
@@ -101,7 +102,8 @@ namespace R2::VK
         ici.format = static_cast<VkFormat>(createInfo.Format);
         ici.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         ici.tiling = VK_IMAGE_TILING_OPTIMAL;
-        ici.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        ici.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        ici.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
         
         if (supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format))
             ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
@@ -169,6 +171,7 @@ namespace R2::VK
         , core(core)
         , lastLayout(layout)
         , lastAccess(AccessFlags::MemoryRead | AccessFlags::MemoryWrite)
+        , lastPipelineStage(PipelineStageFlags::AllCommands)
     {
         // Now copy everything...
         width = createInfo.Width;
@@ -364,6 +367,10 @@ namespace R2::VK
         ivci.image = texture->GetNativeHandle();
         ivci.viewType = convertViewType(subset.Dimension);
         ivci.format = static_cast<VkFormat>(texture->GetFormat());
+
+        if (texture->GetFormat() == TextureFormat::R8G8B8A8_SRGB)
+            ivci.format = VK_FORMAT_R8G8B8A8_UNORM;
+
         ivci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
         ivci.subresourceRange.baseArrayLayer = subset.LayerStart;
         ivci.subresourceRange.baseMipLevel = subset.MipStart;

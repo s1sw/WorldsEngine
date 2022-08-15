@@ -677,7 +677,8 @@ namespace worlds
                 .resScale = 1.0f,
                 .useForPicking = false,
                 .enableShadows = true,
-                .msaaLevel = 4
+                .msaaLevel = 4,
+                .numViews = screenPassIsVR ? 2 : 1
             };
 
             screenRTTPass = renderer->createRTTPass(screenRTTCI);
@@ -956,6 +957,20 @@ namespace worlds
             t = c.offset.transformBy(registry.get<Transform>(c.parent));
             t.scale = c.offset.scale * registry.get<Transform>(c.parent).scale;
         });
+
+        if (screenPassIsVR && !editor->active)
+        {
+            if (renderer->getVsync())
+            {
+                renderer->setVsync(false);
+            }
+
+            openvrInterface->waitGetPoses();
+            glm::mat4 ht = openvrInterface->getHeadTransform(0.0111111f);
+            renderer->setVRUsedPose(ht);
+            screenRTTPass->setView(0, glm::inverse(ht * openvrInterface->getEyeViewMatrix(Eye::LeftEye)), openvrInterface->getEyeProjectionMatrix(Eye::LeftEye, cam.near));
+            screenRTTPass->setView(1, glm::inverse(ht * openvrInterface->getEyeViewMatrix(Eye::RightEye)), openvrInterface->getEyeProjectionMatrix(Eye::RightEye, cam.near));
+        }
 
         if (!dedicatedServer)
         {
