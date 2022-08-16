@@ -62,7 +62,7 @@ namespace WorldsEngine.Hotloading
 
 
                 watcher.Changed += OnAssemblyChanged;
-                watcher.Filter = "";
+                watcher.Filter = "*.dll";
 
                 watcher.EnableRaisingEvents = true;
             }
@@ -178,6 +178,7 @@ namespace WorldsEngine.Hotloading
         private void OnAssemblyChanged(object sender, FileSystemEventArgs e)
         {
             if (currentlyReloading) return;
+            if (!File.Exists(AssemblyPath)) return;
             needsReload = true;
         }
     }
