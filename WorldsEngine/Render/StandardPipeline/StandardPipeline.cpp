@@ -60,6 +60,19 @@ namespace worlds
     robin_hood::unordered_map<AssetID, MaterialAllocInfo> allocedMaterials;
     SubAllocatedBuffer* materialBuffer = nullptr;
 
+    uint32_t getViewMask(int viewCount)
+    {
+        if (viewCount == 1) return 0;
+
+        uint32_t mask = 0;
+        for (int i = 0; i < viewCount; i++)
+        {
+            mask |= 1 << i;
+        }
+
+        return mask;
+    }
+
     size_t loadOrGetMaterial(VKRenderer* renderer, AssetID id)
     {
         if (allocedMaterials.contains(id))
@@ -208,8 +221,7 @@ namespace worlds
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
             .MSAASamples(rttPass->getSettings().msaaLevel);
         
-        if (settings.numViews > 1)
-            pb.ViewMask(0b11);
+        pb.ViewMask(getViewMask(settings.numViews));
 
         pipeline = pb.Build();
 
@@ -226,8 +238,7 @@ namespace worlds
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
             .MSAASamples(rttPass->getSettings().msaaLevel);
 
-        if (settings.numViews > 1)
-            pb2.ViewMask(0b11);
+        pb2.ViewMask(getViewMask(settings.numViews));
 
         depthPrePipeline = pb2.Build();
 
@@ -262,7 +273,7 @@ namespace worlds
         cubemapConvoluter = new CubemapConvoluter(core);
 
         lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
-        debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel, settings.numViews > 1 ? 0b11 : 0);
+        debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel, getViewMask(settings.numViews));
         bloom = new Bloom(core, colorBuffer.Get());
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget(), bloom->GetOutput());
     }
@@ -302,7 +313,7 @@ namespace worlds
         }
 
         lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
-        debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel, settings.numViews > 1 ? 0b11 : 0);
+        debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel, getViewMask(settings.numViews));
         bloom = new Bloom(core, colorBuffer.Get());
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget(), bloom->GetOutput());
     }
@@ -525,8 +536,7 @@ namespace worlds
             .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
             .RenderArea(rttPass->width, rttPass->height);
 
-        if (rttPass->getSettings().numViews > 1)
-            depthPass.ViewMask(0b11);
+        depthPass.ViewMask(getViewMask(rttPass->getSettings().numViews));
 
         depthPass.Begin(cb);
 
@@ -590,7 +600,7 @@ namespace worlds
             .RenderArea(rttPass->width, rttPass->height);
 
         if (rttPass->getSettings().numViews > 1)
-            colorPass.ViewMask(0b11);
+            colorPass.ViewMask(getViewMask(rttPass->getSettings().numViews));
 
         colorPass.Begin(cb);
 
