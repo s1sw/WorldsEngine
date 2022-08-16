@@ -14,6 +14,15 @@ namespace worlds
         slib::String name;
     };
 
+    struct SubmeshInfo
+    {
+        uint32_t indexOffset; //!< The offset of the submesh in the mesh index buffer.
+        uint32_t indexCount;  //!< The number of indices in the submesh.
+        int materialIndex;
+        glm::vec3 aabbMax;
+        glm::vec3 aabbMin;
+    };
+
     struct LoadedMesh
     {
         std::vector<Vertex> vertices;
@@ -31,13 +40,13 @@ namespace worlds
 
     class MeshManager
     {
-      public:
+    public:
         static const LoadedMesh& get(AssetID id);
         static const LoadedMesh& loadOrGet(AssetID id);
         static void unload(AssetID id);
         static void reloadMeshes();
 
-      private:
+    private:
         static robin_hood::unordered_node_map<AssetID, LoadedMesh> loadedMeshes;
     };
 }

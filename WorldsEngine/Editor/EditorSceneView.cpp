@@ -367,12 +367,12 @@ namespace worlds
                 static bool pickRequested = false;
                 if (interfaces.inputManager->mouseButtonPressed(MouseButton::Left, true))
                 {
-                    sceneViewPass->requestPick((int)localMPos.x, (int)localMPos.y);
+                    //sceneViewPass->requestPick((int)localMPos.x, (int)localMPos.y);
                     pickRequested = true;
                 }
 
                 uint32_t picked;
-                if (pickRequested && sceneViewPass->getPickResult(&picked))
+                if (pickRequested && false) //sceneViewPass->getPickResult(&picked))
                 {
                     if (picked == UINT32_MAX)
                         picked = entt::null;
@@ -410,7 +410,7 @@ namespace worlds
         if (sceneViewPass)
             interfaces.renderer->destroyRTTPass(sceneViewPass);
 
-        RTTPassCreateInfo sceneViewPassCI
+        RTTPassSettings sceneViewPassCI
         {
             .cam = &cam,
             .width = currentWidth,

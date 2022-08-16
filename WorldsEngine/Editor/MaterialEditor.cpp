@@ -139,7 +139,7 @@ namespace worlds
     {
         previewRegistry.set<SceneSettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"), 1.0f);
 
-        RTTPassCreateInfo pci{};
+        RTTPassSettings pci{};
         pci.enableShadows = false;
         pci.msaaLevel = 0;
         pci.cam = &previewCam;

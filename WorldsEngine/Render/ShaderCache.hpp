@@ -13,12 +13,12 @@ namespace worlds
     // Caches loaded shaders in memory to avoid reloading them from disk.
     class ShaderCache
     {
-      public:
+    public:
         static void setDevice(R2::VK::Core* core);
         static R2::VK::ShaderModule& getModule(AssetID id);
         static void clear();
 
-      private:
+    private:
         static R2::VK::Core* core;
         static std::unordered_map<AssetID, R2::VK::ShaderModule*> modules;
     };

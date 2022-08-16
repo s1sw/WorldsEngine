@@ -15,6 +15,7 @@
 #include <entt/entity/registry.hpp>
 #include <Util/JsonUtil.hpp>
 #include <Util/AABB.hpp>
+#include <Tracy.hpp>
 
 #include <deque>
 #include <new>
@@ -62,7 +63,8 @@ namespace worlds
 
     uint32_t getViewMask(int viewCount)
     {
-        if (viewCount == 1) return 0;
+        if (viewCount == 1)
+            return 0;
 
         uint32_t mask = 0;
         for (int i = 0; i < viewCount; i++)
@@ -113,7 +115,7 @@ namespace worlds
 
         renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), mai.offset);
 
-        allocedMaterials.insert({ id, mai });
+        allocedMaterials.insert({id, mai});
 
         return mai.offset;
     }
@@ -126,9 +128,55 @@ namespace worlds
     {
     }
 
+    void StandardPipeline::createSizeDependants()
+    {
+        ZoneScoped;
+        const RTTPassSettings& settings = rttPass->getSettings();
+        VK::Core* core = renderer->getCore();
+        depthBuffer.Reset();
+        colorBuffer.Reset();
+
+        VK::TextureCreateInfo depthBufferCI =
+            VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, rttPass->width, rttPass->height);
+
+        depthBufferCI.Samples = rttPass->getSettings().msaaLevel;
+        depthBufferCI.Layers = settings.numViews;
+        depthBuffer = core->CreateTexture(depthBufferCI);
+        depthBuffer->SetDebugName("Depth Buffer");
+
+        VK::TextureCreateInfo colorBufferCI =
+            VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
+
+        colorBufferCI.Samples = rttPass->getSettings().msaaLevel;
+        colorBufferCI.Layers = settings.numViews;
+        colorBuffer = core->CreateTexture(colorBufferCI);
+        colorBuffer->SetDebugName("Color Buffer");
+
+        VK::BufferCreateInfo lightTileBci{
+            VK::BufferUsage::Storage,
+            sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32) * settings.numViews, true};
+        lightTileBuffer = core->CreateBuffer(lightTileBci);
+        lightTileBuffer->SetDebugName("Light Tile Buffer");
+
+        for (int i = 0; i < 2; i++)
+        {
+            VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSets[i].Get()};
+            dsu.AddBuffer(4, 0, VK::DescriptorType::StorageBuffer, lightTileBuffer.Get());
+            dsu.Update();
+        }
+
+        lightCull =
+            new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
+        debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel,
+                                              getViewMask(settings.numViews));
+        bloom = new Bloom(core, colorBuffer.Get());
+        tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget(), bloom->GetOutput());
+    }
+
     void StandardPipeline::setup(VKRTTPass* rttPass)
     {
-        const RTTPassCreateInfo& settings = rttPass->getSettings();
+        ZoneScoped;
+        const RTTPassSettings& settings = rttPass->getSettings();
         VK::Core* core = renderer->getCore();
         this->rttPass = rttPass;
 
@@ -138,7 +186,7 @@ namespace worlds
             overrideViews.resize(rttPass->getSettings().numViews);
             overrideProjs.resize(rttPass->getSettings().numViews);
         }
-        
+
         VK::BufferCreateInfo vpBci{VK::BufferUsage::Uniform, sizeof(MultiVP), true};
         multiVPBuffer = core->CreateBuffer(vpBci);
         multiVPBuffer->SetDebugName("View Info Buffer");
@@ -149,18 +197,14 @@ namespace worlds
 
         if (materialBuffer == nullptr)
         {
-            VK::BufferCreateInfo materialBci{ VK::BufferUsage::Storage, sizeof(uint32_t) * 4 * 128, true };
+            VK::BufferCreateInfo materialBci{VK::BufferUsage::Storage, sizeof(uint32_t) * 4 * 128, true};
             materialBuffer = new SubAllocatedBuffer(core, materialBci);
             materialBuffer->GetBuffer()->SetDebugName("Material Buffer");
         }
 
-        VK::BufferCreateInfo lightBci{ VK::BufferUsage::Storage, sizeof(LightUB), true };
+        VK::BufferCreateInfo lightBci{VK::BufferUsage::Storage, sizeof(LightUB), true};
         lightBuffer = core->CreateBuffer(lightBci);
         lightBuffer->SetDebugName("Light Buffer");
-
-        VK::BufferCreateInfo lightTileBci{ VK::BufferUsage::Storage, sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32) * settings.numViews, true };
-        lightTileBuffer = core->CreateBuffer(lightTileBci);
-        lightTileBuffer->SetDebugName("Light Tile Buffer");
 
         AssetID vs = AssetDB::pathToId("Shaders/standard.vert.spv");
         AssetID fs = AssetDB::pathToId("Shaders/standard.frag.spv");
@@ -184,7 +228,6 @@ namespace worlds
             dsu.AddBuffer(1, 0, VK::DescriptorType::StorageBuffer, modelMatrixBuffers[i].Get());
             dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, materialBuffer->GetBuffer());
             dsu.AddBuffer(3, 0, VK::DescriptorType::StorageBuffer, lightBuffer.Get());
-            dsu.AddBuffer(4, 0, VK::DescriptorType::StorageBuffer, lightTileBuffer.Get());
             dsu.Update();
         }
 
@@ -220,7 +263,7 @@ namespace worlds
             .DepthCompareOp(VK::CompareOp::Equal)
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
             .MSAASamples(rttPass->getSettings().msaaLevel);
-        
+
         pb.ViewMask(getViewMask(settings.numViews));
 
         pipeline = pb.Build();
@@ -242,80 +285,13 @@ namespace worlds
 
         depthPrePipeline = pb2.Build();
 
-        VK::TextureCreateInfo depthBufferCI =
-            VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, rttPass->width, rttPass->height);
-
-        depthBufferCI.Samples = rttPass->getSettings().msaaLevel;
-
-        if (settings.numViews > 1)
-        {
-            depthBufferCI.Dimension = VK::TextureDimension::Array2D;
-            depthBufferCI.Layers = settings.numViews;
-        }
-
-        depthBuffer = core->CreateTexture(depthBufferCI);
-        depthBuffer->SetDebugName("Depth Buffer");
-
-        VK::TextureCreateInfo colorBufferCI =
-            VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
-
-        colorBufferCI.Samples = rttPass->getSettings().msaaLevel;
-
-        if (settings.numViews > 1)
-        {
-            colorBufferCI.Dimension = VK::TextureDimension::Array2D;
-            colorBufferCI.Layers = settings.numViews;
-        }
-
-        colorBuffer = core->CreateTexture(colorBufferCI);
-        colorBuffer->SetDebugName("Color Buffer");
-
         cubemapConvoluter = new CubemapConvoluter(core);
-
-        lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
-        debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel, getViewMask(settings.numViews));
-        bloom = new Bloom(core, colorBuffer.Get());
-        tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget(), bloom->GetOutput());
+        createSizeDependants();
     }
 
     void StandardPipeline::onResize(int width, int height)
     {
-        const RTTPassCreateInfo& settings = rttPass->getSettings();
-        VK::Core* core = renderer->getCore();
-        depthBuffer.Reset();
-        colorBuffer.Reset();
-
-        VK::TextureCreateInfo depthBufferCI =
-            VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, rttPass->width, rttPass->height);
-
-        depthBufferCI.Samples = rttPass->getSettings().msaaLevel;
-        depthBufferCI.Layers = settings.numViews;
-        depthBuffer = core->CreateTexture(depthBufferCI);
-        depthBuffer->SetDebugName("Depth Buffer");
-
-        VK::TextureCreateInfo colorBufferCI =
-            VK::TextureCreateInfo::RenderTarget2D(colorBufferFormat, rttPass->width, rttPass->height);
-
-        colorBufferCI.Samples = rttPass->getSettings().msaaLevel;
-        colorBufferCI.Layers = settings.numViews;
-        colorBuffer = core->CreateTexture(colorBufferCI);
-        colorBuffer->SetDebugName("Color Buffer");
-
-        VK::BufferCreateInfo lightTileBci{ VK::BufferUsage::Storage, sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32) * settings.numViews, true };
-        lightTileBuffer = core->CreateBuffer(lightTileBci);
-        lightTileBuffer->SetDebugName("Light Tile Buffer");
-
-        for (int i = 0; i < 2; i++)
-        {
-            VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSets[i].Get()};
-            dsu.AddBuffer(4, 0, VK::DescriptorType::StorageBuffer, lightTileBuffer.Get());
-            dsu.Update();
-        }
-
-        lightCull = new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
-        debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel, getViewMask(settings.numViews));
-        bloom = new Bloom(core, colorBuffer.Get());
-        tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget(), bloom->GetOutput());
+        createSizeDependants();
     }
 
     glm::vec3 toLinear(glm::vec3 sRGB)
@@ -326,32 +302,38 @@ namespace worlds
 
         return mix(higher, lower, cutoff);
     }
-    
+
     bool cullMesh(const RenderMeshInfo& rmi, const Transform& t, Frustum* frustums, int numViews)
     {
         float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
         bool reject = true;
         for (int i = 0; i < numViews; i++)
         {
-            if (frustums[i].containsSphere(t.position, maxScale * rmi.boundingSphereRadius)) reject = false;
+            if (frustums[i].containsSphere(t.position, maxScale * rmi.boundingSphereRadius))
+                reject = false;
         }
 
-        if (reject) return false;
+        if (reject)
+            return false;
 
         reject = false;
         AABB aabb = AABB{rmi.aabbMin, rmi.aabbMax}.transform(t);
         for (int i = 0; i < numViews; i++)
         {
-            if (frustums[i].containsAABB(aabb.min, aabb.max)) reject = false;
+            if (frustums[i].containsAABB(aabb.min, aabb.max))
+                reject = false;
         }
 
-        if (reject) return false;
+        if (reject)
+            return false;
 
         return true;
     }
 
-    void StandardPipeline::drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices, Frustum* frustums, int numViews)
+    void StandardPipeline::drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices,
+                                    Frustum* frustums, int numViews)
     {
+        ZoneScoped;
         RenderMeshManager* meshManager = renderer->getMeshManager();
         VK::Core* core = renderer->getCore();
 
@@ -361,18 +343,18 @@ namespace worlds
         if (writeMatrices)
             modelMatricesMapped = (glm::mat4*)modelMatrixBuffers[core->GetFrameIndex()]->Map();
 
-        reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t)
-        {
+        cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
+        reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
             const RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
 
-            if (!cullMesh(rmi, t, frustums, numViews)) return;
+            if (!cullMesh(rmi, t, frustums, numViews))
+                return;
 
             if (writeMatrices)
                 modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
             else
                 modelMatrixIndex++;
 
-            cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
 
             VK::IndexType vkIdxType =
                 rmi.indexType == IndexType::Uint32 ? VK::IndexType::Uint32 : VK::IndexType::Uint16;
@@ -396,12 +378,11 @@ namespace worlds
                 spc.materialID = loadOrGetMaterial(renderer, wo.materials[materialIndex]);
                 cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
 
-                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
+                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, rmi.vertsOffset / sizeof(Vertex), 0);
             }
         });
 
-        reg.view<SkinnedWorldObject, Transform>().each([&](SkinnedWorldObject& wo, Transform& t)
-        {
+        reg.view<SkinnedWorldObject, Transform>().each([&](SkinnedWorldObject& wo, Transform& t) {
             RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
 
             if (writeMatrices)
@@ -420,7 +401,7 @@ namespace worlds
                 RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
 
                 StandardPushConstants spc{};
-                spc.modelMatrixID = modelMatrixIndex-1;
+                spc.modelMatrixID = modelMatrixIndex - 1;
                 uint8_t materialIndex = rsi.materialIndex;
 
                 if (!wo.presentMaterials[materialIndex])
@@ -445,12 +426,13 @@ namespace worlds
 
     void StandardPipeline::fillLightBuffer(entt::registry& reg, VKTextureManager* textureManager)
     {
+        ZoneScoped;
         LightUB* lMapped = (LightUB*)lightBuffer->Map();
 
         uint32_t lightCount = 0;
-        reg.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t)
-        {
-            if (!wl.enabled) return;
+        reg.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t) {
+            if (!wl.enabled)
+                return;
 
             glm::vec3 lightForward = glm::normalize(t.transformDirection(glm::vec3(0.0f, 0.0f, -1.0f)));
 
@@ -459,7 +441,11 @@ namespace worlds
             pl.setLightType(wl.type);
             pl.distanceCutoff = wl.maxDistance;
             pl.direction = lightForward;
+
+            // Sphere lights have their sphere radius written into the spotCutoff field
+            // If it's a sphere light, we need to pass it through unmodified
             pl.spotCutoff = wl.type == LightType::Sphere ? wl.spotCutoff : glm::cos(wl.spotCutoff);
+
             pl.setOuterCutoff(wl.spotOuterCutoff);
             pl.position = t.position;
 
@@ -481,9 +467,9 @@ namespace worlds
         lMapped->lightCount = lightCount;
 
         uint32_t cubemapIdx = 1;
-        lMapped->cubemaps[0] = GPUCubemap { glm::vec3{100000.0f}, ~0u, glm::vec3{0.0f}, 0 };
-        reg.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t)
-        {
+        lMapped->cubemaps[0] = GPUCubemap{glm::vec3{100000.0f}, ~0u, glm::vec3{0.0f}, 0};
+
+        reg.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t) {
             GPUCubemap gc{};
             gc.extent = wc.extent;
             gc.position = t.position;
@@ -505,13 +491,18 @@ namespace worlds
 
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
     {
+        ZoneScoped;
         VK::Core* core = renderer->getCore();
         RenderMeshManager* meshManager = renderer->getMeshManager();
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* textureManager = renderer->getTextureManager();
 
+        // Fill the light buffer with lights + cubemaps from world
+        // This will add cubemaps to the convolution queue if necessary
         fillLightBuffer(reg, textureManager);
 
+        // If there's anything in the convolution queue, convolute 1 cubemap
+        // per frame (convolution is slow!)
         if (convoluteQueue.size() > 0)
         {
             cb.BeginDebugLabel("Cubemap Convolution", 0.1f, 0.1f, 0.1f);
@@ -526,55 +517,54 @@ namespace worlds
         }
 
         lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
+        modelMatrixBuffers[core->GetFrameIndex()]->Acquire(cb, VK::AccessFlags::ShaderRead,
+                                                           VK::PipelineStageFlags::VertexShader);
 
-        modelMatrixBuffers[core->GetFrameIndex()]->Acquire(cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::VertexShader);
-        cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
-        cb.BindPipeline(depthPrePipeline.Get());
-        VK::RenderPass depthPass;
-        depthPass
-            .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
-            .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
-            .RenderArea(rttPass->width, rttPass->height);
-
-        depthPass.ViewMask(getViewMask(rttPass->getSettings().numViews));
-
-        depthPass.Begin(cb);
-
+        // Set up culling frustums and fill the VP buffer
         Camera* camera = rttPass->getCamera();
+        Frustum* frustums = (Frustum*)alloca(sizeof(Frustum) * rttPass->getSettings().numViews);
 
         MultiVP multiVPs{};
         multiVPs.screenWidth = rttPass->width;
         multiVPs.screenHeight = rttPass->height;
-        if (!useViewOverrides)
-        {
-            multiVPs.views[0] = camera->getViewMatrix();
-            multiVPs.projections[0] = camera->getProjectionMatrix((float)rttPass->width / rttPass->height);
-            multiVPs.inverseVP[0] =  glm::inverse(multiVPs.projections[0] * multiVPs.views[0]);
-            multiVPs.viewPos[0] = glm::vec4(camera->position, 0.0f);
-        }
-        else
-        {
-            for (int i = 0; i < rttPass->getSettings().numViews; i++)
-            {
-                // don't want to read these back from vram so cache them
-                glm::mat4 view = overrideViews[i] * camera->getViewMatrix();
-                glm::mat4 proj = overrideProjs[i];
-
-                multiVPs.views[i] = view;
-                multiVPs.projections[i] = proj;
-                multiVPs.inverseVP[i] = glm::inverse(proj * view);
-                multiVPs.viewPos[i] = glm::vec4((glm::vec3)glm::inverse(view)[3], 0.0f);
-            }
-        }
-
-        Frustum* frustums = (Frustum*)alloca(sizeof(Frustum) * rttPass->getSettings().numViews);
         for (int i = 0; i < rttPass->getSettings().numViews; i++)
         {
-            new(&frustums[i]) Frustum();
-            frustums[i].fromVPMatrix(multiVPs.projections[i] * multiVPs.views[i]);
+            glm::mat4 view;
+            glm::mat4 proj;
+
+            if (useViewOverrides)
+            {
+                view = overrideViews[i] * camera->getViewMatrix();
+                proj = overrideProjs[i];
+            }
+            else
+            {
+                view = camera->getViewMatrix();
+                proj = camera->getProjectionMatrix((float)rttPass->width / rttPass->height);
+            }
+
+            multiVPs.views[i] = view;
+            multiVPs.projections[i] = proj;
+            multiVPs.inverseVP[i] = glm::inverse(proj * view);
+            multiVPs.viewPos[i] = glm::vec4((glm::vec3)glm::inverse(view)[3], 0.0f);
+
+            new (&frustums[i]) Frustum();
+            frustums[i].fromVPMatrix(proj * view);
         }
 
         core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
+
+        // Depth Pre-Pass
+        cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
+
+        cb.BindPipeline(depthPrePipeline.Get());
+        VK::RenderPass depthPass;
+        depthPass.DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
+            .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
+            .RenderArea(rttPass->width, rttPass->height)
+            .ViewMask(getViewMask(rttPass->getSettings().numViews));
+
+        depthPass.Begin(cb);
 
         cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
         cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
@@ -586,38 +576,38 @@ namespace worlds
 
         cb.EndDebugLabel();
 
+        // Run light culling using the depth buffer
         lightCull->Execute(cb);
 
         lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
-        
+
+        // Actual "opaque" pass
         cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
         cb.BindPipeline(pipeline.Get());
 
         VK::RenderPass colorPass;
         colorPass.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
-            .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(glm::pow(0.392f, 2.2f), glm::pow(0.584f, 2.2f), glm::pow(0.929f, 2.2f), 1.0f))
+            .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.0f, 0.0f, 0.0f, 1.0f))
             .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Load, VK::StoreOp::Store)
-            .RenderArea(rttPass->width, rttPass->height);
-
-        if (rttPass->getSettings().numViews > 1)
-            colorPass.ViewMask(getViewMask(rttPass->getSettings().numViews));
+            .RenderArea(rttPass->width, rttPass->height)
+            .ViewMask(getViewMask(rttPass->getSettings().numViews));
 
         colorPass.Begin(cb);
 
         drawLoop(reg, cb, false, frustums, rttPass->getSettings().numViews);
 
+        cb.BeginDebugLabel("Debug Lines", 0.1f, 0.1f, 0.1f);
         size_t dbgLinesCount;
         const DebugLine* dbgLines = renderer->getCurrentDebugLines(&dbgLinesCount);
 
-        cb.BeginDebugLabel("Debug Lines", 0.1f, 0.1f, 0.1f);
         debugLineDrawer->Execute(cb, dbgLines, dbgLinesCount);
         cb.EndDebugLabel();
 
         colorPass.End(cb);
         cb.EndDebugLabel();
 
+        // Post-processing
         bloom->Execute(cb);
-
         tonemapper->Execute(cb);
     }
 

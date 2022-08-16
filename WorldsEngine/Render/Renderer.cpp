@@ -11,6 +11,7 @@
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
 #include <Render/StandardPipeline/StandardPipeline.hpp>
+#include <Tracy.hpp>
 #include <SDL_vulkan.h>
 
 using namespace R2;
@@ -19,7 +20,7 @@ namespace worlds
 {
     class LogDebugOutputReceiver : public VK::IDebugOutputReceiver
     {
-      public:
+    public:
         void DebugMessage(const char* msg) override
         {
             logErr("VK: %s", msg);
@@ -28,6 +29,7 @@ namespace worlds
 
     VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
     {
+        ZoneScoped;
         bool enableValidation = true;
 
 #ifdef NDEBUG
@@ -89,6 +91,7 @@ namespace worlds
 
     void VKRenderer::frame(entt::registry& registry)
     {
+        ZoneScoped;
         frameFence->WaitFor();
         frameFence->Reset();
         VK::Texture* swapchainImage = swapchain->Acquire(frameFence);
@@ -111,12 +114,14 @@ namespace worlds
         {
             if (!pass->active)
                 continue;
+
             cb.BeginDebugLabel("RTT Pass", 0.0f, 0.0f, 0.0f);
             pass->pipeline->draw(registry, cb);
 
-            pass->getFinalTarget()->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::FragmentShader);
+            pass->getFinalTarget()->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead,
+                                            VK::PipelineStageFlags::FragmentShader);
 
-            if (pass->settings.numViews == 2)
+            if (pass->settings.outputToXR)
             {
                 xrPresentManager->copyFromLayered(cb, pass->getFinalTarget());
                 xrRendered = true;
@@ -125,13 +130,11 @@ namespace worlds
             cb.EndDebugLabel();
         }
 
-        swapchainImage->Acquire(cb, VK::ImageLayout::AttachmentOptimal, VK::AccessFlags::ColorAttachmentWrite, VK::PipelineStageFlags::ColorAttachmentOutput);
-
+        // Draw ImGui directly to the swapchain
         VK::RenderPass rp;
         rp.ColorAttachment(swapchainImage, VK::LoadOp::Clear, VK::StoreOp::Store);
         rp.ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.f, 0.f, 0.f, 1.0f));
         rp.RenderArea(width, height);
-
 
         cb.BeginDebugLabel("Dear ImGui", 0.0f, 0.0f, 0.0f);
 
@@ -141,7 +144,8 @@ namespace worlds
 
         cb.EndDebugLabel();
 
-        swapchainImage->Acquire(cb, VK::ImageLayout::PresentSrc, VK::AccessFlags::MemoryRead, VK::PipelineStageFlags::AllCommands);
+        swapchainImage->Acquire(cb, VK::ImageLayout::PresentSrc, VK::AccessFlags::MemoryRead,
+                                VK::PipelineStageFlags::AllCommands);
 
         core->EndFrame();
 
@@ -154,10 +158,6 @@ namespace worlds
     float VKRenderer::getLastGPUTime() const
     {
         return lastGPUTime;
-    }
-
-    void VKRenderer::setVRPredictAmount(float amt)
-    {
     }
 
     void VKRenderer::setVRUsedPose(glm::mat4 usedPose)
@@ -190,8 +190,9 @@ namespace worlds
         imguiDrawData = (ImDrawData*)drawData;
     }
 
-    RTTPass* VKRenderer::createRTTPass(RTTPassCreateInfo& ci)
+    RTTPass* VKRenderer::createRTTPass(RTTPassSettings& ci)
     {
+        ZoneScoped;
         if (ci.msaaLevel == 0)
         {
             ci.msaaLevel = 1;

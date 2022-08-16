@@ -76,8 +76,11 @@ namespace worlds
             core->QueueBufferUpload(indexBuffer->GetBuffer(), lmd.indices32.data(), indicesSize, meshInfo.indexOffset);
         }
 
-        core->QueueBufferUpload(vertexBuffer->GetBuffer(), lmd.vertices.data(), lmd.vertices.size() * sizeof(Vertex),
-                                meshInfo.vertsOffset);
+        core->QueueBufferUpload(
+            vertexBuffer->GetBuffer(), 
+            lmd.vertices.data(), lmd.vertices.size() * sizeof(Vertex),
+            meshInfo.vertsOffset
+        );
 
         meshInfo.aabbMax = glm::vec3(std::numeric_limits<float>::lowest());
         meshInfo.aabbMin = glm::vec3(std::numeric_limits<float>::max());

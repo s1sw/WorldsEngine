@@ -100,12 +100,6 @@ namespace worlds
         GPUCubemap cubemaps[64];
     };
 
-    struct ModelMatrices
-    {
-        static const uint32_t SIZE = 4096;
-        glm::mat4 modelMatrices[SIZE];
-    };
-
     struct ShadowCascadeInfo
     {
         bool shadowCascadeNeeded = false;
@@ -123,20 +117,12 @@ namespace worlds
         glm::mat4 inverseBindPose;
         glm::mat4 transform;
         uint32_t parentIdx;
-        std::string name;
     };
 
     struct VertSkinningInfo
     {
         int boneIds[4];
         float weights[4];
-    };
-
-    class PipelineCacheSerializer
-    {
-      public:
-        static void loadPipelineCache(const VkPhysicalDeviceProperties&, VkPipelineCacheCreateInfo&);
-        static void savePipelineCache(const VkPhysicalDeviceProperties&, const VkPipelineCache&, const VkDevice&);
     };
 
     enum class IndexType
@@ -212,6 +198,7 @@ namespace worlds
     class VKUITextureManager : public IUITextureManager
     {
         VKTextureManager* texMan;
+
     public:
         VKUITextureManager(VKTextureManager* texMan);
         ImTextureID loadOrGet(AssetID id) override;
@@ -224,26 +211,22 @@ namespace worlds
         friend class VKRenderer;
 
         VKRenderer* renderer;
-        VKRTTPass(VKRenderer* renderer, const RTTPassCreateInfo& ci, IRenderPipeline* pipeline);
+        VKRTTPass(VKRenderer* renderer, const RTTPassSettings& ci, IRenderPipeline* pipeline);
         ~VKRTTPass();
 
         R2::VK::Texture* finalTarget;
         uint32_t finalTargetBindlessID;
         Camera* cam;
         IRenderPipeline* pipeline;
-        RTTPassCreateInfo settings;
+        RTTPassSettings settings;
 
-      public:
+    public:
         void setView(int viewIndex, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) override;
-        void drawNow(entt::registry& world) override;
 
-        void requestPick(int x, int y) override;
-        bool getPickResult(uint32_t* result) override;
         float* getHDRData() override;
         void resize(int newWidth, int newHeight) override;
-        void setResolutionScale(float newScale) override;
         ImTextureID getUITextureID() override;
-        const RTTPassCreateInfo& getSettings();
+        const RTTPassSettings& getSettings();
 
         R2::VK::Texture* getFinalTarget();
         Camera* getCamera();
@@ -256,6 +239,7 @@ namespace worlds
         int width, height;
         R2::VK::Core* core;
         void createTextures();
+
     public:
         XRPresentManager(R2::VK::Core* core, int width, int height);
         void resize(int width, int height);
@@ -285,14 +269,13 @@ namespace worlds
         const DebugLine* currentDebugLines;
         size_t currentDebugLineCount;
 
-      public:
+    public:
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
         ~VKRenderer();
 
         void frame(entt::registry& reg) override;
 
         float getLastGPUTime() const override;
-        void setVRPredictAmount(float amt) override;
         void setVRUsedPose(glm::mat4 pose) override;
 
         void setVsync(bool vsync) override;
@@ -303,7 +286,7 @@ namespace worlds
 
         void setImGuiDrawData(void* drawData) override;
 
-        RTTPass* createRTTPass(RTTPassCreateInfo& ci) override;
+        RTTPass* createRTTPass(RTTPassSettings& ci) override;
         void destroyRTTPass(RTTPass* pass) override;
 
         void reloadShaders() override;
@@ -313,33 +296,5 @@ namespace worlds
         R2::BindlessTextureManager* getBindlessTextureManager();
         VKTextureManager* getTextureManager();
         const DebugLine* getCurrentDebugLines(size_t* count);
-    };
-
-    enum class ShaderVariantFlags : uint32_t
-    {
-        None = 0,
-        AlphaTest = 1,
-        Skinnning = 2,
-        NoBackfaceCulling = 4
-    };
-
-    inline ShaderVariantFlags operator|(ShaderVariantFlags a, ShaderVariantFlags b)
-    {
-        return static_cast<ShaderVariantFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
-    }
-
-    inline ShaderVariantFlags operator|=(ShaderVariantFlags& a, ShaderVariantFlags b)
-    {
-        return (a = a | b);
-    }
-
-    struct PipelineKey
-    {
-        bool enablePicking;
-        int msaaSamples;
-        ShaderVariantFlags flags;
-        AssetID overrideFS = ~0u;
-
-        uint32_t hash();
     };
 }

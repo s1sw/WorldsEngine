@@ -670,7 +670,7 @@ namespace worlds
                 screenPassIsVR = true;
             }
 
-            RTTPassCreateInfo screenRTTCI{
+            RTTPassSettings screenRTTCI{
                 .cam = &cam,
                 .width = w,
                 .height = h,
@@ -747,6 +747,7 @@ namespace worlds
 
     void WorldsEngine::runSingleFrame(bool processEvents)
     {
+        ZoneScoped;
         uint64_t now = SDL_GetPerformanceCounter();
 
         uint64_t deltaTicks = now - interFrameInfo.lastPerfCounter;
@@ -806,7 +807,7 @@ namespace worlds
             {
                 renderer->destroyRTTPass(screenRTTPass);
 
-                RTTPassCreateInfo screenRTTCI{
+                RTTPassSettings screenRTTCI{
                     .cam = &cam,
                     .width = w,
                     .height = h,
@@ -965,8 +966,22 @@ namespace worlds
                 renderer->setVsync(false);
             }
 
+            auto vrSys = vr::VRSystem();
+
+            float secondsSinceLastVsync;
+            vrSys->GetTimeSinceLastVsync(&secondsSinceLastVsync, NULL);
+
+            float hmdFrequency =
+                vrSys->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
+
+            float frameDuration = 1.f / hmdFrequency;
+            float vsyncToPhotons = vrSys->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd,
+                                                                        vr::Prop_SecondsFromVsyncToPhotons_Float);
+
+            float predictAmount = frameDuration - secondsSinceLastVsync + vsyncToPhotons;
+
             openvrInterface->waitGetPoses();
-            glm::mat4 ht = openvrInterface->getHeadTransform(0.0111111f);
+            glm::mat4 ht = openvrInterface->getHeadTransform(predictAmount);
             renderer->setVRUsedPose(ht);
             screenRTTPass->setView(0, glm::inverse(ht * openvrInterface->getEyeViewMatrix(Eye::LeftEye)), openvrInterface->getEyeProjectionMatrix(Eye::LeftEye, cam.near));
             screenRTTPass->setView(1, glm::inverse(ht * openvrInterface->getEyeViewMatrix(Eye::RightEye)), openvrInterface->getEyeProjectionMatrix(Eye::RightEye, cam.near));
@@ -974,7 +989,6 @@ namespace worlds
 
         if (!dedicatedServer)
         {
-            ZoneScopedN("Copy to Render Thread");
             tickRenderer(true);
         }
 
@@ -1061,7 +1075,7 @@ namespace worlds
 
         if (renderImGui)
         {
-            ZoneScopedN("Copy ImGui data");
+            ZoneScopedN("ImGui render update");
             ImGui::Render();
 
             if (window->isMaximised())
@@ -1073,25 +1087,6 @@ namespace worlds
 
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
-        }
-
-        if (enableOpenVR)
-        {
-            auto vrSys = vr::VRSystem();
-
-            float secondsSinceLastVsync;
-            vrSys->GetTimeSinceLastVsync(&secondsSinceLastVsync, NULL);
-
-            float hmdFrequency =
-                vrSys->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
-
-            float frameDuration = 1.f / hmdFrequency;
-            float vsyncToPhotons = vrSys->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd,
-                                                                        vr::Prop_SecondsFromVsyncToPhotons_Float);
-
-            float predictAmount = frameDuration - secondsSinceLastVsync + vsyncToPhotons;
-
-            renderer->setVRPredictAmount(predictAmount);
         }
 
         renderer->frame(registry);

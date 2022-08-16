@@ -59,9 +59,12 @@ namespace worlds
         std::vector<glm::mat4> overrideViews;
         std::vector<glm::mat4> overrideProjs;
 
-        void drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices, Frustum* frustums, int numViews);
+        void createSizeDependants();
+        void drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices, Frustum* frustums,
+                      int numViews);
         void fillLightBuffer(entt::registry& reg, VKTextureManager* textureManager);
-      public:
+
+    public:
         StandardPipeline(VKRenderer* renderer);
         ~StandardPipeline();
 

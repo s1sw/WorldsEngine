@@ -3,14 +3,16 @@
 #include <R2/VKTexture.hpp>
 #include <Render/IRenderPipeline.hpp>
 #include <Render/RenderInternal.hpp>
+#include <Tracy.hpp>
 
 using namespace R2::VK;
 
 namespace worlds
 {
-    VKRTTPass::VKRTTPass(VKRenderer* renderer, const RTTPassCreateInfo& ci, IRenderPipeline* pipeline)
+    VKRTTPass::VKRTTPass(VKRenderer* renderer, const RTTPassSettings& ci, IRenderPipeline* pipeline)
         : renderer(renderer), pipeline(pipeline)
     {
+        ZoneScoped;
         TextureCreateInfo tci = TextureCreateInfo::Texture2D(TextureFormat::R8G8B8A8_SRGB, ci.width, ci.height);
 
         if (ci.numViews > 1)
@@ -40,19 +42,6 @@ namespace worlds
         pipeline->setView(viewIndex, viewMatrix, projectionMatrix);
     }
 
-    void VKRTTPass::drawNow(entt::registry& world)
-    {
-    }
-
-    void VKRTTPass::requestPick(int x, int y)
-    {
-    }
-
-    bool VKRTTPass::getPickResult(uint32_t* result)
-    {
-        return false;
-    }
-
     float* VKRTTPass::getHDRData()
     {
         return nullptr;
@@ -60,6 +49,7 @@ namespace worlds
 
     void VKRTTPass::resize(int newWidth, int newHeight)
     {
+        ZoneScoped;
         TextureCreateInfo tci = TextureCreateInfo::Texture2D(TextureFormat::R8G8B8A8_SRGB, newWidth, newHeight);
         tci.IsRenderTarget = true;
         tci.Layers = settings.numViews;
@@ -76,16 +66,12 @@ namespace worlds
         pipeline->onResize(newWidth, newHeight);
     }
 
-    void VKRTTPass::setResolutionScale(float newScale)
-    {
-    }
-
     ImTextureID VKRTTPass::getUITextureID()
     {
         return (ImTextureID)(uint64_t)finalTargetBindlessID;
     }
 
-    const RTTPassCreateInfo& VKRTTPass::getSettings()
+    const RTTPassSettings& VKRTTPass::getSettings()
     {
         return settings;
     }

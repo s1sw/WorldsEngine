@@ -5,5 +5,7 @@ NamespaceIndentation: All
 SortIncludes: false
 DerivePointerAlignment: false
 PointerAlignment: Left
+AccessModifierOffset: -4
+IndentAccessModifiers: false
 
 ...

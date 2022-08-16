@@ -27,7 +27,7 @@ namespace worlds
     // void bakeCubemap(Editor* ed, glm::vec3 pos, worlds::VKRenderer* renderer,
     //    std::string name, entt::registry& world, int resolution, int iterations = 1) {
     //    // create RTT pass
-    //    RTTPassCreateInfo rtci;
+    //    RTTPassSettings rtci;
     //    Camera cam;
     //    rtci.cam = &cam;
     //    rtci.enableShadows = true;
