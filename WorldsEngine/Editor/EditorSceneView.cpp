@@ -410,12 +410,15 @@ namespace worlds
         if (sceneViewPass)
             interfaces.renderer->destroyRTTPass(sceneViewPass);
 
-        RTTPassCreateInfo sceneViewPassCI{.cam = &cam,
-                                          .width = currentWidth,
-                                          .height = currentHeight,
-                                          .useForPicking = true,
-                                          .enableShadows = shadowsEnabled,
-                                          .msaaLevel = 4 };
+        RTTPassCreateInfo sceneViewPassCI
+        {
+            .cam = &cam,
+            .width = currentWidth,
+            .height = currentHeight,
+            .useForPicking = true,
+            .enableShadows = shadowsEnabled,
+            .msaaLevel = 4
+        };
 
         sceneViewPass = interfaces.renderer->createRTTPass(sceneViewPassCI);
         sceneViewPass->active = true;
@@ -430,7 +433,7 @@ namespace worlds
     void EditorSceneView::setViewportActive(bool active)
     {
         viewportActive = active;
-        // sceneViewPass->active = active;
+        sceneViewPass->active = active;
     }
 
     Camera& EditorSceneView::getCamera()

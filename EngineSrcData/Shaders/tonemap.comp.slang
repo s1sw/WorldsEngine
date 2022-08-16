@@ -16,7 +16,11 @@ RWTexture2D<float4> resultImage;
     #endif
 #endif
 
-Sampler2D bloomImage;
+#ifdef MULTIVP
+    Sampler2DArray bloomImage;
+#else
+    Sampler2D bloomImage;
+#endif
 
 [[vk::push_constant]]
 cbuffer TonemapSettings
@@ -196,8 +200,12 @@ void main(uint3 threadID : SV_DispatchThreadID)
     float3 accumulator = 0.0;
     float2 uv = (float2(threadID.xy) + 0.5) / (texSettings.HDRResolution / resolutionScale);
 
+#ifdef MULTIVP
+    float3 bloom = bloomImage.SampleLevel(float3(uv * resolutionScale, idx), 0).xyz;
+#else
     float3 bloom = bloomImage.SampleLevel(uv * resolutionScale, 0).xyz;
-    bloom = 0.0;//max(bloom, float3(0.0));
+#endif
+    bloom = max(bloom, float3(0.0));
 
 #ifdef MSAA
     // If we're using MSAA, resolve using the reversible tonemapper

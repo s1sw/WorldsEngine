@@ -17,6 +17,7 @@
 #include <Util/AABB.hpp>
 
 #include <deque>
+#include <new>
 
 using namespace R2;
 
@@ -314,8 +315,31 @@ namespace worlds
 
         return mix(higher, lower, cutoff);
     }
+    
+    bool cullMesh(const RenderMeshInfo& rmi, const Transform& t, Frustum* frustums, int numViews)
+    {
+        float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
+        bool reject = true;
+        for (int i = 0; i < numViews; i++)
+        {
+            if (frustums[i].containsSphere(t.position, maxScale * rmi.boundingSphereRadius)) reject = false;
+        }
 
-    void StandardPipeline::drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices, Frustum& frustum)
+        if (reject) return false;
+
+        reject = false;
+        AABB aabb = AABB{rmi.aabbMin, rmi.aabbMax}.transform(t);
+        for (int i = 0; i < numViews; i++)
+        {
+            if (frustums[i].containsAABB(aabb.min, aabb.max)) reject = false;
+        }
+
+        if (reject) return false;
+
+        return true;
+    }
+
+    void StandardPipeline::drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices, Frustum* frustums, int numViews)
     {
         RenderMeshManager* meshManager = renderer->getMeshManager();
         VK::Core* core = renderer->getCore();
@@ -330,11 +354,7 @@ namespace worlds
         {
             const RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
 
-            float maxScale = glm::max(t.scale.x, glm::max(t.scale.y, t.scale.z));
-            if (!frustum.containsSphere(t.position, maxScale * rmi.boundingSphereRadius)) return;
-
-            AABB aabb = AABB{rmi.aabbMin, rmi.aabbMax}.transform(t);
-            if (!frustum.containsAABB(aabb.min, aabb.max)) return;
+            if (!cullMesh(rmi, t, frustums, numViews)) return;
 
             if (writeMatrices)
                 modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
@@ -537,8 +557,12 @@ namespace worlds
             }
         }
 
-        Frustum frustum{};
-        frustum.fromVPMatrix(multiVPs.projections[0] * multiVPs.views[0]);
+        Frustum* frustums = (Frustum*)alloca(sizeof(Frustum) * rttPass->getSettings().numViews);
+        for (int i = 0; i < rttPass->getSettings().numViews; i++)
+        {
+            new(&frustums[i]) Frustum();
+            frustums[i].fromVPMatrix(multiVPs.projections[i] * multiVPs.views[i]);
+        }
 
         core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
 
@@ -547,7 +571,7 @@ namespace worlds
         cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
         cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
 
-        drawLoop(reg, cb, true, frustum);
+        drawLoop(reg, cb, true, frustums, rttPass->getSettings().numViews);
         depthPass.End(cb);
 
         cb.EndDebugLabel();
@@ -570,7 +594,7 @@ namespace worlds
 
         colorPass.Begin(cb);
 
-        drawLoop(reg, cb, false, frustum);
+        drawLoop(reg, cb, false, frustums, rttPass->getSettings().numViews);
 
         size_t dbgLinesCount;
         const DebugLine* dbgLines = renderer->getCurrentDebugLines(&dbgLinesCount);

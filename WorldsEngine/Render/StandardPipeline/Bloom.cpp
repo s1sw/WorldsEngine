@@ -10,7 +10,7 @@ namespace worlds
     struct BloomPushConstants
     {
         uint32_t inputMipLevel;
-        uint32_t pad;
+        uint32_t inputArrayIdx;
         uint32_t outputW;
         uint32_t outputH;
     };
@@ -21,6 +21,13 @@ namespace worlds
     {
         VK::TextureCreateInfo tci = VK::TextureCreateInfo::Texture2D(VK::TextureFormat::B10G11R11_UFLOAT_PACK32, hdrSource->GetWidth(), hdrSource->GetHeight());
         tci.SetFullMipChain();
+
+        if (hdrSource->GetLayers() > 1)
+        {
+            tci.Dimension = VK::TextureDimension::Array2D;
+            tci.Layers = hdrSource->GetLayers();
+        }
+
         if (tci.NumMips > 8) tci.NumMips = 8;
 
         mipChain = core->CreateTexture(tci);
@@ -49,7 +56,8 @@ namespace worlds
         {
             VK::TextureSubset texSubset{};
             texSubset.Dimension = VK::TextureDimension::Dim2D;
-            texSubset.LayerCount = 1;
+            texSubset.LayerCount = tci.Layers;
+            texSubset.LayerStart = 0;
             texSubset.MipCount = 1;
             texSubset.MipStart = i;
 
@@ -68,13 +76,23 @@ namespace worlds
         plb.DescriptorSet(dsl.Get());
         pipelineLayout = plb.Build();
 
+        AssetID downsampleID = AssetDB::pathToId("Shaders/bloom_downsample.comp.spv");
+        AssetID upsampleID = AssetDB::pathToId("Shaders/bloom_upsample.comp.spv");
+
+        if (hdrSource->GetLayers() > 1)
+        {
+            downsampleID = AssetDB::pathToId("Shaders/bloom_downsample_multivp.comp.spv");
+            upsampleID = AssetDB::pathToId("Shaders/bloom_upsample_multivp.comp.spv");
+        }
+
         VK::ComputePipelineBuilder cpbDownsample{core};
-        cpbDownsample.SetShader(ShaderCache::getModule(AssetDB::pathToId("Shaders/bloom_downsample.comp.spv")));
+
+        cpbDownsample.SetShader(ShaderCache::getModule(downsampleID));
         cpbDownsample.Layout(pipelineLayout.Get());
         downsample = cpbDownsample.Build();
 
         VK::ComputePipelineBuilder cpbUpsample{core};
-        cpbUpsample.SetShader(ShaderCache::getModule(AssetDB::pathToId("Shaders/bloom_upsample.comp.spv")));
+        cpbUpsample.SetShader(ShaderCache::getModule(upsampleID));
         cpbUpsample.Layout(pipelineLayout.Get());
         upsample = cpbUpsample.Build();
 
@@ -82,7 +100,12 @@ namespace worlds
         AssetID seedShader;
 
         if (hdrSource->GetSamples() > 1)
-            seedShader = AssetDB::pathToId("Shaders/bloom_seed_msaa.comp.spv");
+        {
+            if (hdrSource->GetLayers() > 1)
+                seedShader = AssetDB::pathToId("Shaders/bloom_seed_msaa_multivp.comp.spv");
+            else
+                seedShader = AssetDB::pathToId("Shaders/bloom_seed_msaa.comp.spv");
+        }
         else
             seedShader = AssetDB::pathToId("Shaders/bloom_seed.comp.spv");
 
@@ -94,7 +117,7 @@ namespace worlds
 
         VK::DescriptorSetUpdater{core->GetHandles(), seedDS.Get()}
             .AddTexture(0, 0, VK::DescriptorType::CombinedImageSampler, hdrSource, sampler.Get())
-            .AddTextureView(1, 0, VK::DescriptorType::StorageImage, mipOutputViews[0].Get())
+            .AddTexture(1, 0, VK::DescriptorType::StorageImage, mipChain.Get())
             .Update();
     }
 
@@ -118,10 +141,11 @@ namespace worlds
 
         cb.BindComputePipeline(seedPipeline.Get());
         cb.BindComputeDescriptorSet(pipelineLayout.Get(), seedDS->GetNativeHandle(), 0);
-        cb.Dispatch((hdrSource->GetWidth() + 15) / 16, (hdrSource->GetHeight() + 15) / 16, 1);
+        cb.Dispatch((hdrSource->GetWidth() + 15) / 16, (hdrSource->GetHeight() + 15) / 16, hdrSource->GetLayers());
 
         // Downsample time!
         cb.BindComputePipeline(downsample.Get());
+        cb.BeginDebugLabel("Bloom Layer", 0.1f, 0.1f, 0.1f);
         int w = mipChain->GetWidth() / 2;
         int h = mipChain->GetHeight() / 2;
         for (int mip = 1; mip < mipChain->GetNumMips(); mip++)
@@ -130,10 +154,10 @@ namespace worlds
                 VK::AccessFlags::ShaderReadWrite, VK::AccessFlags::ShaderReadWrite);
 
             // We want to downsample from the previous mip level to this mip level.
-            BloomPushConstants pcs { (uint32_t)(mip - 1), 0, (uint32_t)w, (uint32_t)h };
+            BloomPushConstants pcs { (uint32_t)(mip - 1), (uint32_t)0, (uint32_t)w, (uint32_t)h };
             cb.PushConstants(pcs, VK::ShaderStage::Compute, pipelineLayout.Get());
             cb.BindComputeDescriptorSet(pipelineLayout.Get(), mipOutputSets[mip]->GetNativeHandle(), 0);
-            cb.Dispatch((w + 15) / 16, (h + 15) / 16, 1);
+            cb.Dispatch((w + 15) / 16, (h + 15) / 16, hdrSource->GetLayers());
 
             w /= 2;
             h /= 2;
@@ -150,11 +174,12 @@ namespace worlds
             int h = mipScale(mipChain->GetHeight(), mip - 1);
 
             // We want to upsample from this mip level to the next mip level.
-            BloomPushConstants pcs { (uint32_t)mip, 0, (uint32_t)w, (uint32_t)h };
+            BloomPushConstants pcs { (uint32_t)mip, (uint32_t)0, (uint32_t)w, (uint32_t)h };
             cb.PushConstants(pcs, VK::ShaderStage::Compute, pipelineLayout.Get());
             cb.BindComputeDescriptorSet(pipelineLayout.Get(), mipOutputSets[mip - 1]->GetNativeHandle(), 0);
-            cb.Dispatch((w + 15) / 16, (h + 15) / 16, 1);
+            cb.Dispatch((w + 15) / 16, (h + 15) / 16, hdrSource->GetLayers());
         }
+        cb.EndDebugLabel();
 
         cb.EndDebugLabel();
     }
