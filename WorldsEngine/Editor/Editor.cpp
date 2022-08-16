@@ -439,7 +439,7 @@ namespace worlds
         EditorActions::bindAction("editor.openActionSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control});
         EditorActions::bindAction("editor.openAssetSearch",
                                   ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift});
-        
+
         SceneLoader::registerLoadCallback(this, sceneLoadCallback);
     }
 
@@ -912,28 +912,28 @@ namespace worlds
             return;
         }
 
-        sceneViews.erase(std::remove_if(sceneViews.begin(), sceneViews.end(),
-                                        [](EditorSceneView* esv) {
-                                            if (!esv->open)
-                                            {
-                                                delete esv;
-                                                return true;
-                                            }
-                                            return false;
-                                        }),
-                         sceneViews.end());
+        auto sceneViewRemove = [](EditorSceneView* esv) {
+            if (!esv->open)
+            {
+                delete esv;
+                return true;
+            }
+            return false;
+        };
 
-        assetEditors.erase(std::remove_if(assetEditors.begin(), assetEditors.end(),
-                                          [](AssetEditorWindow* ae) {
-                                              if (!ae->isActive())
-                                              {
-                                                  delete ae;
-                                                  return true;
-                                              }
+        sceneViews.erase(std::remove_if(sceneViews.begin(), sceneViews.end(), sceneViewRemove), sceneViews.end());
 
-                                              return false;
-                                          }),
-                           assetEditors.end());
+        auto aeRemove = [](AssetEditorWindow* ae) {
+            if (!ae->isActive())
+            {
+                delete ae;
+                return true;
+            }
+
+            return false;
+        };
+
+        assetEditors.erase(std::remove_if(assetEditors.begin(), assetEditors.end(), aeRemove), assetEditors.end());
 
         bool anyFocused = false;
 
@@ -1051,13 +1051,6 @@ namespace worlds
             ImGui::InputFloat("Camera speed", &cameraSpeed, 0.1f);
 
             ImGui::InputFloat("Scene icon distance", &settings.sceneIconDrawDistance);
-            if (ImGui::Checkbox("Shadows", &settings.enableShadows))
-            {
-                for (EditorSceneView* esv : sceneViews)
-                {
-                    esv->setShadowsEnabled(settings.enableShadows);
-                }
-            }
         }
         ImGui::End();
 
@@ -1083,7 +1076,8 @@ namespace worlds
                 allSelectedEntities.push_back(e);
             }
 
-            std::string entityJson = JsonSceneSerializer::entitiesToJson(reg, allSelectedEntities.data(), allSelectedEntities.size());
+            std::string entityJson =
+                JsonSceneSerializer::entitiesToJson(reg, allSelectedEntities.data(), allSelectedEntities.size());
             SDL_SetClipboardText(entityJson.c_str());
         }
 
