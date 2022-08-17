@@ -1,8 +1,8 @@
 [
-	"Cubemaps/Miramar/px.wtex",
-	"Cubemaps/Miramar/nx.wtex",
-	"Cubemaps/Miramar/py.wtex",
-	"Cubemaps/Miramar/ny.wtex",
-	"Cubemaps/Miramar/pz.wtex",
-	"Cubemaps/Miramar/nz.wtex"
+	"Cubemaps/Miramar/miramar_px.png",
+	"Cubemaps/Miramar/miramar_nx.png",
+	"Cubemaps/Miramar/miramar_py.png",
+	"Cubemaps/Miramar/miramar_ny.png",
+	"Cubemaps/Miramar/miramar_pz.png",
+	"Cubemaps/Miramar/miramar_nz.png"
 ]

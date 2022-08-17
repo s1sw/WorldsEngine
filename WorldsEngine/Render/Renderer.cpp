@@ -116,7 +116,7 @@ namespace worlds
                 continue;
 
             cb.BeginDebugLabel("RTT Pass", 0.0f, 0.0f, 0.0f);
-            pass->pipeline->draw(registry, cb);
+            pass->pipeline->draw(pass->settings.registryOverride ? *pass->settings.registryOverride : registry, cb);
 
             pass->getFinalTarget()->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead,
                                             VK::PipelineStageFlags::FragmentShader);

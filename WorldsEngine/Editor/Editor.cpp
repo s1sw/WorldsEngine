@@ -1038,6 +1038,19 @@ namespace worlds
 
         if (ImGui::Begin(ICON_FA_EDIT u8" Editor"))
         {
+            ImGui::Text("Modification Count: %u", undo.modificationCount());
+            if (ImGui::Button(ICON_FA_UNDO u8" Undo"))
+            {
+                undo.undo(reg);
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button(ICON_FA_REDO u8" Redo"))
+            {
+                undo.redo(reg);
+            }
+
             ImGui::Text("Current tool: %s", toolStr(currentTool));
 
             ImGui::Checkbox("Manipulate in local space", &toolLocalSpace);

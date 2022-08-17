@@ -31,6 +31,7 @@ namespace worlds
     class DebugLineDrawer;
     class Frustum;
     class Bloom;
+    class SkyboxRenderer;
 
     class StandardPipeline : public IRenderPipeline
     {
@@ -51,6 +52,7 @@ namespace worlds
         UniquePtr<CubemapConvoluter> cubemapConvoluter;
         UniquePtr<DebugLineDrawer> debugLineDrawer;
         UniquePtr<Bloom> bloom;
+        UniquePtr<SkyboxRenderer> skyboxRenderer;
 
         VKRenderer* renderer;
         VKRTTPass* rttPass;

@@ -964,7 +964,7 @@ namespace worlds
                 size_t vertSkinInfoLength = skinInfo.size() * sizeof(wmdl::VertexSkinningInfo);
                 size_t boneLength = bones.size() * sizeof(wmdl::Bone);
                 wmdl::Header hdr{};
-                hdr.useSmallIndices = verts.size() >= UINT16_MAX;
+                hdr.useSmallIndices = verts.size() < UINT16_MAX;
 
                 hdr.numSubmeshes = submeshes.size();
                 hdr.submeshOffset = sizeof(hdr) + sizeof(wmdl::SkinningInfoBlock) + vertSkinInfoLength + boneLength;

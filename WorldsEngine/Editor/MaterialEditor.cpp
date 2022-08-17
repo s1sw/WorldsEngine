@@ -153,10 +153,6 @@ namespace worlds
                                           AssetDB::pathToId("Models/sphere.wmdl"),
                                           AssetDB::pathToId("Materials/DevTextures/dev_metal.json"));
 
-        // previewPassTex = (ImTextureID)VKImGUIUtil::createDescriptorSetFor(
-        //    static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image(),
-        //    static_cast<VKRenderer*>(interfaces.renderer)->getHandles());
-
         previewCam.position = glm::vec3(0.0f, 0.0f, -1.0f);
         previewCam.rotation =
             glm::angleAxis(0.0f, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::angleAxis(0.0f, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -333,8 +329,6 @@ namespace worlds
         if (previewSize.x != lastPreviewSize.x || previewSize.y != lastPreviewSize.y)
         {
             rttPass->resize(std::max(16, (int)previewSize.x), std::max(16, (int)previewSize.y));
-            // VKImGUIUtil::updateDescriptorSet((VkDescriptorSet)previewPassTex,
-            // static_cast<VKRTTPass*>(rttPass)->sdrFinalTarget->image());
             lastPreviewSize = previewSize;
             resized = true;
             rttPass->active = true;
@@ -342,7 +336,7 @@ namespace worlds
 
         ImVec2 cpos = ImGui::GetWindowPos() + ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
         ImVec2 end = previewSize + cpos;
-        ImGui::ImageButton(previewPassTex, previewSize, ImVec2(0, 0), ImVec2(1, 1), 0);
+        ImGui::ImageButton(rttPass->getUITextureID(), previewSize, ImVec2(0, 0), ImVec2(1, 1), 0);
 
         if (ImGui::IsMouseHoveringRect(cpos, end))
         {

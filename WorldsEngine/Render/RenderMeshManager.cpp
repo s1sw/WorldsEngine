@@ -9,11 +9,11 @@ namespace worlds
     RenderMeshManager::RenderMeshManager(R2::VK::Core* core) : core(core)
     {
         R2::VK::BufferCreateInfo createInfo{};
-        createInfo.Size = 8 * 1000 * 1000; // 8MB
+        createInfo.Size = 8 * 1000 * 1000 * sizeof(Vertex); // 8 million vertices
         createInfo.Usage = R2::VK::BufferUsage::Vertex | R2::VK::BufferUsage::Storage;
         vertexBuffer = new R2::SubAllocatedBuffer(core, createInfo);
 
-        createInfo.Size = 8 * 1000 * 1000; // 8MB
+        createInfo.Size = 9 * 1000 * 1000 * sizeof(uint32_t); // 3 million triangles
         createInfo.Usage = R2::VK::BufferUsage::Index | R2::VK::BufferUsage::Storage;
         indexBuffer = new R2::SubAllocatedBuffer(core, createInfo);
     }

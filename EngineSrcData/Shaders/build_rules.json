@@ -117,5 +117,17 @@
         "path": "bloom_seed.comp.slang",
         "outputPath": "bloom_seed_msaa_multivp.comp.spv",
         "defines": ["MSAA", "MULTIVP"]
+    },
+    {
+        "path": "skybox.slang",
+        "outputPath": "skybox.vert.spv",
+        "stage": "vert",
+        "entryPoint": "VertexShader"
+    },
+    {
+        "path": "skybox.slang",
+        "outputPath": "skybox.frag.spv",
+        "stage": "frag",
+        "entryPoint": "FragmentShader"
     }
 ]

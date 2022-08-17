@@ -1,5 +1,6 @@
 #include "StandardPipeline.hpp"
 #include <Core/AssetDB.hpp>
+#include <Core/Engine.hpp>
 #include <Core/MaterialManager.hpp>
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/SubAllocatedBuffer.hpp>
@@ -11,6 +12,7 @@
 #include <Render/StandardPipeline/CubemapConvoluter.hpp>
 #include <Render/StandardPipeline/DebugLineDrawer.hpp>
 #include <Render/StandardPipeline/LightCull.hpp>
+#include <Render/StandardPipeline/SkyboxRenderer.hpp>
 #include <Render/StandardPipeline/Tonemapper.hpp>
 #include <entt/entity/registry.hpp>
 #include <Util/JsonUtil.hpp>
@@ -92,7 +94,7 @@ namespace worlds
         mai.offset = materialBuffer->Allocate(sizeof(StandardPBRMaterial), mai.handle);
 
         StandardPBRMaterial material{};
-        material.albedoTexture = tm->loadOrGet(AssetDB::pathToId(j["albedoPath"]));
+        material.albedoTexture = tm->loadOrGet(AssetDB::pathToId(j.value("albedoPath", "Textures/missing.wtex")));
         material.normalTexture = ~0u;
         material.mraTexture = ~0u;
 
@@ -171,6 +173,7 @@ namespace worlds
                                               getViewMask(settings.numViews));
         bloom = new Bloom(core, colorBuffer.Get());
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget(), bloom->GetOutput());
+        skyboxRenderer = new SkyboxRenderer(core, pipelineLayout.Get(), settings.msaaLevel, getViewMask(settings.numViews));
     }
 
     void StandardPipeline::setup(VKRTTPass* rttPass)
@@ -343,7 +346,6 @@ namespace worlds
         if (writeMatrices)
             modelMatricesMapped = (glm::mat4*)modelMatrixBuffers[core->GetFrameIndex()]->Map();
 
-        cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
         reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
             const RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
 
@@ -359,6 +361,7 @@ namespace worlds
             VK::IndexType vkIdxType =
                 rmi.indexType == IndexType::Uint32 ? VK::IndexType::Uint32 : VK::IndexType::Uint16;
             cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, vkIdxType);
+            cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
 
             for (int i = 0; i < rmi.numSubmeshes; i++)
             {
@@ -378,7 +381,7 @@ namespace worlds
                 spc.materialID = loadOrGetMaterial(renderer, wo.materials[materialIndex]);
                 cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
 
-                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, rmi.vertsOffset / sizeof(Vertex), 0);
+                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
             }
         });
 
@@ -466,8 +469,15 @@ namespace worlds
 
         lMapped->lightCount = lightCount;
 
+        AssetID skybox = reg.ctx<SceneSettings>().skybox;
+
+        if (!textureManager->isLoaded(skybox))
+        {
+            convoluteQueue.push_back(skybox);
+        }
+
         uint32_t cubemapIdx = 1;
-        lMapped->cubemaps[0] = GPUCubemap{glm::vec3{100000.0f}, ~0u, glm::vec3{0.0f}, 0};
+        lMapped->cubemaps[0] = GPUCubemap{glm::vec3{100000.0f}, textureManager->loadOrGet(skybox), glm::vec3{0.0f}, 0};
 
         reg.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t) {
             GPUCubemap gc{};
@@ -595,6 +605,8 @@ namespace worlds
         colorPass.Begin(cb);
 
         drawLoop(reg, cb, false, frustums, rttPass->getSettings().numViews);
+
+        skyboxRenderer->Execute(cb);
 
         cb.BeginDebugLabel("Debug Lines", 0.1f, 0.1f, 0.1f);
         size_t dbgLinesCount;

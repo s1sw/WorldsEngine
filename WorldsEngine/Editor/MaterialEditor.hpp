@@ -44,7 +44,6 @@ namespace worlds
         Camera previewCam;
         entt::entity previewEntity;
         entt::registry previewRegistry;
-        ImTextureID previewPassTex;
         EditableMaterial mat;
         bool dragging = false;
         float lx;

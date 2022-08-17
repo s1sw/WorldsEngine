@@ -184,7 +184,15 @@ namespace worlds
         VK::TextureFormat textureFormat = faces[0].format;
         int resolution = faces[0].width;
         int pixelSize = textureFormat == VK::TextureFormat::R32G32B32A32_SFLOAT ? sizeof(float) * 4 : 4;
+        if (textureFormat == VK::TextureFormat::BC1_RGBA_SRGB_BLOCK)
+        {
+            pixelSize = 1;
+        }
         size_t faceSize = resolution * resolution * pixelSize;
+        if (textureFormat == VK::TextureFormat::BC1_RGBA_SRGB_BLOCK)
+        {
+            faceSize /= 2;
+        }
 
         for (int i = 0; i < 6; i++)
         {
@@ -200,11 +208,11 @@ namespace worlds
                 return TextureData { nullptr };
             }
 
-            if (faces[i].totalDataSize != faceSize)
-            {
-                logErr("Faces of cubemap %s differ in data size", AssetDB::idToPath(id).c_str());
-                return TextureData{ nullptr };
-            }
+            //if (loadedFaceSize != faceSize)
+            //{
+            //    logErr("Faces of cubemap %s differ in data size", AssetDB::idToPath(id).c_str());
+            //    return TextureData{ nullptr };
+            //}
         }
 
         TextureData finalData{};
@@ -270,7 +278,7 @@ namespace worlds
             return loadCrunchTexture(fileVec.data(), fileLen, id);
         }
 
-        if (fileVec[0] == '[' && fileVec[fileVec.size() - 1] == ']')
+        if (fileVec[0] == '[')
         {
             return loadCubemapTexture(fileVec.data(), fileLen, id);
         }
