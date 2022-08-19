@@ -51,7 +51,7 @@ struct AABB
 
 #define CULL_DEPTH
 #define CULL_AABB
-//#define USE_SUBGROUPS
+#define USE_SUBGROUPS
 
 groupshared Frustum tileFrustum;
 groupshared AABB tileAABB;
@@ -198,7 +198,7 @@ void setupTileFrustum(float3 frustumPoints[8])
     float3 camPos = viewPos[eyeIdx].xyz;
 
     for (int i = 0; i < 4; i++)
-    {
+{
         float3 planeNormal = cross(frustumPoints[i] - camPos, frustumPoints[i + 1] - camPos);
         planeNormal = normalize(planeNormal);
         tileFrustum.planes[i] = float4(planeNormal, -dot(planeNormal, frustumPoints[i]));
@@ -557,15 +557,13 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
     // the depth bounds of the tile to receive the lighting.
     if (minDepthAtCurrent > 0.0f)
     {
-        //uint sgMinDepth = WaveActiveMin(minDepthAsUint);
-        //uint sgMaxDepth = WaveActiveMax(maxDepthAsUint);
-        //if (WaveIsFirstLane())
-        //{
-        //    InterlockedMin(minDepthU, sgMinDepth);
-        //    InterlockedMax(maxDepthU, sgMaxDepth);
-        //}
-        InterlockedMin(minDepthU, minDepthAsUint);
-        InterlockedMax(maxDepthU, maxDepthAsUint);
+        uint sgMinDepth = WaveActiveMin(minDepthAsUint);
+        uint sgMaxDepth = WaveActiveMax(maxDepthAsUint);
+        if (WaveIsFirstLane())
+        {
+            InterlockedMin(minDepthU, sgMinDepth);
+            InterlockedMax(maxDepthU, sgMaxDepth);
+        }
     }
 
     GroupMemoryBarrierWithGroupSync();
@@ -578,7 +576,7 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
 
     GroupMemoryBarrierWithGroupSync();
 
-    cullAO(tileIndex, groupIndex);
+    //cullAO(tileIndex, groupIndex);
     cullCubemaps(tileIndex, groupIndex);
     cullLights(tileIndex, groupIndex);
 }
