@@ -28,6 +28,7 @@ namespace R2
 
     size_t SubAllocatedBuffer::Allocate(size_t amount, SubAllocationHandle& allocation)
     {
+        std::lock_guard lg{mutex};
         VmaVirtualAllocationCreateInfo allocCreateInfo{};
         allocCreateInfo.size = amount;
 
@@ -39,6 +40,7 @@ namespace R2
 
     void SubAllocatedBuffer::Free(SubAllocationHandle subAllocHandle)
     {
+        std::lock_guard lg{mutex};
         vmaVirtualFree(virtualBlock, (VmaVirtualAllocation)subAllocHandle);
     }
 }

@@ -3,6 +3,7 @@
 #include <R2/VKCore.hpp>
 #include <Render/Loaders/WMDLLoader.hpp>
 #include <Render/RenderInternal.hpp>
+#include <Tracy.hpp>
 
 namespace worlds
 {
@@ -42,6 +43,7 @@ namespace worlds
 
     RenderMeshInfo& RenderMeshManager::loadOrGet(AssetID asset)
     {
+        ZoneScoped;
         if (meshes.contains(asset))
         {
             return meshes.at(asset);

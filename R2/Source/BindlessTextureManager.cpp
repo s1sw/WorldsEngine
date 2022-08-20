@@ -49,6 +49,7 @@ namespace R2
     {
         uint32_t freeSlot = FindFreeSlot();
 
+        std::lock_guard lock{texturesMutex};
         assert(freeSlot != ~0u);
         textures[freeSlot] = tex;
         presentTextures[freeSlot] = true;
@@ -58,6 +59,7 @@ namespace R2
 
     void BindlessTextureManager::SetTextureAt(uint32_t handle, VK::Texture* tex)
     {
+        std::lock_guard lock{texturesMutex};
         assert(presentTextures[handle]);
         textures[handle] = tex;
         descriptorsNeedUpdate = true;
@@ -65,12 +67,14 @@ namespace R2
 
     VK::Texture* BindlessTextureManager::GetTextureAt(uint32_t handle)
     {
+        std::lock_guard lock{texturesMutex};
         assert(presentTextures[handle]);
         return textures[handle];
     }
 
     void BindlessTextureManager::FreeTextureHandle(uint32_t handle)
     {
+        std::lock_guard lock{texturesMutex};
         textures[handle] = nullptr;
         presentTextures[handle] = false;
         descriptorsNeedUpdate = true;

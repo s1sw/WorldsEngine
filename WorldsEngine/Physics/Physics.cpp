@@ -20,6 +20,7 @@
 #include <physx/pvd/PxPvd.h>
 #include <physx/pvd/PxPvdTransport.h>
 #include <slib/Intrinsic.hpp>
+#include <Tracy.hpp>
 using namespace physx;
 
 #define ENABLE_PVD 0
@@ -138,6 +139,7 @@ namespace worlds
 
     template <typename T> void PhysicsSystem::updatePhysicsShapes(T& pa, glm::vec3 scale)
     {
+        ZoneScoped;
         uint32_t nShapes = pa.actor->getNbShapes();
         physx::PxShape** buf = (physx::PxShape**)std::malloc(nShapes * sizeof(physx::PxShape*));
         pa.actor->getShapes(buf, nShapes);

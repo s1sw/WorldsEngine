@@ -11,6 +11,6 @@ namespace worlds
         static nlohmann::json& loadOrGet(AssetID id);
         static void reload();
     private:
-        static robin_hood::unordered_map<AssetID, nlohmann::json> mats;
+        static robin_hood::unordered_node_map<AssetID, nlohmann::json> mats;
     };
 }

@@ -26,6 +26,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <nlohmann/json.hpp>
 #include <robin_hood.h>
+#include <Tracy.hpp>
 
 // Janky workaround to fix static constructors not being called
 // (static constructors are only required to be called before the first function in the translation unit)
@@ -180,6 +181,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const nlohmann::json& j) override
         {
+            ZoneScoped;
             auto& t = reg.emplace<Transform>(ent);
             t.position = j["position"].get<glm::vec3>();
             t.rotation = j["rotation"].get<glm::quat>();
@@ -352,6 +354,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             auto& wo = reg.emplace<WorldObject>(ent, 0, 0);
             std::string meshPath = j["mesh"];
             wo.mesh = AssetDB::pathToId(meshPath);
@@ -499,6 +502,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             std::string meshPath = j["mesh"];
             AssetID mesh = AssetDB::pathToId(meshPath);
             auto& wo = reg.emplace<SkinnedWorldObject>(ent, INVALID_ASSET, mesh);
@@ -666,6 +670,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             auto& wl = reg.emplace<WorldLight>(ent);
 
             wl.type = j["type"];
@@ -1035,6 +1040,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             auto* pActor = interfaces->physics->physics()->createRigidStatic(glm2px(reg.get<Transform>(ent)));
             interfaces->physics->scene()->addActor(*pActor);
 
@@ -1229,6 +1235,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             auto* pActor = interfaces->physics->physics()->createRigidDynamic(glm2px(reg.get<Transform>(ent)));
             pActor->setSolverIterationCounts(32, 6);
             pActor->setSleepThreshold(0.005f);
@@ -1379,6 +1386,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             std::string clipPath = j["clipPath"];
             AssetID id = AssetDB::pathToId(clipPath);
             auto& as = reg.emplace<OldAudioSource>(ent, id);
@@ -1463,6 +1471,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             auto& as = reg.emplace<AudioSource>(ent);
             as.changeEventPath(j["eventPath"].get<std::string>());
             as.playOnSceneStart = j["playOnSceneStart"];
@@ -1526,6 +1535,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             auto& wc = reg.emplace<WorldCubemap>(ent);
 
             wc.cubemapId = AssetDB::pathToId("LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" +
@@ -1535,56 +1545,6 @@ namespace worlds
             wc.priority = j.value("priority", 0);
             wc.resolution = j.value("resolution", 128);
             wc.captureOffset = j.value("captureOffset", glm::vec3{0.0f});
-        }
-    };
-
-    class ScriptComponentEditor : public BasicComponentUtil<ScriptComponent>
-    {
-      public:
-        const char* getName() override
-        {
-            return "Script";
-        }
-
-        void create(entt::entity ent, entt::registry& reg) override
-        {
-            reg.emplace<ScriptComponent>(ent, AssetDB::pathToId("Scripts/nothing.wren"));
-        }
-
-        void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
-        {
-            auto& sc = reg.get<ScriptComponent>(ent);
-
-            if (ImGui::CollapsingHeader(ICON_FA_SCROLL u8" Script"))
-            {
-                if (ImGui::Button("Remove##Script"))
-                {
-                    reg.remove<ScriptComponent>(ent);
-                }
-                else
-                {
-                    ImGui::Text("Current Script Path: %s", AssetDB::idToPath(sc.script).c_str());
-                    AssetID id = sc.script;
-                    if (selectAssetPopup("Script Path", id, ImGui::Button("Change")))
-                    {
-                        reg.patch<ScriptComponent>(ent, [&](ScriptComponent& sc) { sc.script = id; });
-                    }
-                    ImGui::Separator();
-                }
-            }
-        }
-
-        void toJson(entt::entity ent, entt::registry& reg, json& j) override
-        {
-            auto& sc = reg.get<ScriptComponent>(ent);
-            j = {{"path", AssetDB::idToPath(sc.script)}};
-        }
-
-        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
-        {
-            std::string path = j["path"];
-            AssetID scriptID = AssetDB::pathToId(path);
-            reg.emplace<ScriptComponent>(ent, scriptID);
         }
     };
 
@@ -1611,6 +1571,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             reg.emplace<ReverbProbeBox>(ent);
         }
     };
@@ -1649,6 +1610,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             auto& at = reg.emplace<AudioTrigger>(ent);
 
             at.playOnce = j["playOnce"];
@@ -1688,6 +1650,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             auto& pac = reg.emplace<ProxyAOComponent>(ent);
 
             pac.bounds = j["bounds"];
@@ -1739,6 +1702,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             auto& wtc = reg.emplace<WorldTextComponent>(ent);
 
             wtc.text = j["text"];
@@ -1830,6 +1794,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             auto& proxy = reg.emplace<SphereAOProxy>(ent);
 
             proxy.radius = j["radius"];
@@ -1869,6 +1834,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             auto& label = reg.emplace<EditorLabel>(ent);
 
             label.label = j["label"];
@@ -1902,6 +1868,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
         {
+            ZoneScoped;
             reg.emplace<AudioListenerOverride>(ent);
         }
     };
@@ -1972,6 +1939,7 @@ namespace worlds
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& idMap, const json& j) override
         {
+            ZoneScoped;
             if (!j.is_object())
                 return;
             HierarchyUtil::setEntityParent(reg, ent, (entt::entity)idMap[j["parent"]]);
@@ -1992,7 +1960,6 @@ namespace worlds
     NameComponentEditor ncEd;
     AudioSourceEditor asEd;
     WorldCubemapEditor wcEd;
-    ScriptComponentEditor scEd;
     ReverbProbeBoxEditor rpbEd;
     AudioTriggerEditor atEd;
     ProxyAOEditor aoEd;

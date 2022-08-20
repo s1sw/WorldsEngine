@@ -34,6 +34,7 @@ namespace worlds
         bool isMaximised();
         bool isMinimised();
         bool isFocused();
+        bool isFullscreen();
         void getSize(int* width, int* height);
         SDL_Window* getWrappedHandle();
 

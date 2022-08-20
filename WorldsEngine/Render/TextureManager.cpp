@@ -1,4 +1,5 @@
 #include <Core/Fatal.hpp>
+#include <Core/TaskScheduler.hpp>
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/VKCore.hpp>
 #include <Render/Loaders/TextureLoader.hpp>
@@ -25,6 +26,7 @@ namespace worlds
         : core(core), textureManager(textureManager)
     {
         missingTextureID = loadOrGet(AssetDB::pathToId("Textures/missing.wtex"));
+        missingTexture = textureManager->GetTextureAt(missingTextureID);
     }
 
     VKTextureManager::~VKTextureManager()
@@ -38,12 +40,20 @@ namespace worlds
 
     uint32_t VKTextureManager::loadOrGet(AssetID id)
     {
+        std::unique_lock lock{idMutex};
         if (textureIds.contains(id))
         {
             return textureIds.at(id).bindlessId;
         }
 
-        return load(id);
+        // Allocate a handle while we still have the lock but without actual
+        // texture data. This stops other threads from trying to load the same
+        // texture
+        uint32_t handle = textureManager->AllocateTextureHandle(nullptr);
+        textureIds.insert({id, TexInfo{nullptr, handle}});
+        lock.unlock();
+
+        return load(id, handle);
     }
 
     bool VKTextureManager::isLoaded(AssetID id)
@@ -53,23 +63,32 @@ namespace worlds
 
     void VKTextureManager::unload(AssetID id)
     {
+        std::lock_guard lock{idMutex};
         TexInfo info = textureIds[id];
         if (info.bindlessId == missingTextureID)
         {
             // Unloading the missing texture will break a lot of things so... let's just not
             return;
         }
-        delete info.tex;
+
+        if (info.tex != missingTexture)
+            delete info.tex;
+
         textureIds.erase(id);
         textureManager->FreeTextureHandle(info.bindlessId);
     }
 
-    uint32_t VKTextureManager::load(AssetID id)
+    uint32_t VKTextureManager::load(AssetID id, uint32_t handle)
     {
         TextureData td = loadTexData(id);
 
         if (td.data == nullptr)
-            return missingTextureID;
+        {
+            textureManager->SetTextureAt(handle, missingTexture);
+            TexInfo& ti = textureIds[id];
+            ti.tex = missingTexture;
+            return handle;
+        }
 
         R2::VK::TextureCreateInfo tci = R2::VK::TextureCreateInfo::Texture2D(td.format, td.width, td.height);
 
@@ -84,8 +103,9 @@ namespace worlds
 
         R2::VK::Texture* t = core->CreateTexture(tci);
         t->SetDebugName(td.name.c_str());
-
-        uint32_t handle = textureManager->AllocateTextureHandle(t);
+        TexInfo& ti = textureIds[id];
+        ti.tex = t;
+        textureManager->SetTextureAt(handle, t);
 
         if (!td.isCubemap)
             core->QueueTextureUpload(t, td.data, td.totalDataSize);
@@ -93,8 +113,6 @@ namespace worlds
             core->QueueTextureUpload(t, td.data, td.totalDataSize, 1);
 
         free(td.data);
-
-        textureIds.insert({id, TexInfo{t, handle}});
 
         return handle;
     }

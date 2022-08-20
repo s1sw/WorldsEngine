@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <vector>
+#include <mutex>
 
 #define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 VK_DEFINE_HANDLE(VmaAllocator)
@@ -140,6 +141,7 @@ namespace R2::VK
 			VkSemaphore Completion;
 			VkFence Fence;
 			DeletionQueue* DeletionQueue;
+			std::mutex BufferUploadMutex;
 
 			std::vector<BufferUpload> BufferUploads;
 			std::vector<BufferToTextureCopy> BufferToTextureCopies;
@@ -166,6 +168,7 @@ namespace R2::VK
 		PerFrameResources perFrameResources[2];
 		uint32_t frameIndex;
 		bool inFrame;
+		std::mutex queueMutex;
 
 		static VkBool32 vulkanDebugMessageCallback(
 			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

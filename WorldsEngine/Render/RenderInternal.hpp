@@ -4,6 +4,7 @@
 #include <Render/Render.hpp>
 #include <robin_hood.h>
 #include <Util/UniquePtr.hpp>
+#include <mutex>
 
 #define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 struct ImDrawData;
@@ -188,11 +189,13 @@ namespace worlds
             uint32_t bindlessId;
         };
 
-        uint32_t load(AssetID id);
+        uint32_t load(AssetID id, uint32_t handle);
         R2::VK::Core* core;
         R2::BindlessTextureManager* textureManager;
-        robin_hood::unordered_map<AssetID, TexInfo> textureIds;
+        robin_hood::unordered_node_map<AssetID, TexInfo> textureIds;
+        std::mutex idMutex;
         uint32_t missingTextureID;
+        R2::VK::Texture* missingTexture;
     };
 
     class VKUITextureManager : public IUITextureManager

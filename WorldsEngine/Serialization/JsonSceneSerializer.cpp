@@ -321,14 +321,7 @@ namespace worlds
                 }
                 catch (nlohmann::detail::out_of_range& ex)
                 {
-                    if (ex.id == 403)
-                    {
-                        logErr("Malformed prefab instance! (%s)", ex.what());
-                    }
-                    else
-                    {
-                        throw ex;
-                    }
+                    logErr("Malformed prefab instance! Resetting... (%s)", ex.what());
                 }
 
                 if (p.value().contains("Transform"))

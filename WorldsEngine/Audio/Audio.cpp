@@ -16,7 +16,6 @@
 #endif
 #include "PhononFmod.hpp"
 #include <Core/Fatal.hpp>
-#include <Core/JobSystem.hpp>
 #include <Physics/Physics.hpp>
 #include <Util/EnumUtil.hpp>
 #include <debugbreak.h>
@@ -24,6 +23,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <slib/DynamicLibrary.hpp>
 #include <stdlib.h>
+#include <Tracy.hpp>
 
 #define FMCHECK(_result) checkFmodErr(_result, __FILE__, __LINE__)
 #define SACHECK(_result) checkSteamAudioErr(_result, __FILE__, __LINE__)

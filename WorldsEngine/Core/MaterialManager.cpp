@@ -1,13 +1,16 @@
 #include <Core/MaterialManager.hpp>
 #include <Core/AssetDB.hpp>
 #include <Core/Log.hpp>
+#include <mutex>
 
 namespace worlds
 {
-    robin_hood::unordered_map<AssetID, nlohmann::json> MaterialManager::mats;
+    std::mutex matMutex;
+    robin_hood::unordered_node_map<AssetID, nlohmann::json> MaterialManager::mats;
 
     nlohmann::json& MaterialManager::loadOrGet(AssetID id)
     {
+        std::lock_guard lock{matMutex};
         if (mats.contains(id))
         {
             return mats.at(id);

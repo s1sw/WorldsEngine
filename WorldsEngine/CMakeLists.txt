@@ -37,13 +37,22 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/assimp/assimp
     GIT_TAG c8dafe0d2887242285c0080c6cbbea8c1f1c8094
 )
+
+FetchContent_Declare(
+    ENKITS
+    GIT_REPOSITORY https://github.com/dougbinks/enkiTS
+    GIT_TAG fd5a2603a0adf1884eee40dd081e30733a3b46dd 
+)
+
 set(RECASTNAVIGATION_DEMO off CACHE BOOL "" FORCE)
 # recasts' tests don't even build on C++20
 set(RECASTNAVIGATION_TESTS off CACHE BOOL "" FORCE)
 
 set(ASSIMP_BUILD_TESTS off CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ASSIMP_TOOLS off CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(SDL2 PHYSFS TRACY SLIB RECASTDETOUR ASSIMP)
+set(ENKITS_BUILD_C_INTERFACE off CACHE BOOL "" FORCE)
+set(ENKITS_BUILD_EXAMPLES off CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(SDL2 PHYSFS TRACY SLIB RECASTDETOUR ASSIMP ENKITS)
 
 project(EngineLibrary)
 set(CMAKE_CXX_STANDARD 20)
@@ -70,6 +79,6 @@ if(WIN32)
     target_link_libraries(${PROJECT_NAME} "../External/Lib/phonon")
 endif()
 
-target_link_libraries(${PROJECT_NAME} R2 SDL2::SDL2 physfs TracyClient slib Recast Detour assimp::assimp)
+target_link_libraries(${PROJECT_NAME} R2 SDL2::SDL2 physfs TracyClient slib Recast Detour assimp::assimp enkiTS)
 target_include_directories(${PROJECT_NAME} PUBLIC . ../External/Include ../TextureFormat ../ModelFormat)
 target_include_directories(${PROJECT_NAME} PUBLIC "${FMOD_DIR}/core/inc" "${FMOD_DIR}/studio/inc")

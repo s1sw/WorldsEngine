@@ -164,6 +164,11 @@ namespace worlds
         return hasFlag(SDL_WINDOW_INPUT_FOCUS);
     }
 
+    bool Window::isFullscreen()
+    {
+        return hasFlag(SDL_WINDOW_FULLSCREEN);
+    }
+
     void Window::getSize(int* width, int* height)
     {
         SDL_GetWindowSize(window, width, height);

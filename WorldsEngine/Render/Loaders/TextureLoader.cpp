@@ -6,6 +6,7 @@
 #include <Core/Engine.hpp>
 #include <Core/Fatal.hpp>
 #include <Core/Log.hpp>
+#include <Core/TaskScheduler.hpp>
 #include <Render/RenderInternal.hpp>
 #include <WTex.hpp>
 #include <algorithm>
@@ -49,7 +50,7 @@ namespace worlds
     {
         ZoneScoped;
 
-        crnd::crn_texture_info texInfo;
+        crnd::crn_texture_info texInfo{};
 
         if (!crnd::crnd_get_texture_info(fileData, (uint32_t)fileLen, &texInfo))
             return TextureData{};
@@ -176,10 +177,15 @@ namespace worlds
 
         TextureData faces[6];
 
-        for (int i = 0; i < 6; i++)
-        {
-            faces[i] = loadTexData(AssetDB::pathToId(j[i]));
-        }
+        enki::TaskSet loadTask{6, [&](enki::TaskSetPartition range, uint32_t) {
+            for (int i = range.start; i < range.end; i++)
+            {
+                faces[i] = loadTexData(AssetDB::pathToId(j[i]));
+            }
+        }};
+
+        g_taskSched.AddTaskSetToPipe(&loadTask);
+        g_taskSched.WaitforTask(&loadTask);
 
         VK::TextureFormat textureFormat = faces[0].format;
         int resolution = faces[0].width;

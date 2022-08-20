@@ -2,6 +2,7 @@
 #include <Core/AssetDB.hpp>
 #include <Core/Engine.hpp>
 #include <Core/MaterialManager.hpp>
+#include <Core/TaskScheduler.hpp>
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/SubAllocatedBuffer.hpp>
 #include <R2/VK.hpp>
@@ -60,6 +61,7 @@ namespace worlds
         SubAllocationHandle handle;
     };
 
+    std::mutex allocedMaterialsLock;
     robin_hood::unordered_map<AssetID, MaterialAllocInfo> allocedMaterials;
     SubAllocatedBuffer* materialBuffer = nullptr;
 
@@ -79,19 +81,24 @@ namespace worlds
 
     size_t loadOrGetMaterial(VKRenderer* renderer, AssetID id)
     {
-        if (allocedMaterials.contains(id))
+        MaterialAllocInfo mai{};
         {
-            return allocedMaterials[id].offset;
+            std::unique_lock lock{allocedMaterialsLock};
+
+            if (allocedMaterials.contains(id))
+            {
+                return allocedMaterials[id].offset;
+            }
+
+            mai.offset = materialBuffer->Allocate(sizeof(StandardPBRMaterial), mai.handle);
+            allocedMaterials.insert({id, mai});
         }
 
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* tm = renderer->getTextureManager();
 
-        MaterialAllocInfo mai{};
 
         auto& j = MaterialManager::loadOrGet(id);
-
-        mai.offset = materialBuffer->Allocate(sizeof(StandardPBRMaterial), mai.handle);
 
         StandardPBRMaterial material{};
         material.albedoTexture = tm->loadOrGet(AssetDB::pathToId(j.value("albedoPath", "Textures/missing.wtex")));
@@ -117,7 +124,6 @@ namespace worlds
 
         renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), mai.offset);
 
-        allocedMaterials.insert({id, mai});
 
         return mai.offset;
     }
@@ -133,6 +139,7 @@ namespace worlds
     void StandardPipeline::createSizeDependants()
     {
         ZoneScoped;
+
         const RTTPassSettings& settings = rttPass->getSettings();
         VK::Core* core = renderer->getCore();
         depthBuffer.Reset();
@@ -200,7 +207,7 @@ namespace worlds
 
         if (materialBuffer == nullptr)
         {
-            VK::BufferCreateInfo materialBci{VK::BufferUsage::Storage, sizeof(uint32_t) * 4 * 128, true};
+            VK::BufferCreateInfo materialBci{VK::BufferUsage::Storage, sizeof(uint32_t) * 8 * 128, true};
             materialBuffer = new SubAllocatedBuffer(core, materialBci);
             materialBuffer->GetBuffer()->SetDebugName("Material Buffer");
         }
@@ -479,7 +486,9 @@ namespace worlds
         uint32_t cubemapIdx = 1;
         lMapped->cubemaps[0] = GPUCubemap{glm::vec3{100000.0f}, textureManager->loadOrGet(skybox), glm::vec3{0.0f}, 0};
 
-        reg.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t) {
+        auto cubemapView = reg.view<WorldCubemap, Transform>();
+
+        cubemapView.each([&](WorldCubemap& wc, Transform& t) {
             GPUCubemap gc{};
             gc.extent = wc.extent;
             gc.position = t.position;
@@ -488,11 +497,27 @@ namespace worlds
             {
                 convoluteQueue.push_back(wc.cubemapId);
             }
-            gc.texture = textureManager->loadOrGet(wc.cubemapId);
             lMapped->cubemaps[cubemapIdx] = gc;
             wc.renderIdx = cubemapIdx;
             cubemapIdx++;
         });
+        // gc.texture = textureManager->loadOrGet(wc.cubemapId);
+
+        enki::TaskSet loadCubemapsTask(std::distance(cubemapView.begin(), cubemapView.end()), [&](enki::TaskSetPartition range, uint32_t) {
+            auto begin = cubemapView.begin();
+            auto end = cubemapView.begin();
+            std::advance(begin, range.start);
+            std::advance(end, range.end);
+
+            for (auto it = begin; it != end; it++)
+            {
+                WorldCubemap& wc = reg.get<WorldCubemap>(*it);
+                lMapped->cubemaps[wc.renderIdx].texture = textureManager->loadOrGet(wc.cubemapId);
+            }
+        });
+
+        g_taskSched.AddTaskSetToPipe(&loadCubemapsTask);
+        g_taskSched.WaitforTask(&loadCubemapsTask);
 
         lMapped->cubemapCount = cubemapIdx;
 
@@ -563,6 +588,58 @@ namespace worlds
         }
 
         core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
+
+        // Taskified pre-caching of materials
+        {
+            auto worldObjectView = reg.view<WorldObject>();
+
+            enki::TaskSet loadMatsTask(std::distance(worldObjectView.begin(), worldObjectView.end()), [&](enki::TaskSetPartition range, uint32_t) {
+                auto begin = worldObjectView.begin();
+                auto end = worldObjectView.begin();
+                std::advance(begin, range.start);
+                std::advance(end, range.end);
+
+                for (auto it = begin; it != end; it++)
+                {
+                    WorldObject& wo = reg.get<WorldObject>(*it);
+
+                    for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                    {
+                        if (!wo.presentMaterials[i]) continue;
+                        loadOrGetMaterial(renderer, wo.materials[i]);
+                    }
+                }
+            });
+
+            g_taskSched.AddTaskSetToPipe(&loadMatsTask);
+            g_taskSched.WaitforTask(&loadMatsTask);
+        }
+
+        // Do the same for skinned objects
+        {
+            auto skinnedView = reg.view<SkinnedWorldObject>();
+
+            enki::TaskSet skinnedLoadMatsTask(std::distance(skinnedView.begin(), skinnedView.end()), [&](enki::TaskSetPartition range, uint32_t) {
+                auto begin = skinnedView.begin();
+                auto end = skinnedView.begin();
+                std::advance(begin, range.start);
+                std::advance(end, range.end);
+
+                for (auto it = begin; it != end; it++)
+                {
+                    SkinnedWorldObject& wo = reg.get<SkinnedWorldObject>(*it);
+
+                    for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                    {
+                        if (!wo.presentMaterials[i]) continue;
+                        loadOrGetMaterial(renderer, wo.materials[i]);
+                    }
+                }
+            });
+
+            g_taskSched.AddTaskSetToPipe(&skinnedLoadMatsTask);
+            g_taskSched.WaitforTask(&skinnedLoadMatsTask);
+        }
 
         // Depth Pre-Pass
         cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);

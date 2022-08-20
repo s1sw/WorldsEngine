@@ -44,7 +44,6 @@ namespace R2::VK
 
 		for (uint32_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++)
 		{
-			perFrameResources[i] = PerFrameResources{};
 			VkCommandBufferAllocateInfo cbai{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 			cbai.commandBufferCount = 1;
 			cbai.commandPool = handles.CommandPool;
@@ -214,6 +213,7 @@ namespace R2::VK
 	void Core::QueueBufferUpload(Buffer* buffer, void* data, uint64_t dataSize, uint64_t dataOffset)
 	{
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
+		std::unique_lock buLock{frameResources.BufferUploadMutex};
 
 		if (dataSize >= STAGING_BUFFER_SIZE)
 		{
@@ -232,6 +232,7 @@ namespace R2::VK
 
 			memcpy(tempAllocInfo.pMappedData, data, dataSize);
 
+			std::unique_lock queueLock{queueMutex};
 			VKCHECK(vkResetCommandBuffer(frameResources.UploadCommandBuffer, 0));
 
 			// Record upload command buffer
@@ -261,6 +262,7 @@ namespace R2::VK
 
 		if (dataSize + frameResources.StagingOffset >= STAGING_BUFFER_SIZE)
 		{
+			std::unique_lock queueLock{queueMutex};
 			this->dbgOutRecv->DebugMessage("Flushing staged uploads!!! THIS IS A STALL");
 			writeFrameUploadCommands(frameIndex);
 
@@ -282,6 +284,7 @@ namespace R2::VK
 	void Core::QueueBufferToTextureCopy(Buffer* buffer, Texture* texture, uint64_t bufferOffset)
 	{
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
+		std::unique_lock buLock{frameResources.BufferUploadMutex};
 		frameResources.BufferToTextureCopies.emplace_back(buffer, texture, bufferOffset, texture->GetNumMips());
 	}
 
@@ -319,6 +322,7 @@ namespace R2::VK
 	void Core::QueueTextureUpload(Texture* texture, void* data, uint64_t dataSize, int numMips)
 	{
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
+		std::unique_lock buLock{frameResources.BufferUploadMutex};
 		int mipsToUpload = numMips == -1 ? texture->GetNumMips() : numMips;
 
 		if (dataSize >= STAGING_BUFFER_SIZE)
@@ -338,6 +342,7 @@ namespace R2::VK
 			VKCHECK(vmaCreateBuffer(handles.Allocator, &bci, &vaci, &tempBuffer, &tempAlloc, &tempAllocInfo));
 
 			memcpy(tempAllocInfo.pMappedData, data, dataSize);
+			std::unique_lock queueLock{queueMutex};
 
 			VKCHECK(vkResetCommandBuffer(frameResources.UploadCommandBuffer, 0));
 
@@ -394,6 +399,7 @@ namespace R2::VK
 
 		if (dataSize + uploadedOffset + requiredPadding >= STAGING_BUFFER_SIZE)
 		{
+			std::unique_lock queueLock{queueMutex};
 			this->dbgOutRecv->DebugMessage("Flushing staged uploads!!! THIS IS A STALL");
 			writeFrameUploadCommands(frameIndex);
 
@@ -411,7 +417,6 @@ namespace R2::VK
 		memcpy(frameResources.StagingMapped + uploadedOffset + requiredPadding, data, dataSize);
 
 		frameResources.BufferToTextureCopies.emplace_back(frameResources.StagingBuffer, texture, uploadedOffset + requiredPadding, mipsToUpload);
-
 		frameResources.StagingOffset += dataSize + requiredPadding;
 	}
 
@@ -427,9 +432,11 @@ namespace R2::VK
 
 	void Core::EndFrame()
 	{
+		std::unique_lock queueLock{queueMutex};
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
 		VKCHECK(vkEndCommandBuffer(frameResources.CommandBuffer));
 
+		std::unique_lock uploadLock{frameResources.BufferUploadMutex};
 		writeFrameUploadCommands(frameIndex);
 
 		// Submit upload command buffer...

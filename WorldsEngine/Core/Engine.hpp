@@ -96,7 +96,7 @@ namespace worlds
         WorldsEngine(EngineInitOptions initOptions, char* argv0);
         ~WorldsEngine();
 
-        void mainLoop();
+        void run();
         void loadScene(AssetID scene);
         void createStartupScene();
         void addSystem(ISystem* system);

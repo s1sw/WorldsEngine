@@ -1,57 +1,43 @@
 ﻿#include "Engine.hpp"
-#include "JobSystem.hpp"
-#include "Transform.hpp"
-#include "Tracy.hpp"
 #include <Audio/Audio.hpp>
 #include <Core/Console.hpp>
+#include <Core/EarlySDLUtil.hpp>
+#include <Core/HierarchyUtil.hpp>
 #include <Core/ISystem.hpp>
 #include <Core/Log.hpp>
 #include <Core/MaterialManager.hpp>
+#include <Core/NameComponent.hpp>
+#ifdef __linux__
+#include <Core/SplashScreenImpls/SplashScreenX11.hpp>
+#else
+#include <Core/SplashScreenImpls/SplashScreenWin32.hpp>
+#endif
+#include <Core/TaskScheduler.hpp>
+#include <Core/Transform.hpp>
 #include <Core/Window.hpp>
+#include <ComponentMeta/ComponentMetadata.hpp>
 #include <Editor/Editor.hpp>
+#include <entt/entt.hpp>
 #include <ImGui/imgui.h>
+#include <ImGui/imgui_freetype.h>
 #include <ImGui/imgui_impl_sdl.h>
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <ImGui/imgui_internal.h>
 #include <Input/Input.hpp>
+#include <Libs/IconsFontAwesome5.h>
+#include <Libs/IconsFontaudio.h>
+#include <physfs.h>
 #include <Physics/Physics.hpp>
 #include <Physics/PhysicsActor.hpp>
 #include <Render/Render.hpp>
+#include <Render/RenderInternal.hpp>
 #include <SDL.h>
 #include <Scripting/NetVM.hpp>
 #include <Serialization/SceneSerialization.hpp>
+#include <Tracy.hpp>
+#include <Util/CreateModelObject.hpp>
 #include <Util/TimingUtil.hpp>
 #include <VR/OpenVRInterface.hpp>
-#include <atomic>
-#include <entt/entt.hpp>
-#include <glm/gtx/norm.hpp>
-#include <iostream>
-#include <physfs.h>
-#include <physx/PxQueryReport.h>
-#include <stb_image.h>
-#include <thread>
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include "EarlySDLUtil.hpp"
-#include "SplashScreenImpls/ISplashScreen.hpp"
-#include "readerwriterqueue.h"
-#include <ComponentMeta/ComponentMetadata.hpp>
-#include <ImGui/imgui_internal.h>
-#include <Libs/IconsFontAwesome5.h>
-#include <Libs/IconsFontaudio.h>
-#include <Util/CreateModelObject.hpp>
-#include <Util/EnumUtil.hpp>
-#ifdef __linux__
-#include "SplashScreenImpls/SplashScreenX11.hpp"
-#else
-#include "SplashScreenImpls/SplashScreenWin32.hpp"
-#endif
-#include <Core/HierarchyUtil.hpp>
-#include <Core/NameComponent.hpp>
-#include <Editor/GuiUtil.hpp>
-#include <ImGui/imgui_freetype.h>
-#include <Render/DebugLines.hpp>
-#include <Render/RenderInternal.hpp>
-#include <UI/WorldTextComponent.hpp>
-#undef min
-#undef max
 
 #ifdef CHECK_NEW_DELETE
 robin_hood::unordered_map<void*, size_t> allocatedPtrs;
@@ -90,15 +76,10 @@ void operator delete(void* ptr) noexcept
 
 namespace worlds
 {
-    uint32_t fullscreenToggleEventId;
-    uint32_t showWindowEventId;
-
     int workerThreadOverride = -1;
     bool enableOpenVR = false;
     glm::ivec2 windowSize;
-
-    // event thread sync
-    moodycamel::ReaderWriterQueue<SDL_Event> evts;
+    enki::TaskScheduler g_taskSched;
 
     void WorldsEngine::setupSDL()
     {
@@ -113,43 +94,6 @@ namespace worlds
         windowWidth = 1600;
         windowHeight = 900;
         return new Window("Loading...", 1600, 900, true);
-    }
-
-    bool fullscreen = false;
-    volatile bool windowCreated = false;
-
-    // SDL_PollEvent blocks when the window is being resized or moved,
-    // so I run it on a different thread.
-    // I would put it through the job system, but thanks to Windows
-    // weirdness SDL_PollEvent will not work on other threads.
-    // Thanks Microsoft.
-    int WorldsEngine::windowThread(void* data)
-    {
-        WorldsEngine* _this = (WorldsEngine*)data;
-
-        _this->window = _this->createWindow();
-        if (_this->window == nullptr)
-        {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
-        }
-
-        if (_this->runAsEditor)
-            setWindowIcon(_this->window->getWrappedHandle(), "icon_engine.png");
-        else
-            setWindowIcon(_this->window->getWrappedHandle());
-
-        SDL_SetEventFilter(eventFilter, _this);
-
-        windowCreated = true;
-        while (_this->running)
-        {
-            SDL_PumpEvents();
-            SDL_Delay(1);
-        }
-
-        logVrb(WELogCategoryEngine, "window thread exiting");
-        // SDL requires threads to return an int
-        return 0;
     }
 
     ImFont* addImGuiFont(std::string fontPath, float size, ImFontConfig* config = nullptr,
@@ -200,11 +144,6 @@ namespace worlds
 
         return ImGui::GetIO().Fonts->AddFontFromMemoryTTF(buf, (int)readBytes, size, config, ranges);
     }
-
-    JobSystem* g_jobSys;
-
-    robin_hood::unordered_map<entt::entity, physx::PxTransform> currentState;
-    robin_hood::unordered_map<entt::entity, physx::PxTransform> previousState;
 
     void WorldsEngine::setupPhysfs(char* argv0)
     {
@@ -266,17 +205,6 @@ namespace worlds
         static const ImWchar iconRangesFAD[] = {ICON_MIN_FAD, ICON_MAX_FAD, 0};
 
         addImGuiFont("Fonts/" FONT_ICON_FILE_NAME_FAD, 22.0f * dpiScale, &iconConfig2, iconRangesFAD);
-
-#ifdef _WIN32
-        ImFontConfig emojiFontConfig{};
-        emojiFontConfig.MergeMode = true;
-        emojiFontConfig.OversampleH = emojiFontConfig.OversampleV = 1;
-        emojiFontConfig.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-        static ImWchar ranges[] = {0x1, 0x1FFFF, 0};
-
-        ImGui::GetIO().Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\seguiemj.ttf", 17.0f * dpiScale, &emojiFontConfig,
-                                                 ranges);
-#endif
     }
 
     ConVar showDebugInfo{"showDebugInfo", "0", "Shows the debug info window"};
@@ -352,6 +280,18 @@ namespace worlds
         enableOpenVR = initOptions.enableVR;
         dedicatedServer = initOptions.dedicatedServer;
 
+        enki::TaskSchedulerConfig tsc{};
+        tsc.numTaskThreadsToCreate = workerThreadOverride == -1 ? enki::GetNumHardwareThreads() - 1 : workerThreadOverride;
+
+        g_taskSched.Initialize(tsc);
+
+        if (evtHandler == nullptr)
+        {
+            // put in a blank event handler instead
+            // IGameEventHandler has implemntations for this reason
+            evtHandler = new IGameEventHandler;
+        }
+
         // Initialisation Stuffs
         // =====================
         ISplashScreen* splashWindow = nullptr;
@@ -377,13 +317,6 @@ namespace worlds
             splashWindow->changeOverlay("starting up");
         }
 
-        fullscreenToggleEventId = SDL_RegisterEvents(1);
-        showWindowEventId = SDL_RegisterEvents(1);
-
-        // Ensure that we have a minimum of two workers, as one worker
-        // means that jobs can be missed
-        g_jobSys = new JobSystem{workerThreadOverride == -1 ? std::max(SDL_GetCPUCount(), 2) : workerThreadOverride};
-
         registry.set<SceneInfo>("Untitled", ~0u);
         registry.on_destroy<ChildComponent>().connect<&handleDestroyedChild>();
 
@@ -395,14 +328,18 @@ namespace worlds
 
         if (!dedicatedServer)
         {
-            // SDL_DetachThread(SDL_CreateThread(windowThread, "Window Thread", this));
-            // while(!windowCreated){}
+            // SDL by default will tell desktop environments to disable the compositor
+            // when a window is created. If we're just running the editor rather than the game
+            // we don't want that
             if (runAsEditor)
                 SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+
             window = createWindow();
+
             if (window == nullptr)
             {
-                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "err", SDL_GetError(), NULL);
+                fatalErr("Failed to create window");
+                return;
             }
 
             if (runAsEditor)
@@ -411,8 +348,6 @@ namespace worlds
                 setWindowIcon(window->getWrappedHandle());
 
             SDL_SetEventFilter(eventFilter, this);
-
-            windowCreated = true;
 
             window->setTitle(initOptions.gameName);
 
@@ -565,21 +500,12 @@ namespace worlds
             console->registerCommand([&](void*, const char*) { screenPassIsVR = (!screenRTTPass) && enableOpenVR; },
                                      "toggleVRRendering", "Toggle whether the screen RTT pass has VR enabled.");
 
-            if (runAsEditor)
-            {
-
-                console->registerCommand([&](void*, const char* arg) { screenPassResScale = std::atof(arg); },
-                                         "setGameResScale", "Sets the resolution scale of the game view.");
-            }
-
             console->registerCommand(
                 [&](void*, const char*) {
                     MeshManager::reloadMeshes();
                     physicsSystem->resetMeshCache();
                 },
                 "reloadContent", "Reloads all content.");
-
-            console->registerCommand([&](void*, const char*) {}, "reloadTextures", "Reloads textures.");
 
             console->registerCommand([&](void*, const char*) { MaterialManager::reload(); }, "reloadMaterials", "Reloads materials.");
 
@@ -589,8 +515,6 @@ namespace worlds
                     physicsSystem->resetMeshCache();
                 },
                 "reloadMeshes", "Reloads meshes.");
-
-            console->registerCommand([&](void*, const char*) {}, "reloadCubemaps", "Reloads cubemaps.", nullptr);
         }
 
         console->registerCommand([&](void*, const char*) { running = false; }, "exit", "Shuts down the engine.",
@@ -674,7 +598,6 @@ namespace worlds
                 .cam = &cam,
                 .width = w,
                 .height = h,
-                .resScale = 1.0f,
                 .useForPicking = false,
                 .enableShadows = true,
                 .msaaLevel = 4,
@@ -732,13 +655,12 @@ namespace worlds
         registry.emplace<NameComponent>(monkey, "Monkey");
     }
 
-    void WorldsEngine::mainLoop()
+    void WorldsEngine::run()
     {
         interFrameInfo.frameCounter = 0;
         interFrameInfo.lastPerfCounter = SDL_GetPerformanceCounter();
         interFrameInfo.lastUpdateTime = 0.0;
 
-        // renderer->recreateSwapchain();
         while (running)
         {
             runSingleFrame(true);
@@ -811,7 +733,6 @@ namespace worlds
                     .cam = &cam,
                     .width = w,
                     .height = h,
-                    .resScale = screenPassResScale,
                     .useForPicking = false,
                     .enableShadows = true,
                 };
@@ -885,11 +806,7 @@ namespace worlds
 
         if (inputManager->keyPressed(SDL_SCANCODE_F11, true))
         {
-            // SDL_Event evt;
-            // SDL_zero(evt);
-            // evt.type = fullscreenToggleEventId;
-            // SDL_PushEvent(&evt);
-            window->setFullscreen(true);
+            window->setFullscreen(!window->isFullscreen());
         }
 
         uint64_t updateEnd = SDL_GetPerformanceCounter();
@@ -992,7 +909,6 @@ namespace worlds
             tickRenderer(true);
         }
 
-        g_jobSys->completeFrameJobs();
         interFrameInfo.frameCounter++;
 
         inputManager->endFrame();
@@ -1110,6 +1026,7 @@ namespace worlds
             return sz;
         }
     };
+
     void WorldsEngine::drawDebugInfoWindow(DebugTimeInfo timeInfo)
     {
         if (showDebugInfo.getInt())
@@ -1240,6 +1157,9 @@ namespace worlds
 
         physicsSystem->stepSimulation(deltaTime);
     }
+
+    robin_hood::unordered_map<entt::entity, physx::PxTransform> currentState;
+    robin_hood::unordered_map<entt::entity, physx::PxTransform> previousState;
 
     void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime)
     {

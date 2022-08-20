@@ -1,5 +1,4 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include "EventHandler.hpp"
 #include <Core/Engine.hpp>
 
 using namespace worlds;
@@ -86,18 +85,8 @@ int main(int argc, char **argv)
 
     initOptions.useEventThread = false;
 
-    lg::EventHandler evtHandler{initOptions.dedicatedServer};
-    initOptions.eventHandler = &evtHandler;
-
     worlds::WorldsEngine engine(initOptions, argv[0]);
-
-    for (auto &cmd : startupCommands)
-    {
-        worlds::g_console->executeCommandStr(cmd);
-        logMsg("Executed startup command \"%s\"", cmd.c_str());
-    }
-
-    engine.mainLoop();
+    engine.run();
 
     return 0;
 }

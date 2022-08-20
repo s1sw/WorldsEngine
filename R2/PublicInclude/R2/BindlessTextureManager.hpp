@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <array>
 #include <bitset>
+#include <mutex>
 
 namespace R2
 {
@@ -18,6 +19,7 @@ namespace R2
     {
         static const uint32_t NUM_TEXTURES = 1024;
 
+        std::mutex texturesMutex;
         std::array<VK::Texture*, NUM_TEXTURES> textures;
         std::bitset<NUM_TEXTURES> presentTextures;
 

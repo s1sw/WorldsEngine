@@ -3,6 +3,7 @@
 #include <Core/Log.hpp>
 #include <Render/Loaders/WMDLLoader.hpp>
 #include <Render/RenderInternal.hpp>
+#include <Tracy.hpp>
 
 namespace worlds
 {
@@ -15,6 +16,7 @@ namespace worlds
 
     void loadToLM(LoadedMesh& lm, AssetID id)
     {
+        ZoneScoped;
         LoadedMeshData lmd{};
 
         loadWorldsModel(id, lmd);
@@ -68,6 +70,7 @@ namespace worlds
 
     const LoadedMesh& MeshManager::loadOrGet(AssetID id)
     {
+        ZoneScoped;
         if (loadedMeshes.contains(id))
             return loadedMeshes.at(id);
 
