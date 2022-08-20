@@ -24,6 +24,7 @@
 #include <slib/DynamicLibrary.hpp>
 #include <stdlib.h>
 #include <Tracy.hpp>
+#include <mutex>
 
 #define FMCHECK(_result) checkFmodErr(_result, __FILE__, __LINE__)
 #define SACHECK(_result) checkSteamAudioErr(_result, __FILE__, __LINE__)
