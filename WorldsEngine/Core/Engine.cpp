@@ -163,6 +163,11 @@ namespace worlds
 
         SDL_free((void*)basePath);
 
+        if (EngineArguments::hasArgument("dataPath"))
+        {
+            dataStr = EngineArguments::argumentValue("dataPath");
+        }
+
         PHYSFS_init(argv0);
         logVrb("Mounting %s", dataStr.c_str());
         PHYSFS_mount(dataStr.c_str(), "/", 0);
@@ -515,6 +520,11 @@ namespace worlds
                     physicsSystem->resetMeshCache();
                 },
                 "reloadMeshes", "Reloads meshes.");
+            console->registerCommand(
+                [&](void*, const char*) {
+                    renderer->setVsync(!renderer->getVsync());
+                },
+                "r_toggleVsync", "Toggles vsync.");
         }
 
         console->registerCommand([&](void*, const char*) { running = false; }, "exit", "Shuts down the engine.",
