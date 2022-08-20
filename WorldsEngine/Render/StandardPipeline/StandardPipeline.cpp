@@ -497,6 +497,12 @@ namespace worlds
             {
                 convoluteQueue.push_back(wc.cubemapId);
             }
+            // BAD WORKAROUND BAD WORKAROUND >:(
+            // because we don't correctly window the light buffer resetting the entire
+            // GPUCubemap can lead to visual glitches since texture is reset and the GPU
+            // happens to render in the small period of time between here and the cubemap
+            // loading tasks below
+            gc.texture = lMapped->cubemaps[cubemapIdx].texture;
             lMapped->cubemaps[cubemapIdx] = gc;
             wc.renderIdx = cubemapIdx;
             cubemapIdx++;
