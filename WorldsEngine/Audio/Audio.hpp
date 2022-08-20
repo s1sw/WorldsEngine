@@ -1,6 +1,6 @@
 #pragma once
-#include "../Core/AssetDB.hpp"
-#include "../Core/Console.hpp"
+#include <Core/AssetDB.hpp>
+#include <Core/Console.hpp>
 #include <SDL_audio.h>
 #include <entt/entt.hpp>
 #include <glm/gtc/quaternion.hpp>
