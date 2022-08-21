@@ -14,10 +14,10 @@ namespace worlds
         uint32_t eyeIndex;
     };
 
-    LightCull::LightCull(VK::Core* core, VK::Texture* depthBuffer, VK::Buffer* lightBuffer, VK::Buffer* lightTiles, VK::Buffer* multiVPBuffer)
+    LightCull::LightCull(VK::Core* core, VK::Texture* depthBuffer, UniquePtr<VK::Buffer>* lightBuffers, VK::Buffer* lightTiles, VK::Buffer* multiVPBuffer)
         : core(core)
         , depthBuffer(depthBuffer)
-        , lightBuffer(lightBuffer)
+        , lightBuffers(lightBuffers)
         , lightTiles(lightTiles)
         , multiVPBuffer(multiVPBuffer)
     {
@@ -41,13 +41,16 @@ namespace worlds
 
         AssetID lightCullShader = AssetDB::pathToId(shaderPath);
 
-        cs = new SimpleCompute(core, lightCullShader);
-        cs->BindUniformBuffer(0, multiVPBuffer);
-        cs->BindSampledTexture(1, depthBuffer, sampler.Get());
-        cs->BindStorageBuffer(2, lightBuffer);
-        cs->BindStorageBuffer(3, lightTiles);
-        cs->PushConstantSize(sizeof(LightCullPushConstants));
-        cs->Build();
+        for (int i = 0; i < 2; i++)
+        {
+            cs[i] = new SimpleCompute(core, lightCullShader);
+            cs[i]->BindUniformBuffer(0, multiVPBuffer);
+            cs[i]->BindSampledTexture(1, depthBuffer, sampler.Get());
+            cs[i]->BindStorageBuffer(2, lightBuffers[i].Get());
+            cs[i]->BindStorageBuffer(3, lightTiles);
+            cs[i]->PushConstantSize(sizeof(LightCullPushConstants));
+            cs[i]->Build();
+        }
     }
 
     void LightCull::Execute(VK::CommandBuffer& cb)
@@ -59,7 +62,7 @@ namespace worlds
 
         int w = depthBuffer->GetWidth();
         int h = depthBuffer->GetHeight();
-        cs->Dispatch(cb, pcs, (w + 31) / 32, (h + 31) / 32, 1);
+        cs[core->GetFrameIndex()]->Dispatch(cb, pcs, (w + 31) / 32, (h + 31) / 32, 1);
 
         if (depthBuffer->GetLayers() == 2)
         {
@@ -67,7 +70,7 @@ namespace worlds
 
             int w = depthBuffer->GetWidth();
             int h = depthBuffer->GetHeight();
-            cs->Dispatch(cb, pcs, (w + 31) / 32, (h + 31) / 32, 1);
+            cs[core->GetFrameIndex()]->Dispatch(cb, pcs, (w + 31) / 32, (h + 31) / 32, 1);
         }
     }
 }

@@ -23,13 +23,13 @@ namespace worlds
     {
         R2::VK::Core* core;
         R2::VK::Texture* depthBuffer;
-        R2::VK::Buffer* lightBuffer;
+        UniquePtr<R2::VK::Buffer>* lightBuffers;
         R2::VK::Buffer* lightTiles;
         R2::VK::Buffer* multiVPBuffer;
         UniquePtr<R2::VK::Sampler> sampler;
-        UniquePtr<SimpleCompute> cs;
+        UniquePtr<SimpleCompute> cs[2];
     public:
-        LightCull(R2::VK::Core* core, R2::VK::Texture* depthBuffer, R2::VK::Buffer* lightBuffer, R2::VK::Buffer* lightTiles, R2::VK::Buffer* multiVPBuffer);
+        LightCull(R2::VK::Core* core, R2::VK::Texture* depthBuffer, UniquePtr<R2::VK::Buffer>* lightBuffers, R2::VK::Buffer* lightTiles, R2::VK::Buffer* multiVPBuffer);
         void Execute(R2::VK::CommandBuffer& cb);
     };
 }

@@ -173,7 +173,7 @@ namespace worlds
         }
 
         lightCull =
-            new LightCull(core, depthBuffer.Get(), lightBuffer.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
+            new LightCull(core, depthBuffer.Get(), lightBuffers, lightTileBuffer.Get(), multiVPBuffer.Get());
         debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel,
                                               getViewMask(settings.numViews));
         bloom = new Bloom(core, colorBuffer.Get());
@@ -212,8 +212,10 @@ namespace worlds
         }
 
         VK::BufferCreateInfo lightBci{VK::BufferUsage::Storage, sizeof(LightUB), true};
-        lightBuffer = core->CreateBuffer(lightBci);
-        lightBuffer->SetDebugName("Light Buffer");
+        lightBuffers[0] = core->CreateBuffer(lightBci);
+        lightBuffers[0]->SetDebugName("Light Buffer");
+        lightBuffers[1] = core->CreateBuffer(lightBci);
+        lightBuffers[1]->SetDebugName("Light Buffer");
 
         AssetID vs = AssetDB::pathToId("Shaders/standard.vert.spv");
         AssetID fs = AssetDB::pathToId("Shaders/standard.frag.spv");
@@ -236,7 +238,7 @@ namespace worlds
             dsu.AddBuffer(0, 0, VK::DescriptorType::UniformBuffer, multiVPBuffer.Get());
             dsu.AddBuffer(1, 0, VK::DescriptorType::StorageBuffer, modelMatrixBuffers[i].Get());
             dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, materialBuffer->GetBuffer());
-            dsu.AddBuffer(3, 0, VK::DescriptorType::StorageBuffer, lightBuffer.Get());
+            dsu.AddBuffer(3, 0, VK::DescriptorType::StorageBuffer, lightBuffers[i].Get());
             dsu.Update();
         }
 
@@ -431,7 +433,8 @@ namespace worlds
     void StandardPipeline::fillLightBuffer(entt::registry& reg, VKTextureManager* textureManager)
     {
         ZoneScoped;
-        LightUB* lMapped = (LightUB*)lightBuffer->Map();
+        uint32_t frameIdx = renderer->getCore()->GetFrameIndex();
+        LightUB* lMapped = (LightUB*)lightBuffers[frameIdx]->Map();
 
         uint32_t lightCount = 0;
         reg.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t) {
@@ -491,12 +494,6 @@ namespace worlds
             {
                 convoluteQueue.push_back(wc.cubemapId);
             }
-            // BAD WORKAROUND BAD WORKAROUND >:(
-            // because we don't correctly window the light buffer resetting the entire
-            // GPUCubemap can lead to visual glitches since texture is reset and the GPU
-            // happens to render in the small period of time between here and the cubemap
-            // loading tasks below
-            gc.texture = lMapped->cubemaps[cubemapIdx].texture;
             lMapped->cubemaps[cubemapIdx] = gc;
             wc.renderIdx = cubemapIdx;
             cubemapIdx++;
@@ -523,7 +520,7 @@ namespace worlds
 
         lMapped->cubemapCount = cubemapIdx;
 
-        lightBuffer->Unmap();
+        lightBuffers[frameIdx]->Unmap();
     }
 
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
@@ -595,6 +592,18 @@ namespace worlds
         {
             auto worldObjectView = reg.view<WorldObject>();
 
+            bool needsLoad = false;
+            worldObjectView.each([&](WorldObject& wo) {
+                for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                {
+                    if (wo.presentMaterials[i])
+                    {
+                        if (!allocedMaterials.contains(wo.materials[i]))
+                            needsLoad = true;
+                    }
+                }
+            });
+
             enki::TaskSet loadMatsTask(
                 std::distance(worldObjectView.begin(), worldObjectView.end()),
                 [&](enki::TaskSetPartition range, uint32_t) {
@@ -616,13 +625,28 @@ namespace worlds
                     }
                 });
 
-            g_taskSched.AddTaskSetToPipe(&loadMatsTask);
-            g_taskSched.WaitforTask(&loadMatsTask);
+            if (needsLoad)
+            {
+                g_taskSched.AddTaskSetToPipe(&loadMatsTask);
+                g_taskSched.WaitforTask(&loadMatsTask);
+            }
         }
 
         // Do the same for skinned objects
         {
             auto skinnedView = reg.view<SkinnedWorldObject>();
+
+            bool needsLoad = false;
+            skinnedView.each([&](SkinnedWorldObject& wo) {
+                for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                {
+                    if (wo.presentMaterials[i])
+                    {
+                        if (!allocedMaterials.contains(wo.materials[i]))
+                            needsLoad = true;
+                    }
+                }
+            });
 
             enki::TaskSet skinnedLoadMatsTask(
                 std::distance(skinnedView.begin(), skinnedView.end()),
@@ -645,8 +669,11 @@ namespace worlds
                     }
                 });
 
-            g_taskSched.AddTaskSetToPipe(&skinnedLoadMatsTask);
-            g_taskSched.WaitforTask(&skinnedLoadMatsTask);
+            if (needsLoad)
+            {
+                g_taskSched.AddTaskSetToPipe(&skinnedLoadMatsTask);
+                g_taskSched.WaitforTask(&skinnedLoadMatsTask);
+            }
         }
 
         // Depth Pre-Pass
