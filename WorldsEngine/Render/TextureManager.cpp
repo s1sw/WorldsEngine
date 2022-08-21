@@ -4,6 +4,7 @@
 #include <R2/VKCore.hpp>
 #include <Render/Loaders/TextureLoader.hpp>
 #include <Render/RenderInternal.hpp>
+#include <ImGui/imgui.h>
 
 namespace worlds
 {
@@ -14,7 +15,7 @@ namespace worlds
 
     ImTextureID VKUITextureManager::loadOrGet(AssetID id)
     {
-        return (ImTextureID)(uint64_t)texMan->loadOrGet(id);
+        return (ImTextureID)(uint64_t)texMan->loadAndGet(id);
     }
 
     void VKUITextureManager::unload(AssetID id)
@@ -25,7 +26,7 @@ namespace worlds
     VKTextureManager::VKTextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager)
         : core(core), textureManager(textureManager)
     {
-        missingTextureID = loadOrGet(AssetDB::pathToId("Textures/missing.wtex"));
+        missingTextureID = loadAndGet(AssetDB::pathToId("Textures/missing.wtex"));
         missingTexture = textureManager->GetTextureAt(missingTextureID);
     }
 
@@ -38,11 +39,12 @@ namespace worlds
         }
     }
 
-    uint32_t VKTextureManager::loadOrGet(AssetID id)
+    uint32_t VKTextureManager::loadAndGet(AssetID id)
     {
         std::unique_lock lock{idMutex};
         if (textureIds.contains(id))
         {
+            textureIds.at(id).refCount++;
             return textureIds.at(id).bindlessId;
         }
 
@@ -54,6 +56,11 @@ namespace worlds
         lock.unlock();
 
         return load(id, handle);
+    }
+
+    uint32_t VKTextureManager::get(AssetID id)
+    {
+        return textureIds.at(id).bindlessId;
     }
 
     bool VKTextureManager::isLoaded(AssetID id)
@@ -78,6 +85,14 @@ namespace worlds
         textureManager->FreeTextureHandle(info.bindlessId);
     }
 
+    void VKTextureManager::release(AssetID id)
+    {
+        TexInfo& info = textureIds.at(id);
+        info.refCount--;
+
+        if (info.refCount <= 0) unload(id);
+    }
+
     uint32_t VKTextureManager::load(AssetID id, uint32_t handle)
     {
         TextureData td = loadTexData(id);
@@ -87,6 +102,7 @@ namespace worlds
             textureManager->SetTextureAt(handle, missingTexture);
             TexInfo& ti = textureIds[id];
             ti.tex = missingTexture;
+            ti.refCount = 1;
             return handle;
         }
 
@@ -105,6 +121,7 @@ namespace worlds
         t->SetDebugName(td.name.c_str());
         TexInfo& ti = textureIds[id];
         ti.tex = t;
+        ti.refCount = 1;
         textureManager->SetTextureAt(handle, t);
 
         if (!td.isCubemap)
@@ -115,5 +132,19 @@ namespace worlds
         free(td.data);
 
         return handle;
+    }
+
+    void VKTextureManager::showDebugMenu()
+    {
+        if (ImGui::Begin("Texture Manager"))
+        {
+            ImGui::Text("%zu textures loaded", textureIds.size());
+
+            for (auto& p : textureIds)
+            {
+                ImGui::Text("%s refcount %i", AssetDB::idToPath(p.first).c_str(), p.second.refCount);
+            }
+        }
+        ImGui::End();
     }
 }

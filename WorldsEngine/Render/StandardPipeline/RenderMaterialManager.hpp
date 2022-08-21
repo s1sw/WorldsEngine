@@ -1,5 +1,6 @@
 #pragma once
 #include <mutex>
+#include <entt/entity/lw_fwd.hpp>
 
 namespace R2
 {
@@ -27,5 +28,8 @@ namespace worlds
         static R2::VK::Buffer* GetBuffer();
         static bool IsMaterialLoaded(AssetID id);
         static size_t LoadOrGetMaterial(AssetID id);
+        static void Unload(AssetID id);
+        static void UnloadUnusedMaterials(entt::registry& reg);
+        static void ShowDebugMenu();
     };
 }

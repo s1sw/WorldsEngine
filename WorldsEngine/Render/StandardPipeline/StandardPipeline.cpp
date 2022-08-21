@@ -387,7 +387,15 @@ namespace worlds
             for (auto it = begin; it != end; it++)
             {
                 WorldCubemap& wc = registry.get<WorldCubemap>(*it);
-                lightUB->cubemaps[wc.renderIdx].texture = textureManager->loadOrGet(wc.cubemapId);
+                if (!wc.isLoaded)
+                {
+                    lightUB->cubemaps[wc.renderIdx].texture = textureManager->loadAndGet(wc.cubemapId);
+                    wc.isLoaded = true;
+                }
+                else
+                {
+                    lightUB->cubemaps[wc.renderIdx].texture = textureManager->get(wc.cubemapId);
+                }
             }
         }
     };
@@ -455,7 +463,7 @@ namespace worlds
             }
 
             uint32_t cubemapIdx = 1;
-            lightUB->cubemaps[0] = GPUCubemap{glm::vec3{100000.0f}, textureManager->loadOrGet(skybox), glm::vec3{0.0f}, 0};
+            lightUB->cubemaps[0] = GPUCubemap{glm::vec3{100000.0f}, textureManager->loadAndGet(skybox), glm::vec3{0.0f}, 0};
 
             registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t) {
                 GPUCubemap gc{};
@@ -555,6 +563,14 @@ namespace worlds
         }
     };
 
+    robin_hood::unordered_flat_map<AssetID, int> materialRefCount;
+
+    struct GCResources : public enki::ITaskSet
+    {
+        VKRenderer* renderer;
+        entt::registry& reg;
+    };
+
     struct TasksFinished : public enki::ICompletable
     {
         std::vector<enki::Dependency> dependencies;
@@ -567,6 +583,8 @@ namespace worlds
         RenderMeshManager* meshManager = renderer->getMeshManager();
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* textureManager = renderer->getTextureManager();
+        uint32_t frameIdx = renderer->getCore()->GetFrameIndex();
+        RenderMaterialManager::UnloadUnusedMaterials(reg);
 
         // If there's anything in the convolution queue, convolute 1 cubemap
         // per frame (convolution is slow!)
@@ -576,7 +594,7 @@ namespace worlds
 
             AssetID convoluteID = convoluteQueue.front();
             convoluteQueue.pop_front();
-            uint32_t convoluteHandle = textureManager->loadOrGet(convoluteID);
+            uint32_t convoluteHandle = textureManager->loadAndGet(convoluteID);
             VK::Texture* tex = btm->GetTextureAt(convoluteHandle);
             cubemapConvoluter->Convolute(cb, tex);
 
@@ -585,10 +603,6 @@ namespace worlds
 
         TasksFinished finisher;
 
-        // Fill the light buffer with lights + cubemaps from world
-        // This will add cubemaps to the convolution queue if necessary
-        ZoneScoped;
-        uint32_t frameIdx = renderer->getCore()->GetFrameIndex();
         LightUB* lightUB = (LightUB*)lightBuffers[frameIdx]->Map();
 
         FillLightBufferTask fillTask{lightUB, reg, textureManager};

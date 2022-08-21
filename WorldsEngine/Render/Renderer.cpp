@@ -11,6 +11,7 @@
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
 #include <Render/StandardPipeline/StandardPipeline.hpp>
+#include <Render/StandardPipeline/RenderMaterialManager.hpp>
 #include <Tracy.hpp>
 #include <SDL_vulkan.h>
 
@@ -224,6 +225,12 @@ namespace worlds
             pass->pipeline = new StandardPipeline(this);
             pass->pipeline->setup(pass);
         }
+    }
+
+    void VKRenderer::drawDebugMenus()
+    {
+        textureManager->showDebugMenu();
+        RenderMaterialManager::ShowDebugMenu();
     }
 
     R2::VK::Core* VKRenderer::getCore()

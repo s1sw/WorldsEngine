@@ -1,6 +1,8 @@
 #include "RenderMaterialManager.hpp"
 #include <Core/AssetDB.hpp>
 #include <Core/MaterialManager.hpp>
+#include <entt/entity/registry.hpp>
+#include <ImGui/imgui.h>
 #include <R2/VK.hpp>
 #include <R2/SubAllocatedBuffer.hpp>
 #include <Render/RenderInternal.hpp>
@@ -14,6 +16,9 @@ namespace worlds
     {
         size_t offset;
         SubAllocationHandle handle;
+        AssetID albedoID = ~0u;
+        AssetID normalID = ~0u;
+        AssetID mraID = ~0u;
     };
 
     robin_hood::unordered_map<AssetID, MaterialAllocInfo> allocedMaterials;
@@ -76,18 +81,21 @@ namespace worlds
         nlohmann::json& j = MaterialManager::loadOrGet(id);
 
         StandardPBRMaterial material{};
-        material.albedoTexture = tm->loadOrGet(AssetDB::pathToId(j.value("albedoPath", "Textures/missing.wtex")));
+        mai.albedoID = AssetDB::pathToId(j.value("albedoPath", "Textures/missing.wtex"));
+        material.albedoTexture = tm->loadAndGet(mai.albedoID);
         material.normalTexture = ~0u;
         material.mraTexture = ~0u;
 
         if (j.contains("normalMapPath"))
         {
-            material.normalTexture = tm->loadOrGet(AssetDB::pathToId(j["normalMapPath"]));
+            mai.normalID = AssetDB::pathToId(j["normalMapPath"]);
+            material.normalTexture = tm->loadAndGet(mai.normalID);
         }
 
         if (j.contains("pbrMapPath"))
         {
-            material.mraTexture = tm->loadOrGet(AssetDB::pathToId(j["pbrMapPath"]));
+            mai.mraID = AssetDB::pathToId(j["pbrMapPath"]);
+            material.mraTexture = tm->loadAndGet(mai.mraID);
         }
 
         material.defaultMetallic = j.value("metallic", 0.0f);
@@ -98,7 +106,66 @@ namespace worlds
             material.emissiveColor = glm::vec3(0.0f);
 
         renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), mai.offset);
+        allocedMaterials[id] = mai;
 
         return mai.offset;
+    }
+
+    void RenderMaterialManager::Unload(AssetID id)
+    {
+        MaterialAllocInfo mai = allocedMaterials[id];
+        materialBuffer->Free(mai.handle);
+        allocedMaterials.erase(id);
+
+        VKTextureManager* tm = renderer->getTextureManager();
+        if (mai.albedoID != ~0u) tm->release(mai.albedoID);
+        if (mai.normalID != ~0u) tm->release(mai.normalID);
+        if (mai.mraID != ~0u) tm->release(mai.mraID);
+    }
+
+    robin_hood::unordered_map<AssetID, int> materialRefCounts;
+    void RenderMaterialManager::UnloadUnusedMaterials(entt::registry& reg)
+    {
+        materialRefCounts.clear();
+        materialRefCounts.reserve(allocedMaterials.size());
+
+        for (auto& p : allocedMaterials)
+        {
+            materialRefCounts.insert({p.first, 0});
+        }
+
+        reg.view<WorldObject>().each([&](WorldObject& wo) {
+            for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+            {
+                if (!wo.presentMaterials[i]) continue;
+
+                materialRefCounts[wo.materials[i]]++;
+            }
+        });
+
+        reg.view<SkinnedWorldObject>().each([&](SkinnedWorldObject& wo) {
+            for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+            {
+                if (!wo.presentMaterials[i]) continue;
+
+                materialRefCounts[wo.materials[i]]++;
+            }
+        });
+
+        for (auto& p : materialRefCounts)
+        {
+            if (p.second == 0)
+                Unload(p.first);
+        }
+    }
+
+    void RenderMaterialManager::ShowDebugMenu()
+    {
+        if (ImGui::Begin("Material Manager"))
+        {
+            ImGui::Text("%zu materials loaded", allocedMaterials.size());
+        }
+
+        ImGui::End();
     }
 }

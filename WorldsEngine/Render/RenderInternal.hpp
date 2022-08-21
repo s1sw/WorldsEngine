@@ -177,15 +177,19 @@ namespace worlds
     public:
         VKTextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager);
         ~VKTextureManager();
-        uint32_t loadOrGet(AssetID id);
+        uint32_t loadAndGet(AssetID id);
+        uint32_t get(AssetID id);
         bool isLoaded(AssetID id);
         void unload(AssetID id);
+        void release(AssetID id);
+        void showDebugMenu();
 
     private:
         struct TexInfo
         {
             R2::VK::Texture* tex;
             uint32_t bindlessId;
+            int refCount;
         };
 
         uint32_t load(AssetID id, uint32_t handle);
@@ -292,6 +296,7 @@ namespace worlds
         void destroyRTTPass(RTTPass* pass) override;
 
         void reloadShaders() override;
+        void drawDebugMenus();
 
         R2::VK::Core* getCore();
         RenderMeshManager* getMeshManager();
