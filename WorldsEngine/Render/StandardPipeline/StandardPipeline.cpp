@@ -15,6 +15,7 @@
 #include <Render/StandardPipeline/LightCull.hpp>
 #include <Render/StandardPipeline/SkyboxRenderer.hpp>
 #include <Render/StandardPipeline/Tonemapper.hpp>
+#include <Render/StandardPipeline/RenderMaterialManager.hpp>
 #include <entt/entity/registry.hpp>
 #include <Util/JsonUtil.hpp>
 #include <Util/AABB.hpp>
@@ -35,16 +36,6 @@ namespace worlds
         glm::vec2 textureOffset;
     };
 
-    struct StandardPBRMaterial
-    {
-        uint32_t albedoTexture;
-        uint32_t normalTexture;
-        uint32_t mraTexture;
-        float defaultRoughness;
-        float defaultMetallic;
-        glm::vec3 emissiveColor;
-    };
-
     struct LightTile
     {
         uint32_t lightIdMasks[8];
@@ -54,16 +45,6 @@ namespace worlds
     };
 
     const VK::TextureFormat colorBufferFormat = VK::TextureFormat::B10G11R11_UFLOAT_PACK32;
-
-    struct MaterialAllocInfo
-    {
-        size_t offset;
-        SubAllocationHandle handle;
-    };
-
-    std::mutex allocedMaterialsLock;
-    robin_hood::unordered_map<AssetID, MaterialAllocInfo> allocedMaterials;
-    SubAllocatedBuffer* materialBuffer = nullptr;
 
     uint32_t getViewMask(int viewCount)
     {
@@ -77,53 +58,6 @@ namespace worlds
         }
 
         return mask;
-    }
-
-    size_t loadOrGetMaterial(VKRenderer* renderer, AssetID id)
-    {
-        MaterialAllocInfo mai{};
-        {
-            std::unique_lock lock{allocedMaterialsLock};
-
-            if (allocedMaterials.contains(id))
-            {
-                return allocedMaterials[id].offset;
-            }
-
-            mai.offset = materialBuffer->Allocate(sizeof(StandardPBRMaterial), mai.handle);
-            allocedMaterials.insert({id, mai});
-        }
-
-        BindlessTextureManager* btm = renderer->getBindlessTextureManager();
-        VKTextureManager* tm = renderer->getTextureManager();
-
-        auto& j = MaterialManager::loadOrGet(id);
-
-        StandardPBRMaterial material{};
-        material.albedoTexture = tm->loadOrGet(AssetDB::pathToId(j.value("albedoPath", "Textures/missing.wtex")));
-        material.normalTexture = ~0u;
-        material.mraTexture = ~0u;
-
-        if (j.contains("normalMapPath"))
-        {
-            material.normalTexture = tm->loadOrGet(AssetDB::pathToId(j["normalMapPath"]));
-        }
-
-        if (j.contains("pbrMapPath"))
-        {
-            material.mraTexture = tm->loadOrGet(AssetDB::pathToId(j["pbrMapPath"]));
-        }
-
-        material.defaultMetallic = j.value("metallic", 0.0f);
-        material.defaultRoughness = j.value("roughness", 0.5f);
-        if (j.contains("emissiveColor"))
-            material.emissiveColor = j["emissiveColor"].get<glm::vec3>();
-        else
-            material.emissiveColor = glm::vec3(0.0f);
-
-        renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), mai.offset);
-
-        return mai.offset;
     }
 
     StandardPipeline::StandardPipeline(VKRenderer* renderer) : renderer(renderer)
@@ -196,6 +130,9 @@ namespace worlds
             overrideProjs.resize(rttPass->getSettings().numViews);
         }
 
+        if (!RenderMaterialManager::IsInitialized())
+            RenderMaterialManager::Initialize(renderer);
+
         VK::BufferCreateInfo vpBci{VK::BufferUsage::Uniform, sizeof(MultiVP), true};
         multiVPBuffer = core->CreateBuffer(vpBci);
         multiVPBuffer->SetDebugName("View Info Buffer");
@@ -203,13 +140,6 @@ namespace worlds
         VK::BufferCreateInfo modelMatrixBci{VK::BufferUsage::Storage, sizeof(glm::mat4) * 4096, true};
         modelMatrixBuffers[0] = core->CreateBuffer(modelMatrixBci);
         modelMatrixBuffers[1] = core->CreateBuffer(modelMatrixBci);
-
-        if (materialBuffer == nullptr)
-        {
-            VK::BufferCreateInfo materialBci{VK::BufferUsage::Storage, sizeof(uint32_t) * 8 * 128, true};
-            materialBuffer = new SubAllocatedBuffer(core, materialBci);
-            materialBuffer->GetBuffer()->SetDebugName("Material Buffer");
-        }
 
         VK::BufferCreateInfo lightBci{VK::BufferUsage::Storage, sizeof(LightUB), true};
         lightBuffers[0] = core->CreateBuffer(lightBci);
@@ -237,7 +167,7 @@ namespace worlds
             VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSets[i].Get()};
             dsu.AddBuffer(0, 0, VK::DescriptorType::UniformBuffer, multiVPBuffer.Get());
             dsu.AddBuffer(1, 0, VK::DescriptorType::StorageBuffer, modelMatrixBuffers[i].Get());
-            dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, materialBuffer->GetBuffer());
+            dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, RenderMaterialManager::GetBuffer());
             dsu.AddBuffer(3, 0, VK::DescriptorType::StorageBuffer, lightBuffers[i].Get());
             dsu.Update();
         }
@@ -382,7 +312,7 @@ namespace worlds
                     materialIndex = 0;
                 }
 
-                spc.materialID = loadOrGetMaterial(renderer, wo.materials[materialIndex]);
+                spc.materialID = RenderMaterialManager::LoadOrGetMaterial(wo.materials[materialIndex]);
                 cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
 
                 cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t)),
@@ -415,7 +345,7 @@ namespace worlds
                     materialIndex = 0;
                 }
 
-                spc.materialID = loadOrGetMaterial(renderer, wo.materials[materialIndex]);
+                spc.materialID = RenderMaterialManager::LoadOrGetMaterial(wo.materials[materialIndex]);
                 spc.textureScale = glm::vec2(wo.texScaleOffset.x, wo.texScaleOffset.y);
                 spc.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
                 cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
@@ -430,98 +360,205 @@ namespace worlds
 
     std::deque<AssetID> convoluteQueue;
 
-    void StandardPipeline::fillLightBuffer(entt::registry& reg, VKTextureManager* textureManager)
+    struct LoadCubemapsTask : public enki::ITaskSet
     {
-        ZoneScoped;
-        uint32_t frameIdx = renderer->getCore()->GetFrameIndex();
-        LightUB* lMapped = (LightUB*)lightBuffers[frameIdx]->Map();
+        LightUB* lightUB;
+        entt::registry& registry;
+        VKTextureManager* textureManager;
 
-        uint32_t lightCount = 0;
-        reg.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t) {
-            if (!wl.enabled)
-                return;
-
-            glm::vec3 lightForward = glm::normalize(t.transformDirection(glm::vec3(0.0f, 0.0f, -1.0f)));
-
-            PackedLight pl;
-            pl.color = toLinear(wl.color) * wl.intensity;
-            pl.setLightType(wl.type);
-            pl.distanceCutoff = wl.maxDistance;
-            pl.direction = lightForward;
-
-            // Sphere lights have their sphere radius written into the spotCutoff field
-            // If it's a sphere light, we need to pass it through unmodified
-            pl.spotCutoff = wl.type == LightType::Sphere ? wl.spotCutoff : glm::cos(wl.spotCutoff);
-
-            pl.setOuterCutoff(wl.spotOuterCutoff);
-            pl.position = t.position;
-
-            // Tube lights are packed in a weird way
-            if (wl.type == LightType::Tube)
-            {
-                glm::vec3 tubeP0 = t.position + lightForward * wl.tubeLength;
-                glm::vec3 tubeP1 = t.position - lightForward * wl.tubeLength;
-
-                pl.direction = tubeP0;
-                pl.spotCutoff = wl.tubeRadius;
-                pl.position = tubeP1;
-            }
-
-            lMapped->lights[lightCount] = pl;
-            lightCount++;
-        });
-
-        lMapped->lightCount = lightCount;
-
-        AssetID skybox = reg.ctx<SceneSettings>().skybox;
-
-        if (!textureManager->isLoaded(skybox))
+        LoadCubemapsTask(LightUB* lightUB, entt::registry& registry, VKTextureManager* textureManager)
+            : lightUB(lightUB)
+            , registry(registry)
+            , textureManager(textureManager)
         {
-            convoluteQueue.push_back(skybox);
         }
 
-        uint32_t cubemapIdx = 1;
-        lMapped->cubemaps[0] = GPUCubemap{glm::vec3{100000.0f}, textureManager->loadOrGet(skybox), glm::vec3{0.0f}, 0};
+        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
+        {
+            ZoneScoped;
 
-        auto cubemapView = reg.view<WorldCubemap, Transform>();
+            auto cubemapView = registry.view<WorldCubemap>();
 
-        cubemapView.each([&](WorldCubemap& wc, Transform& t) {
-            GPUCubemap gc{};
-            gc.extent = wc.extent;
-            gc.position = t.position;
-            gc.flags = wc.cubeParallax;
-            if (!textureManager->isLoaded(wc.cubemapId))
+            auto begin = cubemapView.begin();
+            auto end = cubemapView.begin();
+            std::advance(begin, range.start);
+            std::advance(end, range.end);
+
+            for (auto it = begin; it != end; it++)
             {
-                convoluteQueue.push_back(wc.cubemapId);
+                WorldCubemap& wc = registry.get<WorldCubemap>(*it);
+                lightUB->cubemaps[wc.renderIdx].texture = textureManager->loadOrGet(wc.cubemapId);
             }
-            lMapped->cubemaps[cubemapIdx] = gc;
-            wc.renderIdx = cubemapIdx;
-            cubemapIdx++;
-        });
-        // gc.texture = textureManager->loadOrGet(wc.cubemapId);
+        }
+    };
 
-        enki::TaskSet loadCubemapsTask(
-            std::distance(cubemapView.begin(), cubemapView.end()), 
-            [&](enki::TaskSetPartition range, uint32_t) {
-                auto begin = cubemapView.begin();
-                auto end = cubemapView.begin();
-                std::advance(begin, range.start);
-                std::advance(end, range.end);
+    struct FillLightBufferTask : public enki::ITaskSet
+    {
+        LightUB* lightUB;
+        entt::registry& registry;
+        VKTextureManager* textureManager;
 
-                for (auto it = begin; it != end; it++)
+        FillLightBufferTask(LightUB* lightUB, entt::registry& registry, VKTextureManager* textureManager)
+            : lightUB(lightUB)
+            , registry(registry)
+            , textureManager(textureManager)
+            , lcTask(lightUB, registry, textureManager)
+        {
+        }
+
+        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
+        {
+            ZoneScoped;
+
+            uint32_t lightCount = 0;
+            registry.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t) {
+                if (!wl.enabled)
+                    return;
+
+                glm::vec3 lightForward = glm::normalize(t.transformDirection(glm::vec3(0.0f, 0.0f, -1.0f)));
+
+                PackedLight pl;
+                pl.color = toLinear(wl.color) * wl.intensity;
+                pl.setLightType(wl.type);
+                pl.distanceCutoff = wl.maxDistance;
+                pl.direction = lightForward;
+
+                // Sphere lights have their sphere radius written into the spotCutoff field
+                // If it's a sphere light, we need to pass it through unmodified
+                pl.spotCutoff = wl.type == LightType::Sphere ? wl.spotCutoff : glm::cos(wl.spotCutoff);
+
+                pl.setOuterCutoff(wl.spotOuterCutoff);
+                pl.position = t.position;
+
+                // Tube lights are packed in a weird way
+                if (wl.type == LightType::Tube)
                 {
-                    WorldCubemap& wc = reg.get<WorldCubemap>(*it);
-                    lMapped->cubemaps[wc.renderIdx].texture = textureManager->loadOrGet(wc.cubemapId);
+                    glm::vec3 tubeP0 = t.position + lightForward * wl.tubeLength;
+                    glm::vec3 tubeP1 = t.position - lightForward * wl.tubeLength;
+
+                    pl.direction = tubeP0;
+                    pl.spotCutoff = wl.tubeRadius;
+                    pl.position = tubeP1;
                 }
+
+                lightUB->lights[lightCount] = pl;
+                lightCount++;
             });
 
-        g_taskSched.AddTaskSetToPipe(&loadCubemapsTask);
-        g_taskSched.WaitforTask(&loadCubemapsTask);
+            lightUB->lightCount = lightCount;
 
-        lMapped->cubemapCount = cubemapIdx;
+            AssetID skybox = registry.ctx<SceneSettings>().skybox;
 
-        lightBuffers[frameIdx]->Unmap();
-    }
+            if (!textureManager->isLoaded(skybox))
+            {
+                convoluteQueue.push_back(skybox);
+            }
+
+            uint32_t cubemapIdx = 1;
+            lightUB->cubemaps[0] = GPUCubemap{glm::vec3{100000.0f}, textureManager->loadOrGet(skybox), glm::vec3{0.0f}, 0};
+
+            registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t) {
+                GPUCubemap gc{};
+                gc.extent = wc.extent;
+                gc.position = t.position;
+                gc.flags = wc.cubeParallax;
+                if (!textureManager->isLoaded(wc.cubemapId))
+                {
+                    convoluteQueue.push_back(wc.cubemapId);
+                }
+                lightUB->cubemaps[cubemapIdx] = gc;
+                wc.renderIdx = cubemapIdx;
+                cubemapIdx++;
+            });
+
+            lightUB->cubemapCount = cubemapIdx;
+
+            lcTask.m_SetSize = registry.view<WorldCubemap>().size();
+            g_taskSched.AddTaskSetToPipe(&lcTask);
+            g_taskSched.WaitforTask(&lcTask);
+        }
+    private:
+        LoadCubemapsTask lcTask;
+    };
+
+    struct WorldObjectMaterialLoadTask : public enki::ITaskSet
+    {
+        VKRenderer* renderer;
+        entt::registry& reg;
+
+        WorldObjectMaterialLoadTask(VKRenderer* renderer, entt::registry& reg)
+            : renderer(renderer)
+            , reg(reg)
+        {
+        }
+
+        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
+        {
+            auto view = reg.view<WorldObject>();
+
+            auto begin = view.begin();
+            auto end = view.begin();
+            std::advance(begin, range.start);
+            std::advance(end, range.end);
+
+            for (auto it = begin; it != end; it++)
+            {
+                WorldObject& wo = reg.get<WorldObject>(*it);
+
+                for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                {
+                    if (!wo.presentMaterials[i])
+                        continue;
+
+                    if (RenderMaterialManager::IsMaterialLoaded(wo.materials[i])) continue;
+
+                    RenderMaterialManager::LoadOrGetMaterial(wo.materials[i]);
+                }
+            }
+        }
+    };
+
+    struct SkinnedWorldObjectMaterialLoadTask : public enki::ITaskSet
+    {
+        VKRenderer* renderer;
+        entt::registry& reg;
+
+        SkinnedWorldObjectMaterialLoadTask(VKRenderer* renderer, entt::registry& reg)
+            : renderer(renderer)
+            , reg(reg)
+        {
+        }
+
+        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
+        {
+            auto view = reg.view<SkinnedWorldObject>();
+
+            auto begin = view.begin();
+            auto end = view.begin();
+            std::advance(begin, range.start);
+            std::advance(end, range.end);
+
+            for (auto it = begin; it != end; it++)
+            {
+                WorldObject& wo = reg.get<SkinnedWorldObject>(*it);
+
+                for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                {
+                    if (!wo.presentMaterials[i])
+                        continue;
+
+                    if (RenderMaterialManager::IsMaterialLoaded(wo.materials[i])) continue;
+
+                    RenderMaterialManager::LoadOrGetMaterial(wo.materials[i]);
+                }
+            }
+        }
+    };
+
+    struct TasksFinished : public enki::ICompletable
+    {
+        std::vector<enki::Dependency> dependencies;
+    };
 
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
     {
@@ -530,10 +567,6 @@ namespace worlds
         RenderMeshManager* meshManager = renderer->getMeshManager();
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* textureManager = renderer->getTextureManager();
-
-        // Fill the light buffer with lights + cubemaps from world
-        // This will add cubemaps to the convolution queue if necessary
-        fillLightBuffer(reg, textureManager);
 
         // If there's anything in the convolution queue, convolute 1 cubemap
         // per frame (convolution is slow!)
@@ -550,189 +583,128 @@ namespace worlds
             cb.EndDebugLabel();
         }
 
-        lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
-        modelMatrixBuffers[core->GetFrameIndex()]->Acquire(cb, VK::AccessFlags::ShaderRead,
-                                                           VK::PipelineStageFlags::VertexShader);
+        TasksFinished finisher;
 
-        // Set up culling frustums and fill the VP buffer
-        Camera* camera = rttPass->getCamera();
-        Frustum* frustums = (Frustum*)alloca(sizeof(Frustum) * rttPass->getSettings().numViews);
+        // Fill the light buffer with lights + cubemaps from world
+        // This will add cubemaps to the convolution queue if necessary
+        ZoneScoped;
+        uint32_t frameIdx = renderer->getCore()->GetFrameIndex();
+        LightUB* lightUB = (LightUB*)lightBuffers[frameIdx]->Map();
 
-        MultiVP multiVPs{};
-        multiVPs.screenWidth = rttPass->width;
-        multiVPs.screenHeight = rttPass->height;
-        for (int i = 0; i < rttPass->getSettings().numViews; i++)
-        {
-            glm::mat4 view;
-            glm::mat4 proj;
+        FillLightBufferTask fillTask{lightUB, reg, textureManager};
 
-            if (useViewOverrides)
+        WorldObjectMaterialLoadTask woLoadTask{ renderer, reg };
+        woLoadTask.m_SetSize = reg.view<WorldObject>().size();
+
+        SkinnedWorldObjectMaterialLoadTask swoLoadTask{ renderer, reg };
+        swoLoadTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
+
+        enki::TaskSet recordCBTask([&](enki::TaskSetPartition, uint32_t) {
+            lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
+            modelMatrixBuffers[core->GetFrameIndex()]->Acquire(cb, VK::AccessFlags::ShaderRead,
+                                                            VK::PipelineStageFlags::VertexShader);
+
+            // Set up culling frustums and fill the VP buffer
+            Camera* camera = rttPass->getCamera();
+            Frustum* frustums = (Frustum*)alloca(sizeof(Frustum) * rttPass->getSettings().numViews);
+
+            MultiVP multiVPs{};
+            multiVPs.screenWidth = rttPass->width;
+            multiVPs.screenHeight = rttPass->height;
+            for (int i = 0; i < rttPass->getSettings().numViews; i++)
             {
-                view = overrideViews[i] * camera->getViewMatrix();
-                proj = overrideProjs[i];
-            }
-            else
-            {
-                view = camera->getViewMatrix();
-                proj = camera->getProjectionMatrix((float)rttPass->width / rttPass->height);
-            }
+                glm::mat4 view;
+                glm::mat4 proj;
 
-            multiVPs.views[i] = view;
-            multiVPs.projections[i] = proj;
-            multiVPs.inverseVP[i] = glm::inverse(proj * view);
-            multiVPs.viewPos[i] = glm::vec4((glm::vec3)glm::inverse(view)[3], 0.0f);
-
-            new (&frustums[i]) Frustum();
-            frustums[i].fromVPMatrix(proj * view);
-        }
-
-        core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
-
-        // Taskified pre-caching of materials
-        {
-            auto worldObjectView = reg.view<WorldObject>();
-
-            bool needsLoad = false;
-            worldObjectView.each([&](WorldObject& wo) {
-                for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                if (useViewOverrides)
                 {
-                    if (wo.presentMaterials[i])
-                    {
-                        if (!allocedMaterials.contains(wo.materials[i]))
-                            needsLoad = true;
-                    }
+                    view = overrideViews[i] * camera->getViewMatrix();
+                    proj = overrideProjs[i];
                 }
-            });
-
-            enki::TaskSet loadMatsTask(
-                std::distance(worldObjectView.begin(), worldObjectView.end()),
-                [&](enki::TaskSetPartition range, uint32_t) {
-                    auto begin = worldObjectView.begin();
-                    auto end = worldObjectView.begin();
-                    std::advance(begin, range.start);
-                    std::advance(end, range.end);
-
-                    for (auto it = begin; it != end; it++)
-                    {
-                        WorldObject& wo = reg.get<WorldObject>(*it);
-
-                        for (int i = 0; i < NUM_SUBMESH_MATS; i++)
-                        {
-                            if (!wo.presentMaterials[i])
-                                continue;
-                            loadOrGetMaterial(renderer, wo.materials[i]);
-                        }
-                    }
-                });
-
-            if (needsLoad)
-            {
-                g_taskSched.AddTaskSetToPipe(&loadMatsTask);
-                g_taskSched.WaitforTask(&loadMatsTask);
-            }
-        }
-
-        // Do the same for skinned objects
-        {
-            auto skinnedView = reg.view<SkinnedWorldObject>();
-
-            bool needsLoad = false;
-            skinnedView.each([&](SkinnedWorldObject& wo) {
-                for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                else
                 {
-                    if (wo.presentMaterials[i])
-                    {
-                        if (!allocedMaterials.contains(wo.materials[i]))
-                            needsLoad = true;
-                    }
+                    view = camera->getViewMatrix();
+                    proj = camera->getProjectionMatrix((float)rttPass->width / rttPass->height);
                 }
-            });
 
-            enki::TaskSet skinnedLoadMatsTask(
-                std::distance(skinnedView.begin(), skinnedView.end()),
-                [&](enki::TaskSetPartition range, uint32_t) {
-                    auto begin = skinnedView.begin();
-                    auto end = skinnedView.begin();
-                    std::advance(begin, range.start);
-                    std::advance(end, range.end);
+                multiVPs.views[i] = view;
+                multiVPs.projections[i] = proj;
+                multiVPs.inverseVP[i] = glm::inverse(proj * view);
+                multiVPs.viewPos[i] = glm::vec4((glm::vec3)glm::inverse(view)[3], 0.0f);
 
-                    for (auto it = begin; it != end; it++)
-                    {
-                        SkinnedWorldObject& wo = reg.get<SkinnedWorldObject>(*it);
-
-                        for (int i = 0; i < NUM_SUBMESH_MATS; i++)
-                        {
-                            if (!wo.presentMaterials[i])
-                                continue;
-                            loadOrGetMaterial(renderer, wo.materials[i]);
-                        }
-                    }
-                });
-
-            if (needsLoad)
-            {
-                g_taskSched.AddTaskSetToPipe(&skinnedLoadMatsTask);
-                g_taskSched.WaitforTask(&skinnedLoadMatsTask);
+                new (&frustums[i]) Frustum();
+                frustums[i].fromVPMatrix(proj * view);
             }
-        }
 
-        // Depth Pre-Pass
-        cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
+            core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
 
-        cb.BindPipeline(depthPrePipeline.Get());
-        VK::RenderPass depthPass;
-        depthPass.DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
-            .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
-            .RenderArea(rttPass->width, rttPass->height)
-            .ViewMask(getViewMask(rttPass->getSettings().numViews));
+            // Depth Pre-Pass
+            cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
 
-        depthPass.Begin(cb);
+            cb.BindPipeline(depthPrePipeline.Get());
+            VK::RenderPass depthPass;
+            depthPass.DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
+                .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
+                .RenderArea(rttPass->width, rttPass->height)
+                .ViewMask(getViewMask(rttPass->getSettings().numViews));
 
-        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
-        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
-        cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
-        cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
+            depthPass.Begin(cb);
 
-        drawLoop(reg, cb, true, frustums, rttPass->getSettings().numViews);
-        depthPass.End(cb);
+            cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
+            cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
+            cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
+            cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
 
-        cb.EndDebugLabel();
+            drawLoop(reg, cb, true, frustums, rttPass->getSettings().numViews);
+            depthPass.End(cb);
 
-        // Run light culling using the depth buffer
-        lightCull->Execute(cb);
+            cb.EndDebugLabel();
 
-        lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
+            // Run light culling using the depth buffer
+            lightCull->Execute(cb);
 
-        // Actual "opaque" pass
-        cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
-        cb.BindPipeline(pipeline.Get());
+            lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
 
-        VK::RenderPass colorPass;
-        colorPass.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
-            .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.0f, 0.0f, 0.0f, 1.0f))
-            .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Load, VK::StoreOp::Store)
-            .RenderArea(rttPass->width, rttPass->height)
-            .ViewMask(getViewMask(rttPass->getSettings().numViews));
+            // Actual "opaque" pass
+            cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
+            cb.BindPipeline(pipeline.Get());
 
-        colorPass.Begin(cb);
+            VK::RenderPass colorPass;
+            colorPass.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
+                .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.0f, 0.0f, 0.0f, 1.0f))
+                .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Load, VK::StoreOp::Store)
+                .RenderArea(rttPass->width, rttPass->height)
+                .ViewMask(getViewMask(rttPass->getSettings().numViews));
 
-        drawLoop(reg, cb, false, frustums, rttPass->getSettings().numViews);
+            colorPass.Begin(cb);
 
-        skyboxRenderer->Execute(cb);
+            drawLoop(reg, cb, false, frustums, rttPass->getSettings().numViews);
 
-        cb.BeginDebugLabel("Debug Lines", 0.1f, 0.1f, 0.1f);
-        size_t dbgLinesCount;
-        const DebugLine* dbgLines = renderer->getCurrentDebugLines(&dbgLinesCount);
+            skyboxRenderer->Execute(cb);
 
-        debugLineDrawer->Execute(cb, dbgLines, dbgLinesCount);
-        cb.EndDebugLabel();
+            cb.BeginDebugLabel("Debug Lines", 0.1f, 0.1f, 0.1f);
+            size_t dbgLinesCount;
+            const DebugLine* dbgLines = renderer->getCurrentDebugLines(&dbgLinesCount);
 
-        colorPass.End(cb);
-        cb.EndDebugLabel();
+            debugLineDrawer->Execute(cb, dbgLines, dbgLinesCount);
+            cb.EndDebugLabel();
 
-        // Post-processing
-        bloom->Execute(cb);
-        tonemapper->Execute(cb);
+            colorPass.End(cb);
+            cb.EndDebugLabel();
+
+            // Post-processing
+            bloom->Execute(cb);
+            tonemapper->Execute(cb);
+        });
+
+        finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(finisher.dependencies, { &fillTask, &woLoadTask, &swoLoadTask, &recordCBTask });
+
+        g_taskSched.AddTaskSetToPipe(&fillTask);
+        g_taskSched.AddTaskSetToPipe(&woLoadTask);
+        g_taskSched.AddTaskSetToPipe(&swoLoadTask);
+        g_taskSched.AddTaskSetToPipe(&recordCBTask);
+        g_taskSched.WaitforTask(&finisher);
+        lightBuffers[frameIdx]->Unmap();
     }
 
     void StandardPipeline::setView(int viewIndex, glm::mat4 viewMatrix, glm::mat4 projectionMatrix)

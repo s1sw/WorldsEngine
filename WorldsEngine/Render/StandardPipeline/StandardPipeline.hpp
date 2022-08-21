@@ -64,8 +64,6 @@ namespace worlds
         void createSizeDependants();
         void drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices, Frustum* frustums,
                       int numViews);
-        void fillLightBuffer(entt::registry& reg, VKTextureManager* textureManager);
-
     public:
         StandardPipeline(VKRenderer* renderer);
         ~StandardPipeline();
