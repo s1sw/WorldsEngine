@@ -22,12 +22,14 @@ namespace worlds
     {
         float roughness;
         int faceIdx;
+        int outputIsSRGB;
     };
 
     void CubemapConvoluter::Convolute(R2::VK::CommandBuffer cb, R2::VK::Texture* tex)
     {
         tex->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderRead | VK::AccessFlags::ShaderWrite, VK::PipelineStageFlags::ComputeShader);
 
+        bool isSRGB = tex->GetFormat() == VK::TextureFormat::R8G8B8A8_SRGB;
         int w = tex->GetWidth() / 2;
         int h = tex->GetHeight() / 2;
         for (int mipLevel = 1; mipLevel < tex->GetNumMips(); mipLevel++)
@@ -52,6 +54,7 @@ namespace worlds
                 CCPushConstants pcs{};
                 pcs.faceIdx = i;
                 pcs.roughness = (float)mipLevel / tex->GetNumMips();
+                pcs.outputIsSRGB = isSRGB;
                 sc.Dispatch(cb, pcs, (w + 15) / 16, (h + 15) / 16, 1);
             }
 

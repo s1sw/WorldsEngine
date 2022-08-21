@@ -1,10 +1,12 @@
 import Math;
+import SRGB;
 
 [[vk::push_constant]]
 cbuffer PC
 {
     float roughness;
     int faceIdx;
+    int outputIsSRGB;
 }
 
 SamplerCube<float4> fullCubemap;
@@ -108,6 +110,9 @@ void main(uint3 threadID : SV_DispatchThreadID)
     }
 
     prefilteredColor = prefilteredColor / totalWeight;
+
+    if (outputIsSRGB)
+        prefilteredColor = ConvertToSRGB(prefilteredColor);
 
     outFace[threadID.xy] = float4(prefilteredColor, 1.0f);
 }

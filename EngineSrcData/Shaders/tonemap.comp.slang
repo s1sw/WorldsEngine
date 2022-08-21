@@ -1,4 +1,5 @@
 import InversibleTonemap;
+import SRGB;
 
 RWTexture2D<float4> resultImage;
 
@@ -178,18 +179,6 @@ TonemapTextureSettings GetTextureSettings()
 
     return ts;
 }
-
-// adapted from https://stackoverflow.com/a/34480536
-float3 ConvertToSRGB(float3 col)
-{
-    bool3 cutoff = col > 0.0031308;
-
-    float3 above = 1.055 * (pow(col, float3(1.0 / 2.4))) - 0.055;
-    float3 below = 12.92 * col;
-
-    return lerp(below, above, cutoff);
-}
-
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
