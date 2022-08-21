@@ -102,4 +102,12 @@ namespace worlds
             loadToLM(pair.second, pair.first);
         }
     }
+
+    void MeshManager::reloadMesh(AssetID mesh)
+    {
+        if (!loadedMeshes.contains(mesh))
+            return;
+        
+        loadToLM(loadedMeshes.at(mesh), mesh);
+    }
 }

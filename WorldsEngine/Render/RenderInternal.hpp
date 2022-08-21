@@ -147,7 +147,6 @@ namespace worlds
         uint32_t vertsOffset;
         uint32_t indexOffset;
 
-        IndexType indexType;
         uint8_t numSubmeshes;
         RenderSubmeshInfo submeshInfo[NUM_SUBMESH_MATS];
 

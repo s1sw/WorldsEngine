@@ -143,10 +143,7 @@ namespace worlds
             modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
 
             cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
-
-            VK::IndexType vkIdxType =
-                rmi.indexType == IndexType::Uint32 ? VK::IndexType::Uint32 : VK::IndexType::Uint16;
-            cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, vkIdxType);
+            cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, VK::IndexType::Uint32);
 
             for (int i = 0; i < rmi.numSubmeshes; i++)
             {

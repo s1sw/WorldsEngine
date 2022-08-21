@@ -52,14 +52,23 @@ namespace worlds
         LoadedMeshData lmd{};
         loadWorldsModel(asset, lmd);
 
-        size_t indicesSize = lmd.indexType == IndexType::Uint16 ? lmd.indices16.size() * sizeof(uint16_t)
+        // We don't support 16 bit indices anymore so we can bind the index buffer just once.
+        if (lmd.indexType == IndexType::Uint16)
+        {
+            lmd.indices32.resize(lmd.indices16.size());
+            for (size_t i = 0; i < lmd.indices16.size(); i++)
+            {
+                lmd.indices32[i] = (uint32_t)lmd.indices16[i];
+            }
+        }
+
+        size_t indicesSize = lmd.indexType == IndexType::Uint16 ? lmd.indices16.size() * sizeof(uint32_t)
                                                                 : lmd.indices32.size() * sizeof(uint32_t);
 
         RenderMeshInfo meshInfo{};
         meshInfo.indexOffset = indexBuffer->Allocate(indicesSize, meshInfo.indexAllocationHandle);
         meshInfo.vertsOffset =
             vertexBuffer->Allocate(lmd.vertices.size() * sizeof(Vertex), meshInfo.vertexAllocationHandle);
-        meshInfo.indexType = lmd.indexType;
 
         meshInfo.numSubmeshes = lmd.submeshes.size();
         for (int i = 0; i < lmd.submeshes.size(); i++)
@@ -69,14 +78,11 @@ namespace worlds
             meshInfo.submeshInfo[i].materialIndex = lmd.submeshes[i].materialIndex;
         }
 
-        if (lmd.indexType == IndexType::Uint16)
-        {
-            core->QueueBufferUpload(indexBuffer->GetBuffer(), lmd.indices16.data(), indicesSize, meshInfo.indexOffset);
-        }
-        else
-        {
-            core->QueueBufferUpload(indexBuffer->GetBuffer(), lmd.indices32.data(), indicesSize, meshInfo.indexOffset);
-        }
+        core->QueueBufferUpload(
+            indexBuffer->GetBuffer(),
+            lmd.indices32.data(), indicesSize,
+            meshInfo.indexOffset
+        );
 
         core->QueueBufferUpload(
             vertexBuffer->GetBuffer(), 

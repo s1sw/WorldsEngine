@@ -1,11 +1,10 @@
-#include "Editor/Editor.hpp"
 #include "EditorWindows.hpp"
 #include <AssetCompilation/AssetCompilerUtil.hpp>
 #include <AssetCompilation/AssetCompilers.hpp>
 #include <Core/Log.hpp>
+#include <Editor/Editor.hpp>
 #include <Editor/ProjectAssetCompiler.hpp>
 #include <ImGui/imgui.h>
-#include <filesystem>
 
 namespace worlds
 {
@@ -42,6 +41,8 @@ namespace worlds
                     ImGui::ProgressBar(currentOp->progress);
                 }
             }
+
+            ImGui::Text("%zu assets registered", assets.assetFiles.size());
 
             for (auto& file : assets.assetFiles)
             {

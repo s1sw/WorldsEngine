@@ -45,6 +45,7 @@ namespace worlds
         static const LoadedMesh& loadOrGet(AssetID id);
         static void unload(AssetID id);
         static void reloadMeshes();
+        static void reloadMesh(AssetID id);
 
     private:
         static robin_hood::unordered_node_map<AssetID, LoadedMesh> loadedMeshes;

@@ -97,7 +97,6 @@ namespace worlds
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* tm = renderer->getTextureManager();
 
-
         auto& j = MaterialManager::loadOrGet(id);
 
         StandardPBRMaterial material{};
@@ -123,7 +122,6 @@ namespace worlds
             material.emissiveColor = glm::vec3(0.0f);
 
         renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), mai.offset);
-
 
         return mai.offset;
     }
@@ -180,7 +178,8 @@ namespace worlds
                                               getViewMask(settings.numViews));
         bloom = new Bloom(core, colorBuffer.Get());
         tonemapper = new Tonemapper(core, colorBuffer.Get(), rttPass->getFinalTarget(), bloom->GetOutput());
-        skyboxRenderer = new SkyboxRenderer(core, pipelineLayout.Get(), settings.msaaLevel, getViewMask(settings.numViews));
+        skyboxRenderer =
+            new SkyboxRenderer(core, pipelineLayout.Get(), settings.msaaLevel, getViewMask(settings.numViews));
     }
 
     void StandardPipeline::setup(VKRTTPass* rttPass)
@@ -353,6 +352,8 @@ namespace worlds
         if (writeMatrices)
             modelMatricesMapped = (glm::mat4*)modelMatrixBuffers[core->GetFrameIndex()]->Map();
 
+        cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
+        cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
         reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
             const RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
 
@@ -363,12 +364,6 @@ namespace worlds
                 modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
             else
                 modelMatrixIndex++;
-
-
-            VK::IndexType vkIdxType =
-                rmi.indexType == IndexType::Uint32 ? VK::IndexType::Uint32 : VK::IndexType::Uint16;
-            cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, vkIdxType);
-            cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
 
             for (int i = 0; i < rmi.numSubmeshes; i++)
             {
@@ -388,7 +383,8 @@ namespace worlds
                 spc.materialID = loadOrGetMaterial(renderer, wo.materials[materialIndex]);
                 cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
 
-                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
+                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t)),
+                               (rmi.vertsOffset / sizeof(Vertex)), 0);
             }
         });
 
@@ -402,9 +398,7 @@ namespace worlds
 
             cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
 
-            VK::IndexType vkIdxType =
-                rmi.indexType == IndexType::Uint32 ? VK::IndexType::Uint32 : VK::IndexType::Uint16;
-            cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, vkIdxType);
+            cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, VK::IndexType::Uint32);
 
             for (int i = 0; i < rmi.numSubmeshes; i++)
             {
@@ -509,18 +503,20 @@ namespace worlds
         });
         // gc.texture = textureManager->loadOrGet(wc.cubemapId);
 
-        enki::TaskSet loadCubemapsTask(std::distance(cubemapView.begin(), cubemapView.end()), [&](enki::TaskSetPartition range, uint32_t) {
-            auto begin = cubemapView.begin();
-            auto end = cubemapView.begin();
-            std::advance(begin, range.start);
-            std::advance(end, range.end);
+        enki::TaskSet loadCubemapsTask(
+            std::distance(cubemapView.begin(), cubemapView.end()), 
+            [&](enki::TaskSetPartition range, uint32_t) {
+                auto begin = cubemapView.begin();
+                auto end = cubemapView.begin();
+                std::advance(begin, range.start);
+                std::advance(end, range.end);
 
-            for (auto it = begin; it != end; it++)
-            {
-                WorldCubemap& wc = reg.get<WorldCubemap>(*it);
-                lMapped->cubemaps[wc.renderIdx].texture = textureManager->loadOrGet(wc.cubemapId);
-            }
-        });
+                for (auto it = begin; it != end; it++)
+                {
+                    WorldCubemap& wc = reg.get<WorldCubemap>(*it);
+                    lMapped->cubemaps[wc.renderIdx].texture = textureManager->loadOrGet(wc.cubemapId);
+                }
+            });
 
         g_taskSched.AddTaskSetToPipe(&loadCubemapsTask);
         g_taskSched.WaitforTask(&loadCubemapsTask);
@@ -599,23 +595,26 @@ namespace worlds
         {
             auto worldObjectView = reg.view<WorldObject>();
 
-            enki::TaskSet loadMatsTask(std::distance(worldObjectView.begin(), worldObjectView.end()), [&](enki::TaskSetPartition range, uint32_t) {
-                auto begin = worldObjectView.begin();
-                auto end = worldObjectView.begin();
-                std::advance(begin, range.start);
-                std::advance(end, range.end);
+            enki::TaskSet loadMatsTask(
+                std::distance(worldObjectView.begin(), worldObjectView.end()),
+                [&](enki::TaskSetPartition range, uint32_t) {
+                    auto begin = worldObjectView.begin();
+                    auto end = worldObjectView.begin();
+                    std::advance(begin, range.start);
+                    std::advance(end, range.end);
 
-                for (auto it = begin; it != end; it++)
-                {
-                    WorldObject& wo = reg.get<WorldObject>(*it);
-
-                    for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                    for (auto it = begin; it != end; it++)
                     {
-                        if (!wo.presentMaterials[i]) continue;
-                        loadOrGetMaterial(renderer, wo.materials[i]);
+                        WorldObject& wo = reg.get<WorldObject>(*it);
+
+                        for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                        {
+                            if (!wo.presentMaterials[i])
+                                continue;
+                            loadOrGetMaterial(renderer, wo.materials[i]);
+                        }
                     }
-                }
-            });
+                });
 
             g_taskSched.AddTaskSetToPipe(&loadMatsTask);
             g_taskSched.WaitforTask(&loadMatsTask);
@@ -625,23 +624,26 @@ namespace worlds
         {
             auto skinnedView = reg.view<SkinnedWorldObject>();
 
-            enki::TaskSet skinnedLoadMatsTask(std::distance(skinnedView.begin(), skinnedView.end()), [&](enki::TaskSetPartition range, uint32_t) {
-                auto begin = skinnedView.begin();
-                auto end = skinnedView.begin();
-                std::advance(begin, range.start);
-                std::advance(end, range.end);
+            enki::TaskSet skinnedLoadMatsTask(
+                std::distance(skinnedView.begin(), skinnedView.end()),
+                [&](enki::TaskSetPartition range, uint32_t) {
+                    auto begin = skinnedView.begin();
+                    auto end = skinnedView.begin();
+                    std::advance(begin, range.start);
+                    std::advance(end, range.end);
 
-                for (auto it = begin; it != end; it++)
-                {
-                    SkinnedWorldObject& wo = reg.get<SkinnedWorldObject>(*it);
-
-                    for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                    for (auto it = begin; it != end; it++)
                     {
-                        if (!wo.presentMaterials[i]) continue;
-                        loadOrGetMaterial(renderer, wo.materials[i]);
+                        SkinnedWorldObject& wo = reg.get<SkinnedWorldObject>(*it);
+
+                        for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+                        {
+                            if (!wo.presentMaterials[i])
+                                continue;
+                            loadOrGetMaterial(renderer, wo.materials[i]);
+                        }
                     }
-                }
-            });
+                });
 
             g_taskSched.AddTaskSetToPipe(&skinnedLoadMatsTask);
             g_taskSched.WaitforTask(&skinnedLoadMatsTask);
