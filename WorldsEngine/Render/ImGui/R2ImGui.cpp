@@ -25,10 +25,10 @@ struct ImGuiPCs
 
 struct R2ImplState
 {
-    VK::Buffer* vertexBuffer = nullptr;
-    size_t vertexBufferCapacity = 0;
-    VK::Buffer* indexBuffer = nullptr;
-    size_t indexBufferCapacity = 0;
+    VK::Buffer* vertexBuffers[2] { nullptr };
+    size_t vertexBufferCapacities[2] { 0 };
+    VK::Buffer* indexBuffers[2] { nullptr };
+    size_t indexBufferCapacities[2] { 0 };
     VK::Core* core = nullptr;
     VK::PipelineLayout* pipelineLayout = nullptr;
     VK::DescriptorSetLayout* dsl = nullptr;
@@ -94,12 +94,14 @@ bool ImGui_ImplR2_Init(VK::Core* renderer, BindlessTextureManager* btm)
 void ImGui_ImplR2_Shutdown()
 {
     R2ImplState* s = getImplState();
-    s->core->DestroyBuffer(s->indexBuffer);
-    s->core->DestroyBuffer(s->vertexBuffer);
+    s->core->DestroyBuffer(s->indexBuffers[0]);
+    s->core->DestroyBuffer(s->vertexBuffers[0]);
+    s->core->DestroyBuffer(s->indexBuffers[1]);
+    s->core->DestroyBuffer(s->vertexBuffers[1]);
     delete s->dsl;
     delete s->pipeline;
     s->core->DestroyTexture(s->fontTexture);
-    // s->pipelineLayout;
+    delete s->pipelineLayout;
     delete s->sampler;
 }
 
@@ -137,43 +139,46 @@ void ImGui_ImplR2_CreateFontTextureAndDS()
 void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
 {
     R2ImplState* s = getImplState();
+    int frameIdx = s->core->GetFrameIndex();
+    R2::VK::Buffer*& vertexBuffer = s->vertexBuffers[frameIdx];
+    R2::VK::Buffer*& indexBuffer = s->indexBuffers[frameIdx];
 
-    if (!s->vertexBuffer || s->vertexBufferCapacity < drawData->TotalVtxCount)
+    if (!vertexBuffer || s->vertexBufferCapacities[frameIdx] < drawData->TotalVtxCount)
     {
-        if (s->vertexBuffer)
+        if (vertexBuffer)
         {
-            s->core->DestroyBuffer(s->vertexBuffer);
+            s->core->DestroyBuffer(vertexBuffer);
         }
 
-        s->vertexBufferCapacity = drawData->TotalVtxCount + 5000;
+        s->vertexBufferCapacities[frameIdx] = drawData->TotalVtxCount + 5000;
 
         VK::BufferCreateInfo bci{};
         bci.Mappable = true;
-        bci.Size = s->vertexBufferCapacity * sizeof(ImDrawVert);
+        bci.Size = s->vertexBufferCapacities[frameIdx] * sizeof(ImDrawVert);
         bci.Usage = VK::BufferUsage::Vertex;
 
-        s->vertexBuffer = s->core->CreateBuffer(bci);
+        s->vertexBuffers[frameIdx] = s->core->CreateBuffer(bci);
     }
 
-    if (!s->indexBuffer || s->indexBufferCapacity < drawData->TotalIdxCount)
+    if (!indexBuffer || s->indexBufferCapacities[frameIdx] < drawData->TotalIdxCount)
     {
-        if (s->indexBuffer)
+        if (indexBuffer)
         {
-            s->core->DestroyBuffer(s->indexBuffer);
+            s->core->DestroyBuffer(indexBuffer);
         }
 
-        s->indexBufferCapacity = drawData->TotalIdxCount + 10000;
+        s->indexBufferCapacities[frameIdx] = drawData->TotalIdxCount + 10000;
 
         VK::BufferCreateInfo bci{};
         bci.Mappable = true;
-        bci.Size = s->indexBufferCapacity * sizeof(ImDrawIdx);
+        bci.Size = s->indexBufferCapacities[frameIdx] * sizeof(ImDrawIdx);
         bci.Usage = VK::BufferUsage::Index;
 
-        s->indexBuffer = s->core->CreateBuffer(bci);
+        indexBuffer = s->core->CreateBuffer(bci);
     }
 
-    ImDrawVert* verts = static_cast<ImDrawVert*>(s->vertexBuffer->Map());
-    ImDrawIdx* indices = static_cast<ImDrawIdx*>(s->indexBuffer->Map());
+    ImDrawVert* verts = static_cast<ImDrawVert*>(vertexBuffer->Map());
+    ImDrawIdx* indices = static_cast<ImDrawIdx*>(indexBuffer->Map());
 
     for (int i = 0; i < drawData->CmdListsCount; i++)
     {
@@ -186,8 +191,8 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
         indices += cmdList->IdxBuffer.Size;
     }
 
-    s->vertexBuffer->Unmap();
-    s->indexBuffer->Unmap();
+    vertexBuffer->Unmap();
+    indexBuffer->Unmap();
 
     VK::Viewport vp = VK::Viewport::Simple(drawData->DisplaySize.x, drawData->DisplaySize.y);
     cb.SetViewport(vp);
@@ -205,8 +210,8 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
     int global_vtx_offset = 0;
     ImVec2 clip_off = drawData->DisplayPos;
     cb.BindGraphicsDescriptorSet(s->pipelineLayout, s->textureManager->GetTextureDescriptorSet().GetNativeHandle(), 0);
-    cb.BindIndexBuffer(s->indexBuffer, 0, VK::IndexType::Uint16);
-    cb.BindVertexBuffer(0, s->vertexBuffer, 0);
+    cb.BindIndexBuffer(indexBuffer, 0, VK::IndexType::Uint16);
+    cb.BindVertexBuffer(0, vertexBuffer, 0);
     cb.BindPipeline(s->pipeline);
 
     for (int n = 0; n < drawData->CmdListsCount; n++)
