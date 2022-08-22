@@ -1002,7 +1002,10 @@ namespace worlds
         if (renderImGui)
         {
             ZoneScopedN("ImGui render update");
-            ((VKRenderer*)renderer.get())->drawDebugMenus();
+
+            if (showDebugInfo.getInt())
+                ((VKRenderer*)renderer.get())->drawDebugMenus();
+
             ImGui::Render();
 
             if (window->isMaximised())

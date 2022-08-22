@@ -287,7 +287,7 @@ namespace worlds
         void setVsync(bool vsync) override;
         bool getVsync() const override;
 
-        const RenderDebugStats& getDebugStats() const override;
+        RenderDebugStats& getDebugStats() override;
         IUITextureManager* getUITextureManager() override;
 
         void setImGuiDrawData(void* drawData) override;

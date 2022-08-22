@@ -284,6 +284,8 @@ namespace worlds
         if (writeMatrices)
             modelMatricesMapped = (glm::mat4*)modelMatrixBuffers[core->GetFrameIndex()]->Map();
 
+        RenderDebugStats& debugStats = renderer->getDebugStats();
+
         cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
         cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
         reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
@@ -317,6 +319,8 @@ namespace worlds
 
                 cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t)),
                                (rmi.vertsOffset / sizeof(Vertex)), 0);
+                debugStats.numDrawCalls++;
+                debugStats.numTriangles += rsi.indexCount / 3;
             }
         });
 
@@ -351,6 +355,8 @@ namespace worlds
                 cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
 
                 cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
+                debugStats.numDrawCalls++;
+                debugStats.numTriangles += rsi.indexCount / 3;
             }
         });
 

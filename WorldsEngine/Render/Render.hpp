@@ -197,7 +197,7 @@ namespace worlds
         virtual void setVsync(bool vsync) = 0;
         virtual bool getVsync() const = 0;
 
-        virtual const RenderDebugStats& getDebugStats() const = 0;
+        virtual RenderDebugStats& getDebugStats() = 0;
         virtual IUITextureManager* getUITextureManager() = 0;
 
         virtual void setImGuiDrawData(void* drawData) = 0;

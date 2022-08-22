@@ -12,8 +12,8 @@
 #include <Render/ShaderCache.hpp>
 #include <Render/StandardPipeline/StandardPipeline.hpp>
 #include <Render/StandardPipeline/RenderMaterialManager.hpp>
-#include <Tracy.hpp>
 #include <SDL_vulkan.h>
+#include <Tracy.hpp>
 
 using namespace R2;
 
@@ -93,6 +93,13 @@ namespace worlds
     void VKRenderer::frame(entt::registry& registry)
     {
         ZoneScoped;
+
+        // Reset debug stats
+        debugStats.numDrawCalls = 0;
+        debugStats.numRTTPasses = rttPasses.size();
+        debugStats.numActiveRTTPasses = 0;
+        debugStats.numTriangles = 0;
+
         frameFence->WaitFor();
         frameFence->Reset();
         VK::Texture* swapchainImage = swapchain->Acquire(frameFence);
@@ -115,6 +122,7 @@ namespace worlds
         {
             if (!pass->active)
                 continue;
+            debugStats.numActiveRTTPasses++;
 
             cb.BeginDebugLabel("RTT Pass", 0.0f, 0.0f, 0.0f);
             pass->pipeline->draw(pass->settings.registryOverride ? *pass->settings.registryOverride : registry, cb);
@@ -176,7 +184,7 @@ namespace worlds
         return swapchain->GetVsync();
     }
 
-    const RenderDebugStats& VKRenderer::getDebugStats() const
+    RenderDebugStats& VKRenderer::getDebugStats()
     {
         return debugStats;
     }
