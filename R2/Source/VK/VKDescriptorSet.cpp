@@ -8,10 +8,14 @@
 
 namespace R2::VK
 {
+    int allocatedDescriptorSets = 0;
+
     DescriptorSet::DescriptorSet(Core* core, VkDescriptorSet set)
         : core(core)
         , set(set)
-    {}
+    {
+        allocatedDescriptorSets++;
+    }
 
     VkDescriptorSet DescriptorSet::GetNativeHandle()
     {
@@ -22,6 +26,7 @@ namespace R2::VK
     {
         DeletionQueue* dq = core->perFrameResources[core->frameIndex].DeletionQueue;
         dq->QueueDescriptorSetFree(core->GetHandles()->DescriptorPool, set);
+        allocatedDescriptorSets--;
     }
 
     DescriptorSetLayout::DescriptorSetLayout(const Handles* handles, VkDescriptorSetLayout layout)

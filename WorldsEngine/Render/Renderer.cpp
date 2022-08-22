@@ -15,6 +15,11 @@
 #include <SDL_vulkan.h>
 #include <Tracy.hpp>
 
+namespace R2::VK
+{
+    extern int allocatedDescriptorSets;
+}
+
 using namespace R2;
 
 namespace worlds
@@ -239,6 +244,8 @@ namespace worlds
     {
         textureManager->showDebugMenu();
         RenderMaterialManager::ShowDebugMenu();
+
+        ImGui::Text("%i descriptor sets allocated", R2::VK::allocatedDescriptorSets);
     }
 
     R2::VK::Core* VKRenderer::getCore()
