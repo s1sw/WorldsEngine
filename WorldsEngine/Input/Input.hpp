@@ -39,6 +39,7 @@ namespace worlds
         void lockMouse(bool lock);
         void triggerControllerHaptics(uint16_t leftIntensity, uint16_t rightIntensity, uint32_t duration);
         void addKeydownHandler(std::function<void(SDL_Scancode)> handler);
+        void setImGuiIgnore(bool ignore);
 
       private:
         slib::List<std::function<void(SDL_Scancode)>> keydownHandlers;
@@ -50,6 +51,7 @@ namespace worlds
         glm::ivec2 mouseDelta;
         glm::ivec2 mousePos;
         bool mouseLocked = false;
+        bool alwaysIgnoreImGui = false;
         DotNetScriptEngine* scriptEngine = nullptr;
         struct NativeInputEvent;
         void (*processNativeEvent)(NativeInputEvent*) = nullptr;

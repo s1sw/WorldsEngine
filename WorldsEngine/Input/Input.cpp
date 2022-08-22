@@ -167,7 +167,7 @@ namespace worlds
 
     bool InputManager::mouseButtonHeld(MouseButton button, bool ignoreImGui) const
     {
-        if (ImGui::GetIO().WantCaptureMouse && !ignoreImGui)
+        if (ImGui::GetIO().WantCaptureMouse && !(ignoreImGui || alwaysIgnoreImGui))
             return false;
         uint32_t uButton = SDL_BUTTON((uint32_t)button);
         return (mouseButtonFlags & uButton) == uButton;
@@ -175,7 +175,7 @@ namespace worlds
 
     bool InputManager::mouseButtonPressed(MouseButton button, bool ignoreImGui) const
     {
-        if (ImGui::GetIO().WantCaptureMouse && !ignoreImGui)
+        if (ImGui::GetIO().WantCaptureMouse && !(ignoreImGui || alwaysIgnoreImGui))
             return false;
         uint32_t uButton = SDL_BUTTON((uint32_t)button);
         return ((mouseButtonFlags & uButton) == uButton) && ((lastMouseButtonFlags & uButton) != uButton);
@@ -183,7 +183,7 @@ namespace worlds
 
     bool InputManager::mouseButtonReleased(MouseButton button, bool ignoreImGui) const
     {
-        if (ImGui::GetIO().WantCaptureMouse && !ignoreImGui)
+        if (ImGui::GetIO().WantCaptureMouse && !(ignoreImGui || alwaysIgnoreImGui))
             return false;
         uint32_t uButton = SDL_BUTTON((uint32_t)button);
         return ((mouseButtonFlags & uButton) != uButton) && ((lastMouseButtonFlags & uButton) == uButton);
@@ -191,21 +191,21 @@ namespace worlds
 
     bool InputManager::keyHeld(SDL_Scancode scancode, bool ignoreImGui) const
     {
-        if (ImGui::GetIO().WantCaptureKeyboard && !ignoreImGui)
+        if (ImGui::GetIO().WantCaptureKeyboard && !(ignoreImGui || alwaysIgnoreImGui))
             return false;
         return keyState[scancode];
     }
 
     bool InputManager::keyPressed(SDL_Scancode scancode, bool ignoreImGui) const
     {
-        if (ImGui::GetIO().WantCaptureKeyboard && !ignoreImGui)
+        if (ImGui::GetIO().WantCaptureKeyboard && !(ignoreImGui || alwaysIgnoreImGui))
             return false;
         return keyState[scancode] && !lastKeyState[scancode];
     }
 
     bool InputManager::keyReleased(SDL_Scancode scancode, bool ignoreImGui) const
     {
-        if (ImGui::GetIO().WantCaptureKeyboard && !ignoreImGui)
+        if (ImGui::GetIO().WantCaptureKeyboard && !(ignoreImGui || alwaysIgnoreImGui))
             return false;
         return !keyState[scancode] && lastKeyState[scancode];
     }
@@ -276,5 +276,10 @@ namespace worlds
     void InputManager::addKeydownHandler(std::function<void(SDL_Scancode)> handler)
     {
         keydownHandlers.add(handler);
+    }
+
+    void InputManager::setImGuiIgnore(bool ignore)
+    {
+        alwaysIgnoreImGui = ignore;
     }
 }
