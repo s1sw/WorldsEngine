@@ -18,6 +18,13 @@ namespace WorldsEngine.Editor
         Error
     }
 
+    public enum GameState : byte
+    {
+        Editing,
+        Playing,
+        Paused
+    }
+
     public static class Editor
     {
         #region Native Imports
@@ -32,9 +39,13 @@ namespace WorldsEngine.Editor
 
         [DllImport(Engine.NativeModule)]
         private static extern void editor_overrideHandle(uint entity);
+
+        [DllImport(Engine.NativeModule)]
+        private static extern GameState editor_getCurrentState();
         #endregion
 
         public static Entity CurrentlySelected => new(editor_getCurrentlySelected());
+        public static GameState State => editor_getCurrentState();
 
         private readonly static Dictionary<Type, EditorWindow> _singleInstanceWindows = new();
         private readonly static List<EditorWindow> _editorWindows = new();

@@ -200,6 +200,16 @@ namespace worlds
             faceSize /= 2;
         }
 
+        if (textureFormat != VK::TextureFormat::R32G32B32A32_SFLOAT && textureFormat != VK::TextureFormat::R8G8B8A8_SRGB)
+        {
+            logErr("Compressed cubemaps are currently not supported");
+            for (int i = 0; i < 6; i++)
+            {
+                free(faces[i].data);
+            }
+            return TextureData { nullptr };
+        }
+
         for (int i = 0; i < 6; i++)
         {
             if (faces[i].format != textureFormat)

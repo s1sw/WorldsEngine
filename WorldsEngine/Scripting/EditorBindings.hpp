@@ -26,4 +26,9 @@ extern "C"
     {
         csharpEditor->overrideHandle(entity);
     }
+
+    EXPORT GameState editor_getCurrentState()
+    {
+        return csharpEditor->getCurrentState();
+    }
 }

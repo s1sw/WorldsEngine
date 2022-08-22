@@ -187,7 +187,7 @@ namespace worlds
     }
 
     Editor::Editor(entt::registry& reg, EngineInterfaces& interfaces)
-        : active(true), actionSearch(this, reg), assetSearch(this), currentTool(Tool::Translate), reg(reg),
+        : actionSearch(this, reg), assetSearch(this), currentTool(Tool::Translate), reg(reg),
           currentSelectedEntity(entt::null), lookX(0.0f), lookY(0.0f), cameraSpeed(5.0f), imguiMetricsOpen(false),
           settings(), interfaces(interfaces), inputManager(*interfaces.inputManager)
     {
@@ -206,6 +206,7 @@ namespace worlds
         ADD_EDITOR_WINDOW(RawAssets);
         ADD_EDITOR_WINDOW(AssetCompilationManager);
         ADD_EDITOR_WINDOW(NodeEditorTest);
+        ADD_EDITOR_WINDOW(GameView);
 
 #undef ADD_EDITOR_WINDOW
         AssetCompilers::initialise();
@@ -227,8 +228,6 @@ namespace worlds
         loadOpenWindows();
 
         inputManager.addKeydownHandler([&](SDL_Scancode scancode) {
-            if (!active)
-                return;
             ModifierFlags flags = ModifierFlags::None;
 
             if (inputManager.ctrlHeld())
@@ -244,7 +243,7 @@ namespace worlds
             [&](void*, const char*) {
                 if (currentState != GameState::Editing)
                     return;
-                active = false;
+
                 interfaces.engine->pauseSim = false;
 
                 if (reg.ctx<SceneInfo>().id != ~0u)
@@ -257,7 +256,7 @@ namespace worlds
             [&](void*, const char*) {
                 if (currentState != GameState::Playing)
                     return;
-                active = true;
+
                 interfaces.engine->pauseSim = true;
                 interfaces.inputManager->lockMouse(false);
                 addNotification("Scene paused");
@@ -267,8 +266,6 @@ namespace worlds
 
         g_console->registerCommand(
             [&](void*, const char*) {
-                active = true;
-
                 if (reg.ctx<SceneInfo>().id != ~0u)
                     interfaces.engine->loadScene(reg.ctx<SceneInfo>().id);
 
@@ -280,55 +277,71 @@ namespace worlds
 
         g_console->registerCommand(
             [&](void*, const char*) {
-                active = false;
                 interfaces.engine->pauseSim = false;
                 currentState = GameState::Playing;
             },
             "unpause", "unpause and go back to play mode.");
 
-        EditorActions::addAction({"scene.save",
-                                  [&](Editor* ed, entt::registry& reg) {
-                                      if (reg.ctx<SceneInfo>().id != ~0u && !inputManager.shiftHeld())
-                                      {
-                                          AssetID sceneId = reg.ctx<SceneInfo>().id;
-                                          if (ed_saveAsJson.getInt())
-                                              JsonSceneSerializer::saveScene(sceneId, reg);
-                                          else
-                                              MessagePackSceneSerializer::saveScene(sceneId, reg);
+        EditorActions::addAction(
+            {
+                "scene.save",
+                [&](Editor* ed, entt::registry& reg) {
+                    if (reg.ctx<SceneInfo>().id != ~0u && !inputManager.shiftHeld())
+                    {
+                        AssetID sceneId = reg.ctx<SceneInfo>().id;
+                        if (ed_saveAsJson.getInt())
+                            JsonSceneSerializer::saveScene(sceneId, reg);
+                        else
+                            MessagePackSceneSerializer::saveScene(sceneId, reg);
 
-                                          lastSaveModificationCount = undo.modificationCount();
-                                      }
-                                      else
-                                      {
-                                          ImGui::OpenPopup("Save Scene");
-                                      }
-                                  },
-                                  "Save Scene"});
+                        lastSaveModificationCount = undo.modificationCount();
+                    }
+                    else
+                    {
+                        ImGui::OpenPopup("Save Scene");
+                    }
+                },
+                "Save Scene"
+            });
 
         EditorActions::addAction(
-            {"scene.open", [](Editor* ed, entt::registry& reg) { ImGui::OpenPopup("Open Scene"); }, "Open Scene"});
+            {
+                "scene.open",
+                [](Editor* ed, entt::registry& reg) { ImGui::OpenPopup("Open Scene"); },
+                "Open Scene"
+            });
 
         EditorActions::addAction(
-            {"scene.new",
-             [](Editor* ed, entt::registry& reg) {
-                 messageBoxModal("New Scene", "Are you sure you want to clear the current scene and create a new one?",
-                                 [=](bool result) {
-                                     if (result)
-                                     {
-                                         ed->interfaces.engine->createStartupScene();
-                                         ed->updateWindowTitle();
-                                     }
-                                 });
-             },
-             "New Scene"});
+            {
+                "scene.new",
+                [](Editor* ed, entt::registry& reg) {
+                    messageBoxModal("New Scene", "Are you sure you want to clear the current scene and create a new one?",
+                        [=](bool result) {
+                            if (result)
+                            {
+                                ed->interfaces.engine->createStartupScene();
+                                ed->updateWindowTitle();
+                            }
+                        });
+                },
+                "New Scene"
+            });
 
         EditorActions::addAction({"editor.undo", [](Editor* ed, entt::registry& reg) { ed->undo.undo(reg); }, "Undo"});
 
         EditorActions::addAction({"editor.redo", [](Editor* ed, entt::registry& reg) { ed->undo.redo(reg); }, "Redo"});
 
-        EditorActions::addAction({"editor.togglePlay",
-                                  [](Editor* ed, entt::registry& reg) { g_console->executeCommandStr("play"); },
-                                  "Play"});
+        EditorActions::addAction(
+            {
+                "editor.togglePlay",
+                [](Editor* ed, entt::registry& reg) {
+                    if (ed->isPlaying())
+                        g_console->executeCommandStr("reloadAndEdit");
+                    else
+                        g_console->executeCommandStr("play");
+                },
+                "Play"
+            });
 
         EditorActions::addAction({"editor.unpause",
                                   [](Editor* ed, entt::registry& reg) { g_console->executeCommandStr("unpause"); },
@@ -345,87 +358,104 @@ namespace worlds
             {"editor.openAssetSearch", [](Editor* ed, entt::registry&) { ed->assetSearch.show(); }});
 
         EditorActions::addAction(
-            {"editor.addStaticPhysics",
-             [](Editor* ed, entt::registry& reg) {
-                 if (!reg.valid(ed->currentSelectedEntity))
-                 {
-                     addNotification("Nothing selected to add physics to!", NotificationType::Error);
-                     return;
-                 }
+            {
+                "editor.addStaticPhysics",
+                [](Editor* ed, entt::registry& reg) {
+                    if (!reg.valid(ed->currentSelectedEntity))
+                    {
+                        addNotification("Nothing selected to add physics to!", NotificationType::Error);
+                        return;
+                    }
 
-                 if (!reg.has<WorldObject>(ed->currentSelectedEntity))
-                 {
-                     addNotification("Selected object doesn't have a WorldObject!", NotificationType::Error);
-                     return;
-                 }
+                    if (!reg.has<WorldObject>(ed->currentSelectedEntity))
+                    {
+                        addNotification("Selected object doesn't have a WorldObject!", NotificationType::Error);
+                        return;
+                    }
 
-                 WorldObject& wo = reg.get<WorldObject>(ed->currentSelectedEntity);
-                 ComponentMetadataManager::byName["Physics Actor"]->create(ed->currentSelectedEntity, reg);
-                 PhysicsActor& pa = reg.get<PhysicsActor>(ed->currentSelectedEntity);
-                 PhysicsShape ps;
-                 ps.type = PhysicsShapeType::Mesh;
-                 ps.mesh.mesh = wo.mesh;
-                 pa.physicsShapes.push_back(std::move(ps));
-             },
-             "Add static physics"});
+                    WorldObject& wo = reg.get<WorldObject>(ed->currentSelectedEntity);
+                    ComponentMetadataManager::byName["Physics Actor"]->create(ed->currentSelectedEntity, reg);
+                    PhysicsActor& pa = reg.get<PhysicsActor>(ed->currentSelectedEntity);
+                    PhysicsShape ps;
+                    ps.type = PhysicsShapeType::Mesh;
+                    ps.mesh.mesh = wo.mesh;
+                    pa.physicsShapes.push_back(std::move(ps));
+                },
+                "Add static physics"
+            });
 
-        EditorActions::addAction({"editor.createPrefab",
-                                  [](Editor*, entt::registry& reg) { ImGui::OpenPopup("Save Prefab"); },
-                                  "Create prefab"});
+        EditorActions::addAction(
+            {
+                "editor.createPrefab",
+                [](Editor*, entt::registry& reg) { ImGui::OpenPopup("Save Prefab"); },
+                "Create prefab"
+            });
 
-        EditorActions::addAction({"editor.roundScale",
-                                  [](Editor* ed, entt::registry& reg) {
-                                      if (!reg.valid(ed->currentSelectedEntity))
-                                          return;
-                                      Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
-                                      t.scale = glm::round(t.scale);
+        EditorActions::addAction(
+            {
+                "editor.roundScale",
+                [](Editor* ed, entt::registry& reg) {
+                    if (!reg.valid(ed->currentSelectedEntity))
+                        return;
+                    Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
+                    t.scale = glm::round(t.scale);
 
-                                      for (entt::entity e : ed->selectedEntities)
-                                      {
-                                          Transform& t = reg.get<Transform>(e);
-                                          t.scale = glm::round(t.scale);
-                                      }
-                                  },
-                                  "Round selection scale"});
+                    for (entt::entity e : ed->selectedEntities)
+                    {
+                        Transform& t = reg.get<Transform>(e);
+                        t.scale = glm::round(t.scale);
+                    }
+                },
+                "Round selection scale"
+            });
 
-        EditorActions::addAction({"editor.clearScale",
-                                  [](Editor* ed, entt::registry& reg) {
-                                      if (!reg.valid(ed->currentSelectedEntity))
-                                          return;
-                                      Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
-                                      t.scale = glm::vec3(1.0f);
+        EditorActions::addAction(
+            {
+                "editor.clearScale",
+                [](Editor* ed, entt::registry& reg) {
+                    if (!reg.valid(ed->currentSelectedEntity))
+                        return;
+                    Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
+                    t.scale = glm::vec3(1.0f);
 
-                                      for (entt::entity e : ed->selectedEntities)
-                                      {
-                                          Transform& t = reg.get<Transform>(e);
-                                          t.scale = glm::vec3(1.0f);
-                                      }
-                                  },
-                                  "Clear selection scale"});
+                    for (entt::entity e : ed->selectedEntities)
+                    {
+                        Transform& t = reg.get<Transform>(e);
+                        t.scale = glm::vec3(1.0f);
+                    }
+                },
+                "Clear selection scale"
+            });
 
-        EditorActions::addAction({"editor.setStatic",
-                                  [](Editor* ed, entt::registry& reg) {
-                                      if (!reg.valid(ed->currentSelectedEntity))
-                                          return;
-                                      StaticFlags allFlags =
-                                          (StaticFlags)((int)StaticFlags::Audio | (int)StaticFlags::Rendering |
-                                                        (int)StaticFlags::Navigation);
-                                      WorldObject& wo = reg.get<WorldObject>(ed->currentSelectedEntity);
-                                      wo.staticFlags = allFlags;
-                                      for (entt::entity e : ed->getSelectedEntities())
-                                      {
-                                          reg.get<WorldObject>(e).staticFlags = allFlags;
-                                      }
-                                  },
-                                  "Set selected object as static"});
+        EditorActions::addAction(
+            {
+                "editor.setStatic",
+                [](Editor* ed, entt::registry& reg) {
+                    if (!reg.valid(ed->currentSelectedEntity))
+                        return;
+                    StaticFlags allFlags =
+                        (StaticFlags)((int)StaticFlags::Audio | (int)StaticFlags::Rendering |
+                                    (int)StaticFlags::Navigation);
+                    WorldObject& wo = reg.get<WorldObject>(ed->currentSelectedEntity);
+                    wo.staticFlags = allFlags;
+                    for (entt::entity e : ed->getSelectedEntities())
+                    {
+                        reg.get<WorldObject>(e).staticFlags = allFlags;
+                    }
+                },
+                "Set selected object as static"
+            });
 
-        EditorActions::addAction({"assets.refresh",
-                                  [](Editor* ed, entt::registry& reg) {
-                                      ed->currentProject().assets().enumerateAssets();
-                                      ed->currentProject().assets().checkForAssetChanges();
-                                      ed->currentProject().assetCompiler().startCompiling();
-                                  },
-                                  "Refresh assets"});
+        EditorActions::addAction(
+            {
+                "assets.refresh",
+                [](Editor* ed, entt::registry& reg) {
+                    ed->currentProject().assets().enumerateAssets();
+                    ed->currentProject().assets().checkForAssetChanges();
+                    ed->currentProject().assetCompiler().startCompiling();
+                },
+                "Refresh assets"
+            });
 
         EditorActions::bindAction("scene.save", ActionKeybind{SDL_SCANCODE_S, ModifierFlags::Control});
         EditorActions::bindAction("scene.open", ActionKeybind{SDL_SCANCODE_O, ModifierFlags::Control});
@@ -862,56 +892,6 @@ namespace worlds
         ZoneScoped;
         static IntegratedMenubar menubar{interfaces};
 
-        if (!active)
-        {
-            drawPopupNotifications();
-            for (EditorSceneView* esv : sceneViews)
-            {
-                esv->setViewportActive(false);
-            }
-
-            if (inputManager.keyPressed(SDL_SCANCODE_P, true) && inputManager.ctrlHeld() && !inputManager.shiftHeld())
-                g_console->executeCommandStr("reloadAndEdit");
-
-            if (inputManager.keyPressed(SDL_SCANCODE_P, true) && inputManager.ctrlHeld() && inputManager.shiftHeld())
-                g_console->executeCommandStr("pauseAndEdit");
-
-            if (ImGui::BeginMainMenuBar())
-            {
-                ImGui::Image(titleBarIcon, ImVec2(24, 24));
-
-                if (ImGui::MenuItem("Stop Playing"))
-                {
-                    g_console->executeCommandStr("reloadAndEdit");
-                }
-
-                if (ImGui::MenuItem("Pause and Edit"))
-                {
-                    g_console->executeCommandStr("pauseAndEdit");
-                }
-
-                menuButtonsExtent = (int)ImGui::GetCursorPosX();
-
-                menubar.draw();
-                ImGui::EndMainMenuBar();
-            }
-
-            int sceneViewIndex = 0;
-            for (EditorSceneView* esv : sceneViews)
-            {
-                if (esv->isSeparateWindow)
-                {
-                    esv->setViewportActive(true);
-                    esv->drawWindow(sceneViewIndex++);
-                }
-                else
-                {
-                    sceneViewIndex++;
-                }
-            }
-            return;
-        }
-
         auto sceneViewRemove = [](EditorSceneView* esv) {
             if (!esv->open)
             {
@@ -956,7 +936,8 @@ namespace worlds
             esv->setViewportActive(anyFocused);
         }
 
-        AudioSystem::getInstance()->stopEverything(reg);
+        if (!isPlaying())
+            AudioSystem::getInstance()->stopEverything(reg);
 
         if (!project)
         {

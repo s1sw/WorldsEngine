@@ -227,7 +227,7 @@ namespace worlds
 
     class AssetEditorWindow;
 
-    enum class GameState
+    enum class GameState : uint8_t
     {
         Editing,
         Playing,
@@ -253,7 +253,6 @@ namespace worlds
         }
         bool isEntitySelected(entt::entity ent) const;
         EditorUndo undo;
-        bool active = true;
         void overrideHandle(Transform* t);
         void overrideHandle(entt::entity entity);
         bool entityEyedropper(entt::entity& picked);
@@ -271,6 +270,11 @@ namespace worlds
         GameState getCurrentState()
         {
             return currentState;
+        }
+
+        bool isPlaying()
+        {
+            return currentState == GameState::Playing;
         }
 
       private:

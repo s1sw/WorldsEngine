@@ -8,7 +8,7 @@ namespace worlds
 {
     class EntityList : public EditorWindow
     {
-      public:
+    public:
         EntityList(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor)
         {
         }
@@ -24,7 +24,7 @@ namespace worlds
 
     class Assets : public EditorWindow
     {
-      public:
+    public:
         Assets(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor)
         {
         }
@@ -40,7 +40,7 @@ namespace worlds
 
     class RawAssets : public EditorWindow
     {
-      public:
+    public:
         RawAssets(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor)
         {
         }
@@ -56,7 +56,7 @@ namespace worlds
 
     class GameControls : public EditorWindow
     {
-      public:
+    public:
         GameControls(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor)
         {
             active = false;
@@ -73,7 +73,7 @@ namespace worlds
 
     class StyleEditor : public EditorWindow
     {
-      public:
+    public:
         StyleEditor(EngineInterfaces interfaces, Editor* editor) : EditorWindow(interfaces, editor)
         {
             active = false;
@@ -90,7 +90,7 @@ namespace worlds
 
     class MaterialEditorMeta : public EditorWindow
     {
-      public:
+    public:
         MaterialEditorMeta(EngineInterfaces interfaces, Editor* editor);
         void draw(entt::registry& reg) override;
         const char* getName() override
@@ -99,7 +99,7 @@ namespace worlds
         }
         ~MaterialEditorMeta();
 
-      private:
+    private:
         RTTPass* rttPass;
         Camera previewCam;
         entt::entity previewEntity;
@@ -107,7 +107,7 @@ namespace worlds
 
     class AboutWindow : public EditorWindow
     {
-      public:
+    public:
         AboutWindow(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor}
         {
             active = false;
@@ -129,7 +129,7 @@ namespace worlds
 
     class BakingWindow : public EditorWindow
     {
-      public:
+    public:
         BakingWindow(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor}
         {
             active = false;
@@ -150,7 +150,7 @@ namespace worlds
 
     class SceneSettingsWindow : public EditorWindow
     {
-      public:
+    public:
         SceneSettingsWindow(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor}
         {
             active = false;
@@ -171,7 +171,7 @@ namespace worlds
 
     class AssetEditorWindow : public EditorWindow
     {
-      public:
+    public:
         AssetEditorWindow(AssetID id, EngineInterfaces interfaces, Editor* editor);
         void draw(entt::registry&) override;
         EditorMenu menuSection() override
@@ -184,7 +184,7 @@ namespace worlds
         }
         ~AssetEditorWindow();
 
-      private:
+    private:
         AssetID assetId;
         AssetCompileOperation* currCompileOp;
         IAssetEditor* assetEditor;
@@ -192,7 +192,7 @@ namespace worlds
 
     class AssetCompilationManager : public EditorWindow
     {
-      public:
+    public:
         AssetCompilationManager(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor}
         {
             active = false;
@@ -213,7 +213,7 @@ namespace worlds
 
     class NodeEditorTest : public EditorWindow
     {
-      public:
+    public:
         NodeEditorTest(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor}
         {
             active = false;
@@ -228,6 +228,30 @@ namespace worlds
             return "Node Editor Test";
         }
         ~NodeEditorTest()
+        {
+        }
+    };
+
+    class GameView : public EditorWindow
+    {
+    public:
+        GameView(EngineInterfaces interfaces, Editor* editor) : EditorWindow{interfaces, editor}
+        {
+            active = true;
+        }
+        void draw(entt::registry&) override;
+
+        EditorMenu menuSection() override
+        {
+            return EditorMenu::Window;
+        }
+
+        const char* getName() override
+        {
+            return "Game View";
+        }
+
+        ~GameView()
         {
         }
     };

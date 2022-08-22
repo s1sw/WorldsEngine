@@ -217,7 +217,8 @@ namespace WorldsEngine
         {
             SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
             AssemblyLoadManager.ReloadIfNecessary();
-            Physics.ClearCollisionQueue();
+            if (Editor.Editor.State != GameState.Playing)
+                Physics.ClearCollisionQueue();
 
             Editor.Editor.Update();
 

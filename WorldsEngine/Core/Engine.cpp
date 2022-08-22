@@ -717,7 +717,7 @@ namespace worlds
 
         if (!dedicatedServer)
         {
-            screenRTTPass->active = !runAsEditor || !editor->active;
+            screenRTTPass->active = !runAsEditor;
         }
 
         if (enableOpenVR)
@@ -768,7 +768,7 @@ namespace worlds
 
         float interpAlpha = 1.0f;
 
-        if (evtHandler != nullptr && (!runAsEditor || !editor->active))
+        if (!runAsEditor || editor->isPlaying())
         {
             evtHandler->preSimUpdate(registry, interFrameInfo.deltaTime);
 
@@ -784,7 +784,7 @@ namespace worlds
             simTime = perfTimer.stopGetMs();
         }
 
-        if (evtHandler != nullptr && !(runAsEditor && editor->active))
+        if (!runAsEditor || editor->isPlaying())
         {
             for (auto* system : systems)
                 system->update(registry, interFrameInfo.deltaTime * timeScale, interpAlpha);
@@ -886,7 +886,7 @@ namespace worlds
             t.scale = c.offset.scale * registry.get<Transform>(c.parent).scale;
         });
 
-        if (screenPassIsVR && !editor->active)
+        if (screenPassIsVR && editor->getCurrentState() == GameState::Playing)
         {
             if (renderer->getVsync())
             {
@@ -946,7 +946,7 @@ namespace worlds
 
             // TODO: Load content here
 
-            if (evtHandler && (!runAsEditor || !editor->active))
+            if (!runAsEditor || editor->isPlaying())
             {
                 evtHandler->onSceneStart(registry);
 
@@ -1156,7 +1156,7 @@ namespace worlds
     {
         ZoneScoped;
 
-        if (evtHandler != nullptr && !(runAsEditor && editor->active))
+        if (!runAsEditor || editor->isPlaying())
         {
             evtHandler->simulate(registry, deltaTime);
 
@@ -1164,7 +1164,7 @@ namespace worlds
                 system->simulate(registry, deltaTime);
         }
 
-        if (!runAsEditor || !editor->active)
+        if (!runAsEditor || editor->isPlaying())
         {
             scriptEngine->onSimulate(deltaTime);
         }
@@ -1178,7 +1178,7 @@ namespace worlds
     void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime)
     {
         ZoneScoped;
-        if (lockSimToRefresh.getInt() || disableSimInterp.getInt() || (editor && editor->active))
+        if (lockSimToRefresh.getInt() || disableSimInterp.getInt() || (editor && !editor->isPlaying()))
         {
             registry.view<RigidBody, Transform>().each([](RigidBody& dpa, Transform& transform) {
                 auto curr = dpa.actor->getGlobalPose();
