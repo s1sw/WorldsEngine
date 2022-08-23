@@ -8,10 +8,11 @@ namespace worlds
     uint32_t currentWidth;
     uint32_t currentHeight;
     bool setIgnoreImGui = false;
-    
+
     void GameView::draw(entt::registry& reg)
     {
         ImGui::SetNextWindowSizeConstraints(ImVec2(256.0f, 256.0f), ImVec2(FLT_MAX, FLT_MAX));
+        bool isVR = interfaces.vrInterface != nullptr;
         if (ImGui::Begin(ICON_FA_GAMEPAD u8" Game View"))
         {
             if (ImGui::IsWindowHovered())
@@ -34,7 +35,9 @@ namespace worlds
                     .height = currentHeight,
                     .useForPicking = false,
                     .enableShadows = true,
-                    .msaaLevel = 4
+                    .msaaLevel = 4,
+                    .numViews = isVR ? 2 : 1,
+                    .outputToXR = isVR
                 };
 
                 gameRTTPass = interfaces.renderer->createRTTPass(gameViewPassCI);
@@ -42,12 +45,25 @@ namespace worlds
 
             gameRTTPass->active = true;
 
-            if ((contentRegion.x != currentWidth || contentRegion.y != currentHeight) && contentRegion.x > 256 &&
-                contentRegion.y > 256)
+            if ((contentRegion.x != currentWidth || contentRegion.y != currentHeight) && 
+                contentRegion.x > 256 && contentRegion.y > 256)
             {
                 currentWidth = contentRegion.x;
                 currentHeight = contentRegion.y;
-                gameRTTPass->resize(currentWidth, currentHeight);
+                if (isVR)
+                {
+                    uint32_t vrWidth, vrHeight;
+                    interfaces.vrInterface->getRenderResolution(&vrWidth, &vrHeight);
+
+                    if (gameRTTPass->width != vrWidth || gameRTTPass->height != vrHeight)
+                    {
+                        gameRTTPass->resize((int)vrWidth, (int)vrHeight);
+                    }
+                }
+                else
+                {
+                    gameRTTPass->resize(currentWidth, currentHeight);
+                }
             }
 
             ImGui::Image(gameRTTPass->getUITextureID(), ImVec2(currentWidth, currentHeight));
@@ -60,6 +76,29 @@ namespace worlds
                 interfaces.inputManager->setImGuiIgnore(false);
                 setIgnoreImGui = false;
             }
+        }
+
+        if (isVR)
+        {
+            if (editor->isPlaying() && interfaces.renderer->getVsync())
+            {
+                interfaces.renderer->setVsync(false);
+            }
+
+            if (editor->isPlaying())
+                interfaces.vrInterface->waitGetPoses();
+
+            float predictAmount = interfaces.vrInterface->getPredictAmount();
+            glm::mat4 ht = interfaces.vrInterface->getHeadTransform(predictAmount);
+            interfaces.renderer->setVRUsedPose(ht);
+
+            gameRTTPass->setView(
+                0, glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::LeftEye)),
+                interfaces.vrInterface->getEyeProjectionMatrix(Eye::LeftEye, interfaces.mainCamera->near));
+
+            gameRTTPass->setView(
+                1, glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::RightEye)),
+                interfaces.vrInterface->getEyeProjectionMatrix(Eye::RightEye, interfaces.mainCamera->near));
         }
         ImGui::End();
     }
