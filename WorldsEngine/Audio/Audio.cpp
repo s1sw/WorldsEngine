@@ -506,7 +506,7 @@ namespace worlds
         simulationSettings.reflectionType = IPL_REFLECTIONEFFECTTYPE_CONVOLUTION;
         simulationSettings.maxNumRays = 2048;
         simulationSettings.maxNumOcclusionSamples = 1024;
-        simulationSettings.numDiffuseSamples = 32;
+        simulationSettings.numDiffuseSamples = 16;
         simulationSettings.maxDuration = 2.5f;
         simulationSettings.maxOrder = 1;
         simulationSettings.maxNumSources = 512;
@@ -710,7 +710,7 @@ namespace worlds
             iplSourceSetInputs(oneshot->phononSource, simFlags, &inputs);
         }
 
-        registry.view<AudioSource, Transform>().each([simFlags, this](AudioSource& as, Transform& t) {
+        registry.view<AudioSource, Transform>().each([simFlags, this](AudioSource& as, const Transform& t) {
             if (!as.eventInstance->isValid())
                 return;
 
@@ -761,8 +761,8 @@ namespace worlds
 
         IPLSimulationSharedInputs sharedInputs{};
         sharedInputs.listener = inputs.source;
-        sharedInputs.numRays = 2048;
-        sharedInputs.numBounces = 8;
+        sharedInputs.numRays = 1024;
+        sharedInputs.numBounces = 4;
         sharedInputs.duration = 1.0f;
         sharedInputs.order = 1;
         sharedInputs.irradianceMinDistance = 1.0f;
