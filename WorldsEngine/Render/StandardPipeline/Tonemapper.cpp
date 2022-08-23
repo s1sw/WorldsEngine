@@ -1,12 +1,8 @@
 #include <Render/StandardPipeline/Tonemapper.hpp>
 #include <Core/AssetDB.hpp>
+#include <Core/ConVar.hpp>
 #include <glm/vec3.hpp>
-#include <R2/VKCommandBuffer.hpp>
-#include <R2/VKCore.hpp>
-#include <R2/VKDescriptorSet.hpp>
-#include <R2/VKPipeline.hpp>
-#include <R2/VKSampler.hpp>
-#include <R2/VKTexture.hpp>
+#include <R2/VK.hpp>
 #include <Render/ShaderReflector.hpp>
 #include <Render/ShaderCache.hpp>
 
@@ -17,10 +13,9 @@ namespace worlds
     struct TonemapSettings
     {
         int idx;
-        float exposureBias;
-        float vignetteRadius;
-        float vignetteSoftness;
-        glm::vec3 vignetteColor;
+        float exposure;
+        float contrast;
+        float saturation;
         float resolutionScale;
     };
 
@@ -81,6 +76,10 @@ namespace worlds
         }
     }
 
+    static ConVar exposure{"r_exposure", "2.6", "Sets the rendering exposure."};
+    static ConVar contrast{"r_contrast", "0.85", "Sets the rendering contrast."};
+    static ConVar saturation{"r_saturation", "1.0", "Sets the rendering saturation."};
+
     void Tonemapper::Execute(VK::CommandBuffer& cb)
     {
         bloom->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
@@ -91,9 +90,10 @@ namespace worlds
         for (int i = 0; i < colorBuffer->GetLayers(); i++)
         {
             TonemapSettings ts{};
-            ts.exposureBias = 0.5f;
+            ts.exposure = exp2f(exposure.getFloat());
+            ts.contrast = contrast.getFloat();
+            ts.saturation = saturation.getFloat();
             ts.resolutionScale = 1.0f;
-            ts.vignetteRadius = 1.0f;
             ts.idx = i;
 
             cb.BindComputeDescriptorSet(pipelineLayout.Get(), descriptorSets[i]->GetNativeHandle(), 0);

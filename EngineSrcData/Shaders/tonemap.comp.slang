@@ -27,16 +27,15 @@ RWTexture2D<float4> resultImage;
 cbuffer TonemapSettings
 {
     int idx;
-    float exposureBias;
-    float vignetteRadius;
-    float vignetteSoftness;
-    float3 vignetteColor;
+    float exposure;
+    float contrast;
+    float saturation;
     float resolutionScale;
 };
 
 interface ITonemapper
 {
-    float3 Tonemap(float3 color, float exposure);
+    float3 Tonemap(float3 color);
 }
 
 // haha shader oop go brrr
@@ -64,11 +63,11 @@ struct Uncharted2Tonemapper : ITonemapper
         return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
     }
 
-    float3 Tonemap(float3 color, float exposure)
+    float3 Tonemap(float3 color)
     {
         color *= 16.0;
 
-        float3 curr = TonemapInternal(exposure * color);
+        float3 curr = TonemapInternal(color);
 
         return curr * whiteScale;
     }
@@ -79,9 +78,9 @@ struct ACESTonemapper : ITonemapper
 {
     __init() {}
 
-    float3 Tonemap(float3 color, float exposure)
+    float3 Tonemap(float3 color)
     {
-        float3 x = color * exposure;
+        float3 x = color;
 
         float3x3 m1 = transpose(float3x3(
             0.59719, 0.07600, 0.02840,
@@ -221,20 +220,24 @@ void main(uint3 threadID : SV_DispatchThreadID)
 #endif
 #endif
 
+    float3 lumaWeights = float3(0.3, 0.59, 0.11);
+    accumulator *= exposure;
+    float3 grey = dot(lumaWeights, accumulator);
+    accumulator = max(lerp(grey, accumulator, saturation), 0.0);
     // Tonemap
     const bool useACES = true;
     if (useACES)
     {
         ITonemapper tonemapper1 = ACESTonemapper();
         accumulator = LogConverter.LinToLog(accumulator);
-        accumulator = ((accumulator - 0.48) * 0.75) + 0.48;
+        accumulator = ((accumulator - 0.18) * contrast) + 0.18;
         accumulator = LogConverter.LogToLin(accumulator);
-        accumulator = saturate(tonemapper1.Tonemap(accumulator, 6.0));
+        accumulator = saturate(tonemapper1.Tonemap(accumulator));
     }
     else
     {
         ITonemapper tonemapper = Uncharted2Tonemapper();
-        accumulator = saturate(tonemapper.Tonemap(accumulator, exposureBias));
+        accumulator = saturate(tonemapper.Tonemap(accumulator));
     }
 
     resultImage[threadID.xy] = float4(ConvertToSRGB(accumulator), 1.0);
