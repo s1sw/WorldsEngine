@@ -886,7 +886,7 @@ namespace worlds
             t.scale = c.offset.scale * registry.get<Transform>(c.parent).scale;
         });
 
-        if (screenPassIsVR && editor->getCurrentState() == GameState::Playing)
+        if (screenPassIsVR && editor == nullptr)
         {
             if (renderer->getVsync())
             {
@@ -895,18 +895,7 @@ namespace worlds
 
             auto vrSys = vr::VRSystem();
 
-            float secondsSinceLastVsync;
-            vrSys->GetTimeSinceLastVsync(&secondsSinceLastVsync, NULL);
-
-            float hmdFrequency =
-                vrSys->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
-
-            float frameDuration = 1.f / hmdFrequency;
-            float vsyncToPhotons = vrSys->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd,
-                                                                        vr::Prop_SecondsFromVsyncToPhotons_Float);
-
-            float predictAmount = frameDuration - secondsSinceLastVsync + vsyncToPhotons;
-
+            float predictAmount = openvrInterface->getPredictAmount();
             openvrInterface->waitGetPoses();
             glm::mat4 ht = openvrInterface->getHeadTransform(predictAmount);
             renderer->setVRUsedPose(ht);
@@ -1020,6 +1009,7 @@ namespace worlds
         }
 
         renderer->frame(registry);
+        FrameMark;
     }
 
     template <typename T, size_t sz> struct CircularBuffer
