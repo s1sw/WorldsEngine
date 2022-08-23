@@ -229,17 +229,20 @@ namespace worlds
             componentIds.add(std::move(cdsi));
         }
 
-        std::sort(componentIds.begin(), componentIds.end(), [](const auto& a, const auto& b) {
-            if (a.isNative && b.isNative)
-                return ComponentMetadataManager::byName.at(a.id)->getSortID() <
-                       ComponentMetadataManager::byName.at(b.id)->getSortID();
-            else if (a.isNative && !b.isNative)
-                return true;
-            else if (!a.isNative && b.isNative)
-                return false;
-            else
-                return false;
-        });
+        {
+            ZoneScopedN("Component sort");
+            std::sort(componentIds.begin(), componentIds.end(), [](const auto& a, const auto& b) {
+                if (a.isNative && b.isNative)
+                    return ComponentMetadataManager::byName.at(a.id)->getSortID() <
+                        ComponentMetadataManager::byName.at(b.id)->getSortID();
+                else if (a.isNative && !b.isNative)
+                    return true;
+                else if (!a.isNative && b.isNative)
+                    return false;
+                else
+                    return false;
+            });
+        }
 
         for (auto& cdsi : componentIds)
         {
@@ -251,7 +254,7 @@ namespace worlds
             }
             else
             {
-                auto componentJson = j[cdsi.id];
+                auto& componentJson = j[cdsi.id];
                 scriptEngine->deserializeManagedComponent(cdsi.id.c_str(), componentJson, ent);
             }
         }

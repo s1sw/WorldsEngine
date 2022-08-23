@@ -251,6 +251,7 @@ namespace worlds
     void DotNetScriptEngine::deserializeManagedComponent(const char* id, const nlohmann::json& componentJson,
                                                          entt::entity entity)
     {
+        ZoneScoped;
         std::string cJsonStr = componentJson.dump();
         deserializeComponentFunc(id, cJsonStr.c_str(), (uint32_t)entity);
     }
