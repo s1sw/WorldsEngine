@@ -27,13 +27,10 @@ namespace worlds
     class OpenVRInterface : public IVRInterface
     {
         vr::IVRSystem* system;
-        vr::VRActionHandle_t movementAction;
         vr::VRActionHandle_t leftHand;
         vr::VRActionHandle_t rightHand;
         vr::VRActionHandle_t leftHandSkeletal;
         vr::VRActionHandle_t rightHandSkeletal;
-        vr::VRActionHandle_t sprintAction;
-        vr::VRActionHandle_t jumpAction;
         vr::VRActionSetHandle_t actionSet;
 
         uint32_t handBoneCount;
@@ -48,7 +45,8 @@ namespace worlds
         std::vector<std::string> getVulkanInstanceExtensions() override;
         std::vector<std::string> getVulkanDeviceExtensions(VkPhysicalDevice physDevice) override;
 
-        void getRenderResolution(uint32_t* x, uint32_t* y);
+        void getRenderResolution(uint32_t* x, uint32_t* y) override;
+        float getPredictAmount() override;
 
         static glm::mat4 toMat4(vr::HmdMatrix34_t mat);
         static glm::mat4 toMat4(vr::HmdMatrix44_t mat);
@@ -61,14 +59,11 @@ namespace worlds
         bool getHandTransform(Hand hand, Transform& t) override;
         bool getHandVelocity(Hand hand, glm::vec3& velocity) override;
         glm::mat4 getHeadTransform(float predictionTime) override;
-        glm::vec2 getLocomotionInput() override;
 
         Transform getHandBoneTransform(Hand hand, int boneIdx);
 
-        void waitGetPoses();
+        void waitGetPoses() override;
 
-        bool getJumpInput() override;
-        bool getSprintInput() override;
         bool hasFocus()
         {
             return hasInputFocus;

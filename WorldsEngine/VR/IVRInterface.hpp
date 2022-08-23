@@ -41,12 +41,11 @@ namespace worlds
 
     class IVRInterface
     {
-      public:
+    public:
+        virtual void getRenderResolution(uint32_t* x, uint32_t* y) = 0;
         virtual void updateInput() = 0;
-
-        virtual glm::vec2 getLocomotionInput() = 0;
-        virtual bool getSprintInput() = 0;
-        virtual bool getJumpInput() = 0;
+        virtual float getPredictAmount() = 0;
+        virtual void waitGetPoses() = 0;
 
         virtual Transform getHandBoneTransform(Hand hand, int boneIdx) = 0;
 

@@ -43,11 +43,8 @@ namespace worlds
         logMsg("Using %s as actionsPath", actionsPath);
         auto vrInput = vr::VRInput();
         vrInput->SetActionManifestPath(actionsPath);
-        VRCHECK(vrInput->GetActionHandle("/actions/main/in/Movement", &movementAction));
         VRCHECK(vrInput->GetActionHandle("/actions/main/in/LeftHand", &leftHand));
         VRCHECK(vrInput->GetActionHandle("/actions/main/in/RightHand", &rightHand));
-        VRCHECK(vrInput->GetActionHandle("/actions/main/in/Sprint", &sprintAction));
-        VRCHECK(vrInput->GetActionHandle("/actions/main/in/Jump", &jumpAction));
 
         VRCHECK(vrInput->GetActionHandle("/actions/main/in/LeftHand_Anim", &leftHandSkeletal));
         VRCHECK(vrInput->GetActionHandle("/actions/main/in/RightHand_Anim", &rightHandSkeletal));
@@ -144,6 +141,23 @@ namespace worlds
     void OpenVRInterface::getRenderResolution(uint32_t* x, uint32_t* y)
     {
         vr::VRSystem()->GetRecommendedRenderTargetSize(x, y);
+    }
+
+    float OpenVRInterface::getPredictAmount()
+    {
+        auto vrSys = vr::VRSystem();
+
+        float secondsSinceLastVsync;
+        vrSys->GetTimeSinceLastVsync(&secondsSinceLastVsync, NULL);
+
+        float hmdFrequency =
+            vrSys->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
+
+        float frameDuration = 1.f / hmdFrequency;
+        float vsyncToPhotons = vrSys->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd,
+                                                                    vr::Prop_SecondsFromVsyncToPhotons_Float);
+
+        return frameDuration - secondsSinceLastVsync + vsyncToPhotons;
     }
 
     glm::mat4 OpenVRInterface::toMat4(vr::HmdMatrix34_t mat)
@@ -253,29 +267,6 @@ namespace worlds
         vr::TrackedDevicePose_t hmdPose;
         system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, predictionTime, &hmdPose, 1);
         return toMat4(hmdPose.mDeviceToAbsoluteTracking);
-    }
-
-    glm::vec2 OpenVRInterface::getLocomotionInput()
-    {
-        vr::InputAnalogActionData_t data;
-        vr::VRInput()->GetAnalogActionData(movementAction, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
-        return glm::vec2(data.x, data.y);
-    }
-
-    bool OpenVRInterface::getJumpInput()
-    {
-        vr::InputDigitalActionData_t data;
-        vr::VRInput()->GetDigitalActionData(jumpAction, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
-
-        return data.bChanged && data.bState;
-    }
-
-    bool OpenVRInterface::getSprintInput()
-    {
-        vr::InputDigitalActionData_t data;
-        vr::VRInput()->GetDigitalActionData(sprintAction, &data, sizeof(data), vr::k_ulInvalidInputValueHandle);
-
-        return data.bState;
     }
 
     Transform OpenVRInterface::getHandBoneTransform(Hand hand, int boneIdx)
