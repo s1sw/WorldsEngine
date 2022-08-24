@@ -20,10 +20,10 @@ namespace WorldsEngine
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void CommandCallbackDelegate(IntPtr obj, string args);
+        private delegate void CommandCallbackDelegate(int id, string args);
 
         [DllImport(Engine.NativeModule, CharSet = CharSet.Ansi)]
-        private static extern void console_registerCommand(CommandCallbackDelegate cmdDelegate, string name, string? help, IntPtr obj);
+        private static extern void console_registerCommand(CommandCallbackDelegate cmdDelegate, string name, string? help, int id);
 
         private static readonly CommandCallbackDelegate callbackDelegate;
 
@@ -41,9 +41,9 @@ namespace WorldsEngine
             Engine.AssemblyLoadManager.OnAssemblyUnload += PrepareForUnload;
         }
 
-        private static void CommandCallback(IntPtr obj, string args)
+        private static void CommandCallback(int id, string args)
         {
-            var command = commands[(int)obj];
+            var command = commands[id];
             command.Method(args);
         }
 
@@ -74,7 +74,7 @@ namespace WorldsEngine
                             int index = commands.Count;
                             commands.Add(command);
                             commandsByCmd.Add(attr.Command, command);
-                            console_registerCommand(callbackDelegate, attr.Command, attr.Help, (IntPtr)index);
+                            console_registerCommand(callbackDelegate, attr.Command, attr.Help, index);
                         }
                     }
                 }
