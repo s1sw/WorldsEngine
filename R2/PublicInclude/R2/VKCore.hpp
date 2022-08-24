@@ -80,6 +80,7 @@ namespace R2::VK
 	struct GraphicsDeviceInfo
 	{
 		char Name[256];
+		float TimestampPeriod;
 	};
 
 	class Core
@@ -110,6 +111,7 @@ namespace R2::VK
 		void QueueTextureUpload(Texture* texture, void* data, uint64_t dataSize, int numMips = -1);
 		uint32_t GetFrameIndex() const;
 		uint32_t GetNextFrameIndex() const;
+		uint32_t GetPreviousFrameIndex() const;
 		void EndFrame();
 
 		void WaitIdle();

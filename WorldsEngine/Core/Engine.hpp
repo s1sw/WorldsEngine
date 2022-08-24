@@ -146,6 +146,8 @@ namespace worlds
 
         bool running;
         bool dedicatedServer;
+        int workerThreadOverride;
+        bool enableOpenVR;
         entt::registry registry;
 
         IGameEventHandler* evtHandler;

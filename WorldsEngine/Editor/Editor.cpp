@@ -240,7 +240,7 @@ namespace worlds
         });
 
         g_console->registerCommand(
-            [&](void*, const char*) {
+            [&](const char*) {
                 if (currentState != GameState::Editing)
                     return;
 
@@ -253,7 +253,7 @@ namespace worlds
             "play", "play.");
 
         g_console->registerCommand(
-            [&](void*, const char*) {
+            [&](const char*) {
                 if (currentState != GameState::Playing)
                     return;
 
@@ -265,7 +265,7 @@ namespace worlds
             "pauseAndEdit", "pause and edit.");
 
         g_console->registerCommand(
-            [&](void*, const char*) {
+            [&](const char*) {
                 if (reg.ctx<SceneInfo>().id != ~0u)
                     interfaces.engine->loadScene(reg.ctx<SceneInfo>().id);
 
@@ -276,7 +276,7 @@ namespace worlds
             "reloadAndEdit", "reload and edit.");
 
         g_console->registerCommand(
-            [&](void*, const char*) {
+            [&](const char*) {
                 interfaces.engine->pauseSim = false;
                 currentState = GameState::Playing;
             },

@@ -23,6 +23,7 @@ namespace R2::VK
     class Texture;
     class Buffer;
     class CommandBuffer;
+    class TimestampPool;
 }
 
 typedef struct VkPhysicalDeviceProperties VkPhysicalDeviceProperties;
@@ -264,6 +265,7 @@ namespace worlds
         RenderMeshManager* renderMeshManager;
         UniquePtr<XRPresentManager> xrPresentManager;
         glm::mat4 vrUsedPose;
+        UniquePtr<R2::VK::TimestampPool> timestampPool;
 
         std::vector<VKRTTPass*> rttPasses;
 
@@ -271,6 +273,7 @@ namespace worlds
 
         RenderDebugStats debugStats;
         float lastGPUTime;
+        float timestampPeriod;
         friend class VKRTTPass;
         const DebugLine* currentDebugLines;
         size_t currentDebugLineCount;

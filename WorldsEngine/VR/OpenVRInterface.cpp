@@ -60,7 +60,7 @@ namespace worlds
         lhandBoneArray = (vr::VRBoneTransform_t*)malloc(sizeof(vr::VRBoneTransform_t) * handBoneCount);
 
         g_console->registerCommand(
-            [&](auto, auto) {
+            [&](const char*) {
                 for (uint32_t i = 0; i < handBoneCount; i++)
                 {
                     char buf[vr::k_unMaxBoneNameLength];
@@ -68,7 +68,7 @@ namespace worlds
                     logMsg("bone %u: %s", i, buf);
                 }
             },
-            "printbones", "printbones", nullptr);
+            "printbones", "printbones");
 
         VRCHECK(vrInput->GetActionSetHandle("/actions/main", &actionSet));
     }

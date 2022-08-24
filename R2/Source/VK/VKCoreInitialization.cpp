@@ -15,6 +15,10 @@ namespace R2::VK
         void* pUserData)
     {
         Core* r = static_cast<Core*>(pUserData);
+        // Validation layers seem to have a bug where they constantly spam this error even when everything's fine
+        if (pCallbackData->messageIdNumber == 296975921 || pCallbackData->messageIdNumber == -690520546)
+            return VK_FALSE;
+
         if (r->dbgOutRecv)
             r->dbgOutRecv->DebugMessage(pCallbackData->pMessage);
         else
@@ -25,14 +29,14 @@ namespace R2::VK
     void Core::createInstance(bool enableValidation)
     {
         VKCHECK(volkInitialize());
-        VkApplicationInfo appInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
+        VkApplicationInfo appInfo{VK_STRUCTURE_TYPE_APPLICATION_INFO};
         appInfo.pEngineName = "Worlds Engine";
         appInfo.pApplicationName = "R2";
         appInfo.apiVersion = VK_API_VERSION_1_3;
         appInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
         appInfo.engineVersion = appInfo.applicationVersion;
 
-        VkInstanceCreateInfo ici{ VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
+        VkInstanceCreateInfo ici{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
         ici.pApplicationInfo = &appInfo;
 
         std::vector<const char*> layers;
@@ -58,17 +62,17 @@ namespace R2::VK
 
         if (enableValidation)
         {
-            VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo{ VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
+            VkDebugUtilsMessengerCreateInfoEXT messengerCreateInfo{
+                VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
             messengerCreateInfo.pfnUserCallback = vulkanDebugMessageCallback;
             messengerCreateInfo.messageSeverity =
-                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-            messengerCreateInfo.messageType =
-                VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-                VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+            messengerCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                              VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+                                              VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
             messengerCreateInfo.pUserData = this;
-            VKCHECK(vkCreateDebugUtilsMessengerEXT(handles.Instance, &messengerCreateInfo, handles.AllocCallbacks, &messenger));
+            VKCHECK(vkCreateDebugUtilsMessengerEXT(
+                handles.Instance, &messengerCreateInfo, handles.AllocCallbacks, &messenger));
         }
         else
         {
@@ -81,7 +85,7 @@ namespace R2::VK
     void Core::selectPhysicalDevice()
     {
         VkPhysicalDevice devices[8];
-        int deviceScores[8] = { 0 };
+        int deviceScores[8] = {0};
         uint32_t deviceCount = 8;
 
         VKCHECK(vkEnumeratePhysicalDevices(handles.Instance, &deviceCount, devices));
@@ -133,11 +137,11 @@ namespace R2::VK
 
     bool Core::checkFeatures(VkPhysicalDevice device)
     {
-        VkPhysicalDeviceFeatures2 features2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+        VkPhysicalDeviceFeatures2 features2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
 
-        VkPhysicalDeviceVulkan11Features features11{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
-        VkPhysicalDeviceVulkan12Features features12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
-        VkPhysicalDeviceVulkan13Features features13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
+        VkPhysicalDeviceVulkan11Features features11{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
+        VkPhysicalDeviceVulkan12Features features12{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+        VkPhysicalDeviceVulkan13Features features13{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 
         features2.pNext = &features11;
         features11.pNext = &features12;
@@ -147,26 +151,32 @@ namespace R2::VK
 
         void* nextStruct = features2.pNext;
 
-        if (!features11.multiview) return false;
-        if (!features12.descriptorIndexing) return false;
-        if (!features12.descriptorBindingPartiallyBound) return false;
-        if (!features12.descriptorBindingVariableDescriptorCount) return false;
-        if (!features13.synchronization2) return false;
-        if (!features13.dynamicRendering) return false;
+        if (!features11.multiview)
+            return false;
+        if (!features12.descriptorIndexing)
+            return false;
+        if (!features12.descriptorBindingPartiallyBound)
+            return false;
+        if (!features12.descriptorBindingVariableDescriptorCount)
+            return false;
+        if (!features13.synchronization2)
+            return false;
+        if (!features13.dynamicRendering)
+            return false;
 
         return true;
     }
 
     void Core::createDevice()
     {
-        VkDeviceCreateInfo dci{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+        VkDeviceCreateInfo dci{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 
         // Features
         // ========
-        VkPhysicalDeviceFeatures2 features { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-        VkPhysicalDeviceVulkan11Features features11{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
-        VkPhysicalDeviceVulkan12Features features12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
-        VkPhysicalDeviceVulkan13Features features13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
+        VkPhysicalDeviceFeatures2 features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+        VkPhysicalDeviceVulkan11Features features11{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
+        VkPhysicalDeviceVulkan12Features features12{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+        VkPhysicalDeviceVulkan13Features features13{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 
         features.features.shaderStorageImageMultisample = true;
         features.features.samplerAnisotropy = true;
@@ -188,27 +198,28 @@ namespace R2::VK
         features11.pNext = &features12;
         features12.pNext = &features13;
 
-        //VkPhysicalDeviceAccelerationStructureFeaturesKHR asFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
-        //asFeatures.accelerationStructure = VK_TRUE;
+        // VkPhysicalDeviceAccelerationStructureFeaturesKHR asFeatures{
+        // VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR }; asFeatures.accelerationStructure =
+        // VK_TRUE;
 
-        //features13.pNext = &asFeatures;
+        // features13.pNext = &asFeatures;
 
-        //VkPhysicalDeviceRayQueryFeaturesKHR rqFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR };
-        //rqFeatures.rayQuery = VK_TRUE;
+        // VkPhysicalDeviceRayQueryFeaturesKHR rqFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR };
+        // rqFeatures.rayQuery = VK_TRUE;
 
-        //asFeatures.pNext = &rqFeatures;
+        // asFeatures.pNext = &rqFeatures;
 
-        //VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtpFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
-        //rtpFeatures.rayTracingPipeline = VK_TRUE;
-        //rqFeatures.pNext = &rtpFeatures;
+        // VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtpFeatures{
+        // VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR }; rtpFeatures.rayTracingPipeline =
+        // VK_TRUE; rqFeatures.pNext = &rtpFeatures;
 
         // Extensions
         // ==========
         std::vector<const char*> extensions;
-        //extensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
-        //extensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
-        //extensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
-        //extensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+        // extensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+        // extensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+        // extensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+        // extensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
         extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
         dci.enabledExtensionCount = (uint32_t)extensions.size();
@@ -220,7 +231,7 @@ namespace R2::VK
 
         const float one = 1.0f;
 
-        queueCreateInfos[0] = VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+        queueCreateInfos[0] = VkDeviceQueueCreateInfo{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
         queueCreateInfos[0].queueCount = 1;
         queueCreateInfos[0].pQueuePriorities = &one;
         queueCreateInfos[0].queueFamilyIndex = handles.Queues.GraphicsFamilyIndex;
@@ -228,7 +239,7 @@ namespace R2::VK
         // Create the async compute queue if we found it
         if (handles.Queues.AsyncComputeFamilyIndex != ~0u)
         {
-            queueCreateInfos[1] = VkDeviceQueueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+            queueCreateInfos[1] = VkDeviceQueueCreateInfo{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
             queueCreateInfos[1].queueCount = 1;
             queueCreateInfos[1].pQueuePriorities = &one;
             queueCreateInfos[1].queueFamilyIndex = handles.Queues.AsyncComputeFamilyIndex;
@@ -255,7 +266,7 @@ namespace R2::VK
 
     void Core::createCommandPool()
     {
-        VkCommandPoolCreateInfo cpci{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+        VkCommandPoolCreateInfo cpci{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
         cpci.queueFamilyIndex = handles.Queues.GraphicsFamilyIndex;
         cpci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
@@ -305,19 +316,18 @@ namespace R2::VK
 
     void Core::createDescriptorPool()
     {
-        VkDescriptorPoolCreateInfo dpci{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+        VkDescriptorPoolCreateInfo dpci{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
         dpci.maxSets = 1000;
-        VkDescriptorPoolSize poolSizes[] =
-        {
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 500 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 500 }
-        };
+        VkDescriptorPoolSize poolSizes[] = {
+            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5000},
+            {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 500},
+            {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 500}};
 
         dpci.pPoolSizes = poolSizes;
         dpci.poolSizeCount = sizeof(poolSizes) / sizeof(VkDescriptorPoolSize);
-        dpci.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        
+        dpci.flags =
+            VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+
         VKCHECK(vkCreateDescriptorPool(handles.Device, &dpci, handles.AllocCallbacks, &handles.DescriptorPool));
     }
 }

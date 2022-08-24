@@ -35,6 +35,7 @@
 #include <Scripting/NetVM.hpp>
 #include <Serialization/SceneSerialization.hpp>
 #include <Tracy.hpp>
+#include <Util/CircularBuffer.hpp>
 #include <Util/CreateModelObject.hpp>
 #include <Util/TimingUtil.hpp>
 #include <VR/OpenVRInterface.hpp>
@@ -76,8 +77,6 @@ void operator delete(void* ptr) noexcept
 
 namespace worlds
 {
-    int workerThreadOverride = -1;
-    bool enableOpenVR = false;
     glm::ivec2 windowSize;
     enki::TaskScheduler g_taskSched;
 
@@ -286,7 +285,8 @@ namespace worlds
         dedicatedServer = initOptions.dedicatedServer;
 
         enki::TaskSchedulerConfig tsc{};
-        tsc.numTaskThreadsToCreate = workerThreadOverride == -1 ? enki::GetNumHardwareThreads() - 1 : workerThreadOverride;
+        tsc.numTaskThreadsToCreate =
+            workerThreadOverride == -1 ? enki::GetNumHardwareThreads() - 1 : workerThreadOverride;
 
         g_taskSched.Initialize(tsc);
 
@@ -476,7 +476,7 @@ namespace worlds
             pauseSim = false;
 
         console->registerCommand(
-            [&](void*, const char* arg) {
+            [&](const char* arg) {
                 if (!PHYSFS_exists(arg))
                 {
                     logErr(WELogCategoryEngine,
@@ -485,53 +485,50 @@ namespace worlds
                 }
                 loadScene(AssetDB::pathToId(arg));
             },
-            "scene", "Loads a scene.", nullptr);
+            "scene", "Loads a scene.");
 
         console->registerCommand(
-            [&](void*, const char* arg) {
+            [&](const char* arg) {
                 uint32_t id = (uint32_t)std::atoll(arg);
                 if (AssetDB::exists(id))
                     logVrb("Asset %u: %s", id, AssetDB::idToPath(id).c_str());
                 else
                     logErr("Nonexistent asset");
             },
-            "adb_lookupID", "Looks up an asset ID.", nullptr);
+            "adb_lookupID", "Looks up an asset ID.");
 
-        console->registerCommand([&](void*, const char* arg) { timeScale = atof(arg); }, "setTimeScale",
-                                 "Sets the current time scale.", nullptr);
+        console->registerCommand([&](const char* arg) { timeScale = atof(arg); }, "setTimeScale",
+                                 "Sets the current time scale.");
 
         if (!dedicatedServer)
         {
-            console->registerCommand([&](void*, const char*) { screenPassIsVR = (!screenRTTPass) && enableOpenVR; },
+            console->registerCommand([&](const char*) { screenPassIsVR = (!screenRTTPass) && enableOpenVR; },
                                      "toggleVRRendering", "Toggle whether the screen RTT pass has VR enabled.");
 
             console->registerCommand(
-                [&](void*, const char*) {
+                [&](const char*) {
                     MeshManager::reloadMeshes();
                     physicsSystem->resetMeshCache();
                 },
                 "reloadContent", "Reloads all content.");
 
-            console->registerCommand([&](void*, const char*) { MaterialManager::reload(); }, "reloadMaterials", "Reloads materials.");
+            console->registerCommand([&](const char*) { MaterialManager::reload(); }, "reloadMaterials",
+                                     "Reloads materials.");
 
             console->registerCommand(
-                [&](void*, const char*) {
+                [&](const char*) {
                     MeshManager::reloadMeshes();
                     physicsSystem->resetMeshCache();
                 },
                 "reloadMeshes", "Reloads meshes.");
-            console->registerCommand(
-                [&](void*, const char*) {
-                    renderer->setVsync(!renderer->getVsync());
-                },
-                "r_toggleVsync", "Toggles vsync.");
+            console->registerCommand([&](const char*) { renderer->setVsync(!renderer->getVsync()); },
+                                     "r_toggleVsync", "Toggles vsync.");
         }
 
-        console->registerCommand([&](void*, const char*) { running = false; }, "exit", "Shuts down the engine.",
-                                 nullptr);
+        console->registerCommand([&](const char*) { running = false; }, "exit", "Shuts down the engine.");
 
         console->registerCommand(
-            [this](void*, const char* arg) {
+            [this](const char* arg) {
                 std::string argS = arg;
                 size_t xPos = argS.find("x");
 
@@ -544,10 +541,10 @@ namespace worlds
                 int height = std::stoi(argS.substr(xPos + 1));
                 window->resize(width, height);
             },
-            "setWindowSize", "Sets size of the window.", nullptr);
+            "setWindowSize", "Sets size of the window.");
 
         console->registerCommand(
-            [this](void*, const char* arg) { MessagePackSceneSerializer::saveScene("msgpack_test.wscn", registry); },
+            [this](const char* arg) { MessagePackSceneSerializer::saveScene("msgpack_test.wscn", registry); },
             "saveMsgPack", "Saves the current scene in MessagePack format.");
 
         if (enableOpenVR)
@@ -604,7 +601,8 @@ namespace worlds
                 screenPassIsVR = true;
             }
 
-            RTTPassSettings screenRTTCI{
+            RTTPassSettings screenRTTCI
+            {
                 .cam = &cam,
                 .width = w,
                 .height = h,
@@ -698,15 +696,8 @@ namespace worlds
         {
             ImGui_ImplSDL2_NewFrame(window->getWrappedHandle());
         }
-        inFrame = true;
 
-        ImVec2 newFrameDisplaySize(windowWidth, windowHeight);
-        // if (window->isMaximised()) {
-        //    newFrameDisplaySize.x -= 16;
-        //    newFrameDisplaySize.y -= 16;
-        //    ImGui::GetIO().DisplaySize = newFrameDisplaySize;
-        //    ImGui::GetIO().DisplayOffset = ImVec2(8.0f, 8.0f);
-        //}
+        inFrame = true;
 
         ImGui::NewFrame();
 
@@ -739,7 +730,8 @@ namespace worlds
             {
                 renderer->destroyRTTPass(screenRTTPass);
 
-                RTTPassSettings screenRTTCI{
+                RTTPassSettings screenRTTCI
+                {
                     .cam = &cam,
                     .width = w,
                     .height = h,
@@ -763,8 +755,6 @@ namespace worlds
 
         ImGui::GetBackgroundDrawList()->AddImage(screenRTTPass->getUITextureID(), ImVec2(0.0, 0.0),
                                                  ImGui::GetIO().DisplaySize);
-
-        // screenRTTPass->setResolutionScale(screenPassResScale);
 
         float interpAlpha = 1.0f;
 
@@ -824,11 +814,14 @@ namespace worlds
         uint64_t updateLength = updateEnd - updateStart;
         double updateTime = updateLength / (double)SDL_GetPerformanceFrequency();
 
-        DebugTimeInfo dti{.deltaTime = interFrameInfo.deltaTime,
-                          .updateTime = updateTime,
-                          .simTime = simTime,
-                          .lastUpdateTime = interFrameInfo.lastUpdateTime,
-                          .frameCounter = interFrameInfo.frameCounter};
+        DebugTimeInfo dti
+        {
+            .deltaTime = interFrameInfo.deltaTime,
+            .updateTime = updateTime,
+            .simTime = simTime,
+            .lastUpdateTime = interFrameInfo.lastUpdateTime,
+            .frameCounter = interFrameInfo.frameCounter
+        };
 
         drawDebugInfoWindow(dti);
 
@@ -847,7 +840,7 @@ namespace worlds
 
             ImColor col{1.0f, 1.0f, 1.0f};
 
-            if (dti.deltaTime > 0.02)
+            if (dti.deltaTime > 0.011111)
                 col = ImColor{1.0f, 0.0f, 0.0f};
             else if (dti.deltaTime > 0.017)
                 col = ImColor{0.75f, 0.75f, 0.0f};
@@ -899,8 +892,10 @@ namespace worlds
             openvrInterface->waitGetPoses();
             glm::mat4 ht = openvrInterface->getHeadTransform(predictAmount);
             renderer->setVRUsedPose(ht);
-            screenRTTPass->setView(0, glm::inverse(ht * openvrInterface->getEyeViewMatrix(Eye::LeftEye)), openvrInterface->getEyeProjectionMatrix(Eye::LeftEye, cam.near));
-            screenRTTPass->setView(1, glm::inverse(ht * openvrInterface->getEyeViewMatrix(Eye::RightEye)), openvrInterface->getEyeProjectionMatrix(Eye::RightEye, cam.near));
+            screenRTTPass->setView(0, glm::inverse(ht * openvrInterface->getEyeViewMatrix(Eye::LeftEye)),
+                                   openvrInterface->getEyeProjectionMatrix(Eye::LeftEye, cam.near));
+            screenRTTPass->setView(1, glm::inverse(ht * openvrInterface->getEyeViewMatrix(Eye::RightEye)),
+                                   openvrInterface->getEyeProjectionMatrix(Eye::RightEye, cam.near));
         }
 
         if (!dedicatedServer)
@@ -1012,25 +1007,6 @@ namespace worlds
         FrameMark;
     }
 
-    template <typename T, size_t sz> struct CircularBuffer
-    {
-        T values[sz];
-        size_t idx;
-
-        void add(T value)
-        {
-            values[idx] = value;
-            idx++;
-            if (idx >= sz)
-                idx = 0;
-        }
-
-        size_t size() const
-        {
-            return sz;
-        }
-    };
-
     void WorldsEngine::drawDebugInfoWindow(DebugTimeInfo timeInfo)
     {
         if (showDebugInfo.getInt())
@@ -1095,7 +1071,7 @@ namespace worlds
                     ImGui::Text("- Waiting for image fence: %.3fms", dbgStats.imgFenceWaitTime);
                     ImGui::Text("- Waiting for command buffer fence: %.3fms", dbgStats.imgFenceWaitTime);
                     ImGui::Text("- Writing command buffer: %.3fms", dbgStats.cmdBufWriteTime);
-                    ImGui::Text("GPU render time: %.3fms", renderer->getLastGPUTime() * 1000.0f);
+                    ImGui::Text("GPU render time: %.3fms", renderer->getLastGPUTime() / 1000.0f / 1000.0f);
                     ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
                     ImGui::Text("Triangles: %u", dbgStats.numTriangles);
                     ImGui::Text("Lights in view: %i", dbgStats.numLightsInView);

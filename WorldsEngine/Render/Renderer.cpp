@@ -6,6 +6,7 @@
 #include <R2/VK.hpp>
 #include <R2/VKSwapchain.hpp>
 #include <R2/VKSyncPrims.hpp>
+#include <R2/VKTimestampPool.hpp>
 #include <Render/FakeLitPipeline.hpp>
 #include <Render/R2ImGui.hpp>
 #include <Render/RenderInternal.hpp>
@@ -59,12 +60,14 @@ namespace worlds
         textureManager = new VKTextureManager(core, bindlessTextureManager);
         uiTextureManager = new VKUITextureManager(textureManager);
         renderMeshManager = new RenderMeshManager(core);
+        timestampPool = new R2::VK::TimestampPool(core->GetHandles(), 4);
 
         if (!ImGui_ImplR2_Init(core, bindlessTextureManager))
             return;
 
         R2::VK::GraphicsDeviceInfo deviceInfo = core->GetDeviceInfo();
         logMsg(WELogCategoryRender, "Device name: %s", deviceInfo.Name);
+        timestampPeriod = deviceInfo.TimestampPeriod;
 
         ShaderCache::setDevice(core);
 
@@ -122,6 +125,17 @@ namespace worlds
 
         VK::CommandBuffer cb = core->GetFrameCommandBuffer();
 
+        // Read back previous frame's timestamps for GPU time
+        uint64_t lastTimestamps[2];
+
+        if (timestampPool->GetTimestamps(core->GetFrameIndex() * 2, 2, lastTimestamps))
+        {
+            lastGPUTime = (lastTimestamps[1] - lastTimestamps[0]) * timestampPeriod;
+        }
+
+        timestampPool->Reset(cb, core->GetFrameIndex() * 2, 2);
+        timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 2);
+
         bool xrRendered = false;
         for (VKRTTPass* pass : rttPasses)
         {
@@ -132,8 +146,11 @@ namespace worlds
             cb.BeginDebugLabel("RTT Pass", 0.0f, 0.0f, 0.0f);
             pass->pipeline->draw(pass->settings.registryOverride ? *pass->settings.registryOverride : registry, cb);
 
-            pass->getFinalTarget()->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead,
-                                            VK::PipelineStageFlags::FragmentShader);
+            pass->getFinalTarget()->Acquire(
+                cb,
+                VK::ImageLayout::ShaderReadOnlyOptimal,
+                VK::AccessFlags::ShaderRead,
+                VK::PipelineStageFlags::FragmentShader);
 
             if (pass->settings.outputToXR)
             {
@@ -158,9 +175,10 @@ namespace worlds
 
         cb.EndDebugLabel();
 
-        swapchainImage->Acquire(cb, VK::ImageLayout::PresentSrc, VK::AccessFlags::MemoryRead,
-                                VK::PipelineStageFlags::AllCommands);
+        swapchainImage->Acquire(
+            cb, VK::ImageLayout::PresentSrc, VK::AccessFlags::MemoryRead, VK::PipelineStageFlags::AllCommands);
 
+        timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 2 + 1);
         core->EndFrame();
 
         if (this->xrPresentManager && xrRendered)

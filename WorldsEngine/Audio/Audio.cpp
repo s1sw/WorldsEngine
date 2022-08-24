@@ -547,7 +547,7 @@ namespace worlds
     {
         worldState.on_destroy<AudioSource>().connect<&AudioSystem::onAudioSourceDestroy>(*this);
         g_console->registerCommand(
-            [&](void*, const char* arg) {
+            [&](const char* arg) {
                 if (!available)
                 {
                     logErr(WELogCategoryAudio, "Audio subsystem is unavailable");
@@ -567,7 +567,7 @@ namespace worlds
             "a_setMasterVolume", "Sets the master audio volume.");
 
         g_console->registerCommand(
-            [&](void*, const char*) {
+            [&](const char*) {
                 if (!available)
                 {
                     logErr(WELogCategoryAudio, "Audio subsystem is unavailable");
@@ -579,7 +579,7 @@ namespace worlds
             "a_forceUpdateAudioScene", "Forces an update of the Steam Audio scene.");
 
 #ifdef ENABLE_STEAM_AUDIO
-        g_console->registerCommand([&](void*, const char*) { iplSceneSaveOBJ(scene, "audioScene.obj"); }, "a_dumpToObj",
+        g_console->registerCommand([&](const char*) { iplSceneSaveOBJ(scene, "audioScene.obj"); }, "a_dumpToObj",
                                    "Dumps the Steam Audio scene to an obj file.");
 #endif
     }

@@ -15,14 +15,26 @@ namespace R2::VK
         VKCHECK(vkCreateQueryPool(handles->Device, &qpci, handles->AllocCallbacks, &queryPool));
     }
 
-    void TimestampPool::Reset()
+    void TimestampPool::Reset(CommandBuffer& cb)
     {
-        vkResetQueryPool(handles->Device, queryPool, 0, numTimestamps);
+        vkCmdResetQueryPool(cb.GetNativeHandle(), queryPool, 0, numTimestamps);
     }
 
-    void TimestampPool::Reset(int offset, int count)
+    void TimestampPool::Reset(CommandBuffer& cb, int offset, int count)
     {
-        vkResetQueryPool(handles->Device, queryPool, offset, count);
+        vkCmdResetQueryPool(cb.GetNativeHandle(), queryPool, offset, count);
+    }
+
+    bool TimestampPool::GetTimestamps(int offset, int count, uint64_t* out)
+    {
+        VkResult queryRes = vkGetQueryPoolResults(
+            handles->Device,
+            queryPool, offset, (uint32_t)count,
+            count * sizeof(uint64_t), out, 
+            sizeof(uint64_t), VK_QUERY_RESULT_64_BIT
+        );
+
+        return queryRes == VK_SUCCESS;
     }
 
     void TimestampPool::WriteTimestamp(CommandBuffer& cb, int index)

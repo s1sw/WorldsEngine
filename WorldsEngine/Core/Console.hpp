@@ -21,13 +21,13 @@ namespace worlds
     class Console;
     extern Console* g_console;
 
-    typedef std::function<void(void* obj, const char* argString)> CommandFuncPtr;
+    typedef std::function<void(const char* argString)> CommandFuncPtr;
 
     class Console
     {
-      public:
+    public:
         Console(bool openConsoleWindow, bool asyncStdinConsole = false);
-        void registerCommand(CommandFuncPtr funcPtr, const char* name, const char* help, void* obj = nullptr);
+        void registerCommand(CommandFuncPtr funcPtr, const char* name, const char* help);
         void drawWindow();
         void setShowState(bool show);
         void executeCommandStr(std::string cmdStr, bool log = true);
@@ -37,7 +37,7 @@ namespace worlds
         }
         ~Console();
 
-      private:
+    private:
         bool show;
         bool setKeyboardFocus;
         struct Command
@@ -71,8 +71,8 @@ namespace worlds
 
         static int inputTextCallback(ImGuiInputTextCallbackData* data);
         static void logCallback(void* con, int category, SDL_LogPriority priority, const char* msg);
-        static void cmdHelp(void* con, const char* argString);
-        static void cmdExec(void* con, const char* argString);
+        void cmdHelp(const char* argString);
+        void cmdExec(const char* argString);
         friend class ConVar;
         friend void asyncConsole();
     };

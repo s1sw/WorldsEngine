@@ -5,8 +5,12 @@ using namespace worlds;
 
 extern "C"
 {
-    EXPORT void console_registerCommand(void (*funcPtr)(void*, const char*), char* name, char* help, void* obj)
+    EXPORT void console_registerCommand(void (*funcPtr)(int, const char*), char* name, char* help, int commandId)
     {
-        g_console->registerCommand(funcPtr, strdup(name), help == nullptr ? nullptr : strdup(help), obj);
+        g_console->registerCommand(
+            [=](const char* args)
+            {
+               funcPtr(commandId, args);
+            }, strdup(name), help == nullptr ? nullptr : strdup(help));
     }
 }

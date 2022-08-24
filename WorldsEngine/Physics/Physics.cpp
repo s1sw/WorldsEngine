@@ -488,21 +488,21 @@ namespace worlds
         reg.on_destroy<FixedJoint>().connect<&PhysicsSystem::destroyFixedJoint>(this);
 
         g_console->registerCommand(
-            [&](void*, const char*) {
+            [&](const char*) {
                 float currentScale = _scene->getVisualizationParameter(physx::PxVisualizationParameter::eSCALE);
 
                 _scene->setVisualizationParameter(physx::PxVisualizationParameter::eSCALE, 1.0f - currentScale);
             },
-            "phys_toggleVis", "Toggles all physics visualisations.", nullptr);
+            "phys_toggleVis", "Toggles all physics visualisations.");
         g_console->registerCommand(
-            [&](void*, const char*) {
+            [&](const char*) {
                 float currentVal =
                     _scene->getVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES);
 
                 _scene->setVisualizationParameter(physx::PxVisualizationParameter::eCOLLISION_SHAPES,
                                                   1.0f - currentVal);
             },
-            "phys_toggleShapeVis", "Toggles physics shape visualisations.", nullptr);
+            "phys_toggleShapeVis", "Toggles physics shape visualisations.");
 
         _defaultMaterial = _physics->createMaterial(0.6f, 0.6f, 0.0f);
 

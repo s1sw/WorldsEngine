@@ -125,7 +125,10 @@ namespace worlds
                                     ImColor(255, 255, 255));
 
 #ifdef _WIN32
-            glm::vec2 ws{windowSize};
+            int w, h;
+            interfaces.engine->getMainWindow().getSize(&w, &h);
+            glm::vec2 ws{w, h};
+
             ws += vpOffset;
             uint8_t borderR;
             uint8_t borderG;

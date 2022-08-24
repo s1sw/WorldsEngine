@@ -82,6 +82,7 @@ namespace R2::VK
 		vkGetPhysicalDeviceProperties(handles.PhysicalDevice, &deviceProps);
 
 		strncpy(deviceInfo.Name, deviceProps.deviceName, 256);
+		deviceInfo.TimestampPeriod = deviceProps.limits.timestampPeriod;
 
 		return deviceInfo;
 	}
@@ -428,6 +429,11 @@ namespace R2::VK
 	uint32_t Core::GetNextFrameIndex() const
 	{
 		return getNextFrameIndex(frameIndex);
+	}
+
+	uint32_t Core::GetPreviousFrameIndex() const
+	{
+		return getPreviousFrameIndex(frameIndex);
 	}
 
 	void Core::EndFrame()

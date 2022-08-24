@@ -170,8 +170,8 @@ namespace worlds
         g_console = this;
         logFile = fopen("worldsengine.log", "w");
         SDL_LogSetOutputFunction(logCallback, this);
-        registerCommand(cmdHelp, "help", "Displays help about all commands.", this);
-        registerCommand(cmdExec, "exec", "Executes a command file.", this);
+        registerCommand(std::bind(&Console::cmdHelp, this, std::placeholders::_1), "help", "Displays help about all commands.");
+        registerCommand(std::bind(&Console::cmdExec, this, std::placeholders::_1), "exec", "Executes a command file.");
 
         for (auto& cPair : categories)
         {
@@ -257,30 +257,28 @@ namespace worlds
             goToSecondaryScreen();
         }
 
-        registerCommand([](void*, const char* arg) { logMsg("%s", arg); }, "echo", "Echos the argument to the screen.",
-                        nullptr);
+        registerCommand([](const char* arg) { logMsg("%s", arg); }, "echo", "Echos the argument to the screen.");
     }
 
-    void Console::registerCommand(CommandFuncPtr cmd, const char* name, const char* help, void* obj)
+    void Console::registerCommand(CommandFuncPtr cmd, const char* name, const char* help)
     {
         std::string nameLower = name;
         for (auto& c : nameLower)
             c = std::tolower(c);
-        commands.insert({nameLower, Command{cmd, name, help, obj}});
+        commands.insert({nameLower, Command{cmd, name, help}});
     }
 
-    void Console::cmdHelp(void* con, const char*)
+    void Console::cmdHelp(const char*)
     {
-        auto* console = reinterpret_cast<Console*>(con);
         SDL_LogInfo(CONSOLE_RESPONSE_CATEGORY, "Commands:");
-        for (auto& cmd : console->commands)
+        for (auto& cmd : commands)
         {
             SDL_LogInfo(CONSOLE_RESPONSE_CATEGORY, "%s: %s", cmd.second.name, cmd.second.help);
         }
 
         SDL_LogInfo(CONSOLE_RESPONSE_CATEGORY, "ConVars:");
 
-        for (auto& conVar : console->conVars)
+        for (auto& conVar : conVars)
         {
             if (conVar.second->getHelp() == nullptr)
                 SDL_LogInfo(CONSOLE_RESPONSE_CATEGORY, "%s=%s", conVar.second->getName(), conVar.second->getString());
@@ -292,10 +290,8 @@ namespace worlds
         }
     }
 
-    void Console::cmdExec(void* con, const char* argString)
+    void Console::cmdExec(const char* argString)
     {
-        auto* console = reinterpret_cast<Console*>(con);
-
         auto loadRes = LoadFileToString(argString + std::string(".txt"));
 
         if (loadRes.error != IOError::None)
@@ -322,7 +318,7 @@ namespace worlds
                 printToConsole = false;
             }
 
-            console->executeCommandStr(line, printToConsole);
+            executeCommandStr(line, printToConsole);
         }
     }
 
@@ -494,9 +490,10 @@ namespace worlds
 
             ImGui::SameLine();
             ImGui::PushItemWidth(200.0f);
-            if (ImGui::BeginCombo("Category", filterByCategory
-                                                  ? filterableCategories[filteredCategory - SDL_LOG_CATEGORY_CUSTOM]
-                                                  : "None"))
+            const char* comboVal =
+                filterByCategory ? filterableCategories[filteredCategory - SDL_LOG_CATEGORY_CUSTOM] : "None";
+
+            if (ImGui::BeginCombo("Category", comboVal))
             {
                 for (int i = 0; i < IM_ARRAYSIZE(filterableCategories) + 1; i++)
                 {
@@ -689,7 +686,7 @@ namespace worlds
             {
                 if (log)
                     msgs.push_back(ConsoleMsg{SDL_LOG_PRIORITY_INFO, cmdStr, CONSOLE_RESPONSE_CATEGORY});
-                (*cmdPos).second.func((*cmdPos).second.obj, "");
+                (*cmdPos).second.func("");
             }
             else if (convarPos != conVars.end())
             {
@@ -727,7 +724,7 @@ namespace worlds
             {
                 if (log)
                     msgs.push_back(ConsoleMsg{SDL_LOG_PRIORITY_INFO, cmdStr, CONSOLE_RESPONSE_CATEGORY});
-                (*cmdPos).second.func((*cmdPos).second.obj, argString.c_str());
+                (*cmdPos).second.func(argString.c_str());
             }
             else
             {
@@ -790,11 +787,6 @@ namespace worlds
         if (popupConsoleMessages.getInt())
             popupMessages.push_front(PopupMessage{msg, priority, 0.0f});
         consoleMutex.unlock();
-
-#ifdef _WIN32
-        // OutputDebugStringA(outStr.c_str());
-        // OutputDebugStringA("\n");
-#endif
     }
 
     Console::~Console()

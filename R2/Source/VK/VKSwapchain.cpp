@@ -140,7 +140,7 @@ namespace R2::VK
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         createInfo.imageExtent.width = width;
         createInfo.imageExtent.height = height;
-        createInfo.minImageCount = surfaceCaps.minImageCount;
+        createInfo.minImageCount = surfaceCaps.minImageCount > 2 ? 2 : surfaceCaps.minImageCount;
 
         createInfo.imageFormat = format.format;
         createInfo.imageColorSpace = format.colorSpace;
