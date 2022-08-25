@@ -12,8 +12,7 @@ using namespace R2;
 namespace worlds
 {
     const int SHADOWMAP_RES = 1024;
-    ShadowmapManager::ShadowmapManager(VKRenderer* renderer)
-        : renderer(renderer)
+    ShadowmapManager::ShadowmapManager(VKRenderer* renderer) : renderer(renderer)
     {
         VK::PipelineLayoutBuilder plb{renderer->getCore()->GetHandles()};
         plb.PushConstants(VK::ShaderStage::Vertex, 0, sizeof(glm::mat4));
@@ -24,8 +23,7 @@ namespace worlds
         vertBinding.Attributes.emplace_back(0, VK::TextureFormat::R32G32B32_SFLOAT, 0);
 
         VK::PipelineBuilder pb{renderer->getCore()};
-        pb
-            .AddShader(VK::ShaderStage::Vertex, ShaderCache::getModule(AssetDB::pathToId("Shaders/shadowmap.vert.spv")))
+        pb.AddShader(VK::ShaderStage::Vertex, ShaderCache::getModule(AssetDB::pathToId("Shaders/shadowmap.vert.spv")))
             .AddShader(VK::ShaderStage::Fragment, ShaderCache::getModule(AssetDB::pathToId("Shaders/blank.frag.spv")))
             .AddVertexBinding(std::move(vertBinding))
             .Layout(pipelineLayout.Get())
@@ -43,8 +41,8 @@ namespace worlds
 
         for (int i = 0; i < 4; i++)
         {
-            VK::TextureCreateInfo tci = VK::TextureCreateInfo::RenderTarget2D(
-                VK::TextureFormat::D32_SFLOAT, SHADOWMAP_RES, SHADOWMAP_RES);
+            VK::TextureCreateInfo tci =
+                VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, SHADOWMAP_RES, SHADOWMAP_RES);
             ShadowmapInfo si{};
             si.texture = renderer->getCore()->CreateTexture(tci);
             si.bindlessID = renderer->getBindlessTextureManager()->AllocateTextureHandle(si.texture.Get());
@@ -56,7 +54,8 @@ namespace worlds
     {
         uint32_t count = 0;
         registry.view<WorldLight>().each([&](WorldLight& worldLight) {
-            if (!worldLight.enableShadows || worldLight.type != LightType::Spot || count == 4) return;
+            if (!worldLight.enableShadows || worldLight.type != LightType::Spot || count == 4)
+                return;
 
             worldLight.shadowmapIdx = count++;
         });
@@ -75,7 +74,8 @@ namespace worlds
         cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
 
         registry.view<WorldLight, Transform>().each([&](WorldLight& worldLight, Transform& t) {
-            if (!worldLight.enableShadows || worldLight.type != LightType::Spot || worldLight.shadowmapIdx == ~0u) return;
+            if (!worldLight.enableShadows || worldLight.type != LightType::Spot || worldLight.shadowmapIdx == ~0u)
+                return;
 
             Camera shadowCam{};
             shadowCam.position = t.position;
@@ -90,7 +90,8 @@ namespace worlds
 
             VK::RenderPass rp{};
             rp.RenderArea(SHADOWMAP_RES, SHADOWMAP_RES);
-            rp.DepthAttachment(shadowmapInfo[worldLight.shadowmapIdx].texture.Get(), VK::LoadOp::Clear, VK::StoreOp::Store);
+            rp.DepthAttachment(
+                shadowmapInfo[worldLight.shadowmapIdx].texture.Get(), VK::LoadOp::Clear, VK::StoreOp::Store);
             rp.DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f));
 
             rp.Begin(cb);
@@ -98,19 +99,30 @@ namespace worlds
             registry.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& woT) {
                 const RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
 
-                if (!cullMesh(rmi, woT, &f, 1)) return;
+                if (!cullMesh(rmi, woT, &f, 1))
+                    return;
 
                 glm::mat4 mvp = vp * woT.getMatrix();
                 cb.PushConstants(mvp, VK::ShaderStage::Vertex, pipelineLayout.Get());
-                
+
                 for (int i = 0; i < rmi.numSubmeshes; i++)
                 {
                     const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
-                    cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t)), rmi.vertsOffset / sizeof(Vertex), 0);
+                    cb.DrawIndexed(
+                        rsi.indexCount,
+                        1,
+                        rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t)),
+                        rmi.vertsOffset / sizeof(Vertex),
+                        0);
                 }
             });
 
             rp.End(cb);
+            shadowmapInfo[worldLight.shadowmapIdx].texture->Acquire(
+                cb,
+                VK::ImageLayout::ShaderReadOnlyOptimal,
+                VK::AccessFlags::ShaderSampledRead,
+                VK::PipelineStageFlags::FragmentShader);
         });
 
         cb.EndDebugLabel();
