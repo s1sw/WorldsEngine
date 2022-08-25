@@ -1,6 +1,8 @@
 #include <Render/RenderInternal.hpp>
 #include <Core/AssetDB.hpp>
 #include <entt/entity/registry.hpp>
+#include <Render/CullMesh.hpp>
+#include <Render/Frustum.hpp>
 #include <Render/ShaderCache.hpp>
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/VK.hpp>
@@ -79,6 +81,8 @@ namespace worlds
             shadowCam.far = worldLight.shadowFar;
 
             glm::mat4 vp = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
+            Frustum f{};
+            f.fromVPMatrix(vp);
 
             VK::RenderPass rp{};
             rp.RenderArea(SHADOWMAP_RES, SHADOWMAP_RES);
@@ -89,6 +93,9 @@ namespace worlds
 
             registry.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& woT) {
                 const RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
+
+                if (!cullMesh(rmi, woT, &f, 1)) return;
+
                 glm::mat4 mvp = vp * woT.getMatrix();
                 cb.PushConstants(mvp, VK::ShaderStage::Vertex, pipelineLayout.Get());
                 
