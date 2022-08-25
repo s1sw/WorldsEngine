@@ -78,6 +78,8 @@ namespace worlds
             xrPresentManager = new XRPresentManager(core, 0, 0);
         }
 
+        shadowmapManager = new ShadowmapManager(this);
+
         *success = true;
     }
 
@@ -95,6 +97,8 @@ namespace worlds
         delete uiTextureManager;
         delete textureManager;
         delete bindlessTextureManager;
+        xrPresentManager.Reset();
+        shadowmapManager.Reset();
 
         delete core;
     }
@@ -136,6 +140,9 @@ namespace worlds
 
         timestampPool->Reset(cb, core->GetFrameIndex() * 2, 2);
         timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 2);
+
+        shadowmapManager->AllocateShadowmaps(registry);
+        shadowmapManager->RenderShadowmaps(cb, registry);
 
         bool xrRendered = false;
         for (VKRTTPass* pass : rttPasses)
@@ -288,6 +295,11 @@ namespace worlds
     VKTextureManager* VKRenderer::getTextureManager()
     {
         return textureManager;
+    }
+
+    ShadowmapManager* VKRenderer::getShadowmapManager()
+    {
+        return shadowmapManager.Get();
     }
 
     const DebugLine* VKRenderer::getCurrentDebugLines(size_t* count)

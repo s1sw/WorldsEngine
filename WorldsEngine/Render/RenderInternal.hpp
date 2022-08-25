@@ -24,6 +24,8 @@ namespace R2::VK
     class Buffer;
     class CommandBuffer;
     class TimestampPool;
+    class Pipeline;
+    class PipelineLayout;
 }
 
 typedef struct VkPhysicalDeviceProperties VkPhysicalDeviceProperties;
@@ -93,8 +95,8 @@ namespace worlds
         uint32_t aoBoxCount;
         uint32_t aoSphereCount;
         uint32_t cubemapCount;
-        float cascadeTexelsPerUnit[4];
-        glm::mat4 shadowmapMatrices[4];
+        uint32_t shadowmapIds[4];
+        glm::mat4 cascadeMatrices[4];
         PackedLight lights[256];
         AOBox box[128];
         AOSphere sphere[16];
@@ -254,6 +256,25 @@ namespace worlds
         void submit(glm::mat4 usedPose);
     };
 
+    class ShadowmapManager
+    {
+        struct ShadowmapInfo
+        {
+            UniquePtr<R2::VK::Texture> texture;
+            uint32_t bindlessID;
+        };
+
+        VKRenderer* renderer;
+        std::vector<ShadowmapInfo> shadowmapInfo;
+        UniquePtr<R2::VK::Pipeline> pipeline;
+        UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
+    public:
+        ShadowmapManager(VKRenderer* renderer);
+        void AllocateShadowmaps(entt::registry& registry);
+        void RenderShadowmaps(R2::VK::CommandBuffer& cb, entt::registry& registry);
+        uint32_t GetShadowmapId(uint32_t idx);
+    };
+
     class VKRenderer : public Renderer
     {
         R2::VK::Core* core;
@@ -266,6 +287,7 @@ namespace worlds
         UniquePtr<XRPresentManager> xrPresentManager;
         glm::mat4 vrUsedPose;
         UniquePtr<R2::VK::TimestampPool> timestampPool;
+        UniquePtr<ShadowmapManager> shadowmapManager;
 
         std::vector<VKRTTPass*> rttPasses;
 
@@ -305,6 +327,7 @@ namespace worlds
         RenderMeshManager* getMeshManager();
         R2::BindlessTextureManager* getBindlessTextureManager();
         VKTextureManager* getTextureManager();
+        ShadowmapManager* getShadowmapManager();
         const DebugLine* getCurrentDebugLines(size_t* count);
     };
 }

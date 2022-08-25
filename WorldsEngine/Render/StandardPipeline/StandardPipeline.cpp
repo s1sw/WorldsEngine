@@ -336,6 +336,7 @@ namespace worlds
         LightUB* lightUB;
         entt::registry& registry;
         VKTextureManager* textureManager;
+        ShadowmapManager* shadowmapManager;
 
         FillLightBufferTask(LightUB* lightUB, entt::registry& registry, VKTextureManager* textureManager)
             : lightUB(lightUB), registry(registry), textureManager(textureManager),
@@ -351,6 +352,20 @@ namespace worlds
             registry.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t) {
                 if (!wl.enabled)
                     return;
+                
+                if (wl.shadowmapIdx != ~0u)
+                {
+                    Camera shadowCam{};
+                    shadowCam.position = t.position;
+                    shadowCam.rotation = t.rotation;
+                    shadowCam.verticalFOV = wl.spotOuterCutoff * 2.0f;
+                    shadowCam.near = wl.shadowNear;
+                    shadowCam.far = wl.shadowFar;
+
+                    glm::mat4 vp = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
+                    lightUB->additionalShadowMatrices[wl.shadowmapIdx] = vp;
+                    lightUB->shadowmapIds[wl.shadowmapIdx] = shadowmapManager->GetShadowmapId(wl.shadowmapIdx);
+                }
 
                 glm::vec3 lightForward = glm::normalize(t.transformDirection(glm::vec3(0.0f, 0.0f, -1.0f)));
 
@@ -377,6 +392,7 @@ namespace worlds
                     pl.spotCutoff = wl.tubeRadius;
                     pl.position = tubeP1;
                 }
+                pl.setShadowmapIndex(wl.shadowmapIdx);
 
                 lightUB->lights[lightCount] = pl;
                 lightCount++;
@@ -605,6 +621,7 @@ namespace worlds
         LightUB* lightUB = (LightUB*)lightBuffers->MapCurrent();
 
         FillLightBufferTask fillTask{lightUB, reg, textureManager};
+        fillTask.shadowmapManager = renderer->getShadowmapManager();
 
         WorldObjectMaterialLoadTask woLoadTask{renderer, reg};
         woLoadTask.m_SetSize = reg.view<WorldObject>().size();

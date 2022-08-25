@@ -15,8 +15,8 @@ struct LightBuffer
     uint cubemapCount;
 
     // 272
-    float4 cascadeTexelsPerUnit;
-    float4x4 dirShadowMatrices[4];
+    uint shadowmapIds[4];
+    float4x4 cascadeMatrices[4];
 
     // 544
     Light lights[256];
@@ -36,6 +36,16 @@ struct LightBuffer
 struct LightBufferLoader
 {
     ByteAddressBuffer rawLightBuffer;
+
+    float4x4 GetShadowMatrix(uint idx)
+    {
+        return rawLightBuffer.Load<float4x4>(idx * 64);
+    }
+
+    uint GetShadowmapId(uint idx)
+    {
+        return rawLightBuffer.Load(272 + idx * 4);
+    }
 
     uint GetLightCount()
     {
