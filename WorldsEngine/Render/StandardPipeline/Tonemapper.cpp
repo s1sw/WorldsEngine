@@ -76,8 +76,8 @@ namespace worlds
         }
     }
 
-    static ConVar exposure{"r_exposure", "2.6", "Sets the rendering exposure."};
-    static ConVar contrast{"r_contrast", "0.85", "Sets the rendering contrast."};
+    static ConVar exposure{"r_exposure", "3.5", "Sets the rendering exposure."};
+    static ConVar contrast{"r_contrast", "0.87", "Sets the rendering contrast."};
     static ConVar saturation{"r_saturation", "1.0", "Sets the rendering saturation."};
 
     void Tonemapper::Execute(VK::CommandBuffer& cb)
