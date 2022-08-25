@@ -20,7 +20,7 @@ namespace R2::VK
             return VK_FALSE;
 
         if (r->dbgOutRecv)
-            r->dbgOutRecv->DebugMessage(pCallbackData->pMessage);
+           r->dbgOutRecv->DebugMessage(pCallbackData->pMessage);
         else
             printf("vk: %s\n", pCallbackData->pMessage);
         return VK_FALSE;

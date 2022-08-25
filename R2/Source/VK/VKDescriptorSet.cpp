@@ -63,19 +63,19 @@ namespace R2::VK
 
     DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::PartiallyBound()
     {
-        bindings.front().PartiallyBound = true;
+        bindings.back().PartiallyBound = true;
         return *this;
     }
 
     DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::UpdateAfterBind()
     {
-        bindings.front().UpdateAfterBind = true;
+        bindings.back().UpdateAfterBind = true;
         return *this;
     }
 
     DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::VariableDescriptorCount()
     {
-        bindings.front().VariableDescriptorCount = true;
+        bindings.back().VariableDescriptorCount = true;
         return *this;
     }
 

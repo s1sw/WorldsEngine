@@ -113,7 +113,7 @@ namespace worlds
 
     uint32_t RenderMaterialManager::GetMaterial(AssetID id)
     {
-        return allocedMaterials[id].offset;
+        return allocedMaterials.at(id).offset;
     }
 
     void RenderMaterialManager::Unload(AssetID id)

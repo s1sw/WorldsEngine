@@ -29,4 +29,14 @@ namespace R2::VK
     {
         return buffers[core->GetFrameIndex()];
     }
+
+    void* FrameSeparatedBuffer::MapCurrent()
+    {
+        return GetCurrentBuffer()->Map();
+    }
+
+    void FrameSeparatedBuffer::UnmapCurrent()
+    {
+        GetCurrentBuffer()->Unmap();
+    }
 }

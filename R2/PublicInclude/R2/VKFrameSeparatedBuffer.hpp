@@ -15,5 +15,7 @@ namespace R2::VK
         ~FrameSeparatedBuffer();
         Buffer* GetBuffer(int index);
         Buffer* GetCurrentBuffer();
+        void* MapCurrent();
+        void UnmapCurrent();
     };
 }
