@@ -173,6 +173,11 @@ namespace worlds
         registerCommand(std::bind(&Console::cmdHelp, this, std::placeholders::_1), "help", "Displays help about all commands.");
         registerCommand(std::bind(&Console::cmdExec, this, std::placeholders::_1), "exec", "Executes a command file.");
 
+        if (EngineArguments::hasArgument("popup-messages"))
+        {
+            popupConsoleMessages.setValue("1");
+        }
+
         for (auto& cPair : categories)
         {
 #if defined(__linux__)
@@ -477,191 +482,212 @@ namespace worlds
         static int lastMsgCount = 0;
         if (ImGui::Begin("Console", &show))
         {
-            const float priorityLevelWidth = 150.0f;
-            static int currentPriorityLevel = SDL_LOG_PRIORITY_INFO;
-            currentPriorityLevel -= 1;
-            ImGui::PushItemWidth(priorityLevelWidth);
-            ImGui::Combo("Priority Level", &currentPriorityLevel, priorityLabels,
-                         sizeof(priorityLabels) / sizeof(priorityLabels[0]));
-            ImGui::PopItemWidth();
-            currentPriorityLevel += 1;
-
-            const char* filterableCategories[] = {"Engine", "Audio", "Render", "UI", "App", "Scripting", "Physics"};
-
-            ImGui::SameLine();
-            ImGui::PushItemWidth(200.0f);
-            const char* comboVal =
-                filterByCategory ? filterableCategories[filteredCategory - SDL_LOG_CATEGORY_CUSTOM] : "None";
-
-            if (ImGui::BeginCombo("Category", comboVal))
+            if (ImGui::BeginTabBar("MyTabBar", ImGuiTabBarFlags_None))
             {
-                for (int i = 0; i < IM_ARRAYSIZE(filterableCategories) + 1; i++)
+                if (ImGui::BeginTabItem("Console"))
                 {
-                    bool isSelected = i == 0
-                                          ? !filterByCategory
-                                          : (filteredCategory == i - 1 + SDL_LOG_CATEGORY_CUSTOM && filterByCategory);
+                    const float priorityLevelWidth = 150.0f;
+                    static int currentPriorityLevel = SDL_LOG_PRIORITY_INFO;
+                    currentPriorityLevel -= 1;
+                    ImGui::PushItemWidth(priorityLevelWidth);
+                    ImGui::Combo("Priority Level", &currentPriorityLevel, priorityLabels,
+                                sizeof(priorityLabels) / sizeof(priorityLabels[0]));
+                    ImGui::PopItemWidth();
+                    currentPriorityLevel += 1;
 
-                    const char* itemText = i == 0 ? "None" : filterableCategories[i - 1];
+                    const char* filterableCategories[] = {"Engine", "Audio", "Render", "UI", "App", "Scripting", "Physics"};
 
-                    if (ImGui::Selectable(itemText, &isSelected))
+                    ImGui::SameLine();
+                    ImGui::PushItemWidth(200.0f);
+                    const char* comboVal =
+                        filterByCategory ? filterableCategories[filteredCategory - SDL_LOG_CATEGORY_CUSTOM] : "None";
+
+                    if (ImGui::BeginCombo("Category", comboVal))
                     {
-                        if (i == 0)
-                            filterByCategory = false;
-                        else
+                        for (int i = 0; i < IM_ARRAYSIZE(filterableCategories) + 1; i++)
                         {
-                            filteredCategory = (worlds::LogCategory)(i - 1 + SDL_LOG_CATEGORY_CUSTOM);
-                            filterByCategory = true;
-                        }
-                    }
+                            bool isSelected = i == 0
+                                                ? !filterByCategory
+                                                : (filteredCategory == i - 1 + SDL_LOG_CATEGORY_CUSTOM && filterByCategory);
 
-                    if (isSelected)
-                        ImGui::SetItemDefaultFocus();
-                }
-                ImGui::EndCombo();
-            }
-            ImGui::PopItemWidth();
+                            const char* itemText = i == 0 ? "None" : filterableCategories[i - 1];
 
-            ImGui::SameLine();
-            ImGui::PushItemWidth(200.0f);
-            if (ImGui::InputText("Search", &searchString))
-            {
-                filteredMsgs.clear();
-                std::copy_if(msgs.begin(), msgs.end(), std::back_inserter(filteredMsgs), [&](ConsoleMsg msg) {
-                    return msg.priority >= currentPriorityLevel && msg.msg.find(searchString) != std::string::npos;
-                });
-            }
-            ImGui::PopItemWidth();
-
-            ImGui::SameLine();
-            if (ImGui::Button("Clear"))
-            {
-                msgs.clear();
-            }
-
-            ImGui::Separator();
-
-            if (ImGui::BeginChild("ConsoleScroll", ImVec2(0, -ImGui::GetFrameHeightWithSpacing() - 5.0f)))
-            {
-                consoleMutex.lock();
-                float width = ImGui::GetContentRegionAvailWidth();
-
-                int currMsgIdx = 0;
-                const float CATEGORY_COLUMN_WIDTH = 65.0f;
-                const float TIME_COLUMN_WIDTH = 80.0f;
-                float cHeight = 0.0f;
-
-                if (ImGui::BeginTable("LogMessages", 3, ImGuiTableFlags_BordersInnerV, ImVec2(width, 0.0f)))
-                {
-                    ImGui::TableSetupColumn("Category", ImGuiTableColumnFlags_WidthFixed, CATEGORY_COLUMN_WIDTH);
-                    ImGui::TableSetupColumn("Message", ImGuiTableColumnFlags_WidthFixed,
-                                            width - CATEGORY_COLUMN_WIDTH - TIME_COLUMN_WIDTH);
-                    ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, TIME_COLUMN_WIDTH);
-
-                    float lineHeight = ImGui::GetTextLineHeightWithSpacing();
-                    float linePadding = ImGui::GetStyle().CellPadding.y;
-                    float scrollRegionY = ImGui::GetContentRegionAvail().y;
-
-                    float scroll = ImGui::GetScrollY();
-                    float scrollMax = scroll + scrollRegionY;
-
-                    for (auto& msg : (searchString.empty() ? msgs : filteredMsgs))
-                    {
-                        if (msg.priority < currentPriorityLevel)
-                            continue;
-                        if (filterByCategory && msg.category != filteredCategory)
-                            continue;
-
-                        ImVec2 textSize = ImGui::CalcTextSize(msg.msg.c_str(), nullptr, false, 0.0f);
-
-                        ImGui::TableNextRow();
-
-                        if (cHeight + linePadding + textSize.y > scroll && cHeight < scrollMax)
-                        {
-                            ImColor priorityCol = priorityColors.at(msg.priority);
-                            ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)priorityCol);
-
-                            if (msg.category != CONSOLE_RESPONSE_CATEGORY)
+                            if (ImGui::Selectable(itemText, &isSelected))
                             {
-                                ImGui::TableNextColumn();
-
-                                ImDrawList* drawList = ImGui::GetWindowDrawList();
-                                ImVec2 topLeft = ImGui::GetCursorScreenPos();
-
-                                const float priorityBackgroundOffset = 63.0f;
-                                topLeft.x += priorityBackgroundOffset;
-
-                                drawList->AddRectFilled(
-                                    topLeft,
-                                    ImVec2(topLeft.x + CATEGORY_COLUMN_WIDTH - priorityBackgroundOffset + 4.0f,
-                                           topLeft.y + lineHeight),
-                                    priorityCol);
-
-                                ImGui::TextUnformatted(categories.at(msg.category));
-                                ImGui::TableNextColumn();
-                                ImGui::TextUnformatted(msg.msg.c_str());
-                                ImGui::TableNextColumn();
-                                ImGui::TextUnformatted(msg.dateTimeStr.c_str());
-                            }
-                            else
-                            {
-                                ImGui::TableNextColumn();
-                                ImGui::TableNextColumn();
-                                ImGui::TextUnformatted(msg.msg.c_str());
-                                ImGui::TableNextColumn();
-                                ImGui::TextUnformatted(msg.dateTimeStr.c_str());
+                                if (i == 0)
+                                    filterByCategory = false;
+                                else
+                                {
+                                    filteredCategory = (worlds::LogCategory)(i - 1 + SDL_LOG_CATEGORY_CUSTOM);
+                                    filterByCategory = true;
+                                }
                             }
 
-                            ImGui::PopStyleColor();
+                            if (isSelected)
+                                ImGui::SetItemDefaultFocus();
                         }
-                        else
-                        {
-                            ImGui::TableNextColumn();
-                            ImGui::TableNextColumn();
-                            ImGui::Dummy(ImVec2(0.0f, textSize.y));
-                            ImGui::TableNextColumn();
-                        }
+                        ImGui::EndCombo();
+                    }
+                    ImGui::PopItemWidth();
 
-                        cHeight += textSize.y + linePadding * 2.0f;
-                        currMsgIdx++;
+                    ImGui::SameLine();
+                    ImGui::PushItemWidth(200.0f);
+                    if (ImGui::InputText("Search", &searchString))
+                    {
+                        filteredMsgs.clear();
+                        std::copy_if(msgs.begin(), msgs.end(), std::back_inserter(filteredMsgs), [&](ConsoleMsg msg) {
+                            return msg.priority >= currentPriorityLevel && msg.msg.find(searchString) != std::string::npos;
+                        });
+                    }
+                    ImGui::PopItemWidth();
+
+                    ImGui::SameLine();
+                    if (ImGui::Button("Clear"))
+                    {
+                        msgs.clear();
                     }
 
-                    ImGui::EndTable();
+                    ImGui::Separator();
+
+                    if (ImGui::BeginChild("ConsoleScroll", ImVec2(0, -ImGui::GetFrameHeightWithSpacing() - 5.0f)))
+                    {
+                        consoleMutex.lock();
+                        float width = ImGui::GetContentRegionAvailWidth();
+
+                        int currMsgIdx = 0;
+                        const float CATEGORY_COLUMN_WIDTH = 65.0f;
+                        const float TIME_COLUMN_WIDTH = 80.0f;
+                        float cHeight = 0.0f;
+
+                        if (ImGui::BeginTable("LogMessages", 3, ImGuiTableFlags_BordersInnerV, ImVec2(width, 0.0f)))
+                        {
+                            ImGui::TableSetupColumn("Category", ImGuiTableColumnFlags_WidthFixed, CATEGORY_COLUMN_WIDTH);
+                            ImGui::TableSetupColumn("Message", ImGuiTableColumnFlags_WidthFixed,
+                                                    width - CATEGORY_COLUMN_WIDTH - TIME_COLUMN_WIDTH);
+                            ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, TIME_COLUMN_WIDTH);
+
+                            float lineHeight = ImGui::GetTextLineHeightWithSpacing();
+                            float linePadding = ImGui::GetStyle().CellPadding.y;
+                            float scrollRegionY = ImGui::GetContentRegionAvail().y;
+
+                            float scroll = ImGui::GetScrollY();
+                            float scrollMax = scroll + scrollRegionY;
+
+                            for (auto& msg : (searchString.empty() ? msgs : filteredMsgs))
+                            {
+                                if (msg.priority < currentPriorityLevel)
+                                    continue;
+                                if (filterByCategory && msg.category != filteredCategory)
+                                    continue;
+
+                                ImVec2 textSize = ImGui::CalcTextSize(msg.msg.c_str(), nullptr, false, 0.0f);
+
+                                ImGui::TableNextRow();
+
+                                if (cHeight + linePadding + textSize.y > scroll && cHeight < scrollMax)
+                                {
+                                    ImColor priorityCol = priorityColors.at(msg.priority);
+                                    ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)priorityCol);
+
+                                    if (msg.category != CONSOLE_RESPONSE_CATEGORY)
+                                    {
+                                        ImGui::TableNextColumn();
+
+                                        ImDrawList* drawList = ImGui::GetWindowDrawList();
+                                        ImVec2 topLeft = ImGui::GetCursorScreenPos();
+
+                                        const float priorityBackgroundOffset = 63.0f;
+                                        topLeft.x += priorityBackgroundOffset;
+
+                                        drawList->AddRectFilled(
+                                            topLeft,
+                                            ImVec2(topLeft.x + CATEGORY_COLUMN_WIDTH - priorityBackgroundOffset + 4.0f,
+                                                topLeft.y + lineHeight),
+                                            priorityCol);
+
+                                        ImGui::TextUnformatted(categories.at(msg.category));
+                                        ImGui::TableNextColumn();
+                                        ImGui::TextUnformatted(msg.msg.c_str());
+                                        ImGui::TableNextColumn();
+                                        ImGui::TextUnformatted(msg.dateTimeStr.c_str());
+                                    }
+                                    else
+                                    {
+                                        ImGui::TableNextColumn();
+                                        ImGui::TableNextColumn();
+                                        ImGui::TextUnformatted(msg.msg.c_str());
+                                        ImGui::TableNextColumn();
+                                        ImGui::TextUnformatted(msg.dateTimeStr.c_str());
+                                    }
+
+                                    ImGui::PopStyleColor();
+                                }
+                                else
+                                {
+                                    ImGui::TableNextColumn();
+                                    ImGui::TableNextColumn();
+                                    ImGui::Dummy(ImVec2(0.0f, textSize.y));
+                                    ImGui::TableNextColumn();
+                                }
+
+                                cHeight += textSize.y + linePadding * 2.0f;
+                                currMsgIdx++;
+                            }
+
+                            ImGui::EndTable();
+                        }
+
+                        if (lastMsgCount != (int)msgs.size())
+                        {
+                            lastMsgCount = msgs.size();
+                            ImGui::SetScrollY(cHeight);
+                        }
+                        consoleMutex.unlock();
+                    }
+                    ImGui::EndChild();
+
+                    ImGui::Separator();
+
+                    ImGui::PushItemWidth(ImGui::GetWindowContentRegionWidth() - 65.0f);
+                    bool executeCmd =
+                        ImGui::InputText("##command", &currentCommand,
+                                        ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackHistory |
+                                            ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackEdit,
+                                        inputTextCallback);
+                    ImGui::PopItemWidth();
+                    if (setKeyboardFocus)
+                        ImGui::SetKeyboardFocusHere(-1);
+                    ImGui::SetItemDefaultFocus();
+
+                    ImGui::SameLine();
+                    executeCmd |= ImGui::Button("Submit");
+
+                    setKeyboardFocus = false;
+
+                    if (executeCmd)
+                    {
+                        executeCommandStr(currentCommand);
+                        previousCommands.push_back(currentCommand);
+                        currentCommand.clear();
+                        historyPos = previousCommands.size();
+                        setKeyboardFocus = true;
+                    }
+                    ImGui::EndTabItem();
                 }
 
-                if (lastMsgCount != (int)msgs.size())
+                if (ImGui::BeginTabItem("ConVars"))
                 {
-                    lastMsgCount = msgs.size();
-                    ImGui::SetScrollY(cHeight);
+                    for (auto& cv : conVars)
+                    {
+                        ImGui::Text("%s = ", cv.first.c_str());
+                        ImGui::SameLine();
+                        if (ImGui::InputText(("##" + cv.first).c_str(), &cv.second->value))
+                        {
+                            cv.second->setValue(cv.second->value);
+                        }
+                    }
+                    ImGui::EndTabItem();
                 }
-                consoleMutex.unlock();
-            }
-            ImGui::EndChild();
-
-            ImGui::Separator();
-
-            ImGui::PushItemWidth(ImGui::GetWindowContentRegionWidth() - 65.0f);
-            bool executeCmd =
-                ImGui::InputText("##command", &currentCommand,
-                                 ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackHistory |
-                                     ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackEdit,
-                                 inputTextCallback);
-            ImGui::PopItemWidth();
-            if (setKeyboardFocus)
-                ImGui::SetKeyboardFocusHere(-1);
-            ImGui::SetItemDefaultFocus();
-
-            ImGui::SameLine();
-            executeCmd |= ImGui::Button("Submit");
-
-            setKeyboardFocus = false;
-
-            if (executeCmd)
-            {
-                executeCommandStr(currentCommand);
-                previousCommands.push_back(currentCommand);
-                currentCommand.clear();
-                historyPos = previousCommands.size();
-                setKeyboardFocus = true;
             }
         }
         ImGui::End();
