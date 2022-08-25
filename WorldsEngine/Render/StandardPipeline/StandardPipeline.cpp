@@ -700,6 +700,7 @@ namespace worlds
                 fdbTask.drawIdCounter,
                 sizeof(VK::DrawIndexedIndirectCommand));
             depthPass.End(cb);
+            renderer->getDebugStats().numDrawCalls = fdbTask.drawIdCounter;
 
             cb.EndDebugLabel();
 

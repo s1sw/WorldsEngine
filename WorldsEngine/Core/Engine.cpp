@@ -767,10 +767,11 @@ namespace worlds
         }
 
         double simTime = 0.0;
+        bool didSimRun = false;
         if (!pauseSim)
         {
             PerfTimer perfTimer;
-            updateSimulation(interpAlpha, interFrameInfo.deltaTime);
+            didSimRun = updateSimulation(interpAlpha, interFrameInfo.deltaTime);
             simTime = perfTimer.stopGetMs();
         }
 
@@ -819,6 +820,7 @@ namespace worlds
             .deltaTime = interFrameInfo.deltaTime,
             .updateTime = updateTime,
             .simTime = simTime,
+            .didSimRun = didSimRun,
             .lastUpdateTime = interFrameInfo.lastUpdateTime,
             .frameCounter = interFrameInfo.frameCounter
         };
@@ -1018,9 +1020,17 @@ namespace worlds
                 static CircularBuffer<float, 128> historicalUpdateTimes;
                 static CircularBuffer<float, 128> historicalPhysicsTimes;
 
+                static CircularBuffer<float, 128> historicalRenderTimes;
+                static CircularBuffer<float, 128> historicalGpuTimes;
+
                 historicalFrametimes.add(timeInfo.deltaTime * 1000.0);
                 historicalUpdateTimes.add((timeInfo.updateTime * 1000.0) - timeInfo.simTime);
-                historicalPhysicsTimes.add(timeInfo.simTime);
+                if (timeInfo.didSimRun)
+                    historicalPhysicsTimes.add(timeInfo.simTime);
+
+                const auto& dbgStats = renderer->getDebugStats();
+                historicalRenderTimes.add((timeInfo.deltaTime - timeInfo.lastUpdateTime) * 1000.0);
+                historicalGpuTimes.add(renderer->getLastGPUTime() / 1000.0f / 1000.0f);
 
                 if (ImGui::CollapsingHeader(ICON_FA_CLOCK u8" Performance"))
                 {
@@ -1037,6 +1047,14 @@ namespace worlds
 
                     ImGui::Text("Frametime: %.3fms", timeInfo.deltaTime * 1000.0);
                     ImGui::Text("Update time: %.3fms", timeInfo.updateTime * 1000.0);
+
+                    double highestUpdateTime = 0.0f;
+                    for (int i = 0; i < 128; i++)
+                    {
+                        highestUpdateTime = glm::max((double)historicalUpdateTimes.values[i], highestUpdateTime);
+                    }
+                    ImGui::Text("Peak update time: %.3fms", highestUpdateTime);
+
                     ImGui::Text("Physics time: %.3fms", timeInfo.simTime);
                     ImGui::Text("Update time without physics: %.3fms",
                                 (timeInfo.updateTime * 1000.0) - timeInfo.simTime);
@@ -1053,13 +1071,18 @@ namespace worlds
 
                 if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" Render Stats"))
                 {
-                    const auto& dbgStats = renderer->getDebugStats();
-
                     if (!enableOpenVR)
                         ImGui::Text("Internal render resolution: %ix%i", screenRTTPass->width, screenRTTPass->height);
                     else
                         ImGui::Text("Internal per-eye render resolution: %ix%i", screenRTTPass->width,
                                     screenRTTPass->height);
+
+                    ImGui::PlotLines("Render times", historicalRenderTimes.values, historicalRenderTimes.size(),
+                                     historicalRenderTimes.idx, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 125.0f));
+
+                    ImGui::PlotLines("GPU times", historicalGpuTimes.values,
+                                     historicalGpuTimes.size(), historicalGpuTimes.idx, nullptr, 0.0f, FLT_MAX,
+                                     ImVec2(0.0f, 125.0f));
 
                     ImGui::Text("Draw calls: %i", dbgStats.numDrawCalls);
                     ImGui::Text("%i pipeline switches", dbgStats.numPipelineSwitches);
@@ -1141,9 +1164,10 @@ namespace worlds
     robin_hood::unordered_map<entt::entity, physx::PxTransform> currentState;
     robin_hood::unordered_map<entt::entity, physx::PxTransform> previousState;
 
-    void WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime)
+    bool WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime)
     {
         ZoneScoped;
+        bool ran = false;
         if (lockSimToRefresh.getInt() || disableSimInterp.getInt() || (editor && !editor->isPlaying()))
         {
             registry.view<RigidBody, Transform>().each([](RigidBody& dpa, Transform& transform) {
@@ -1187,6 +1211,7 @@ namespace worlds
 
             while (simAccumulator >= simStepTime.getFloat())
             {
+                ran = true;
                 ZoneScopedN("Simulation step");
                 previousState = currentState;
                 simAccumulator -= simStepTime.getFloat();
@@ -1246,6 +1271,7 @@ namespace worlds
             else
             {
                 doSimStep(deltaTime);
+                ran = true;
             }
 
             registry.view<RigidBody, Transform>().each([&](entt::entity, RigidBody& dpa, Transform& transform) {
@@ -1253,6 +1279,8 @@ namespace worlds
                 transform.rotation = px2glm(dpa.actor->getGlobalPose().q);
             });
         }
+
+        return ran;
     }
 
     void WorldsEngine::loadScene(AssetID scene)

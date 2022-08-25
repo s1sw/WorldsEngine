@@ -126,6 +126,7 @@ namespace worlds
             double deltaTime;
             double updateTime;
             double simTime;
+            bool didSimRun;
             double lastUpdateTime;
             int frameCounter;
         };
@@ -136,7 +137,7 @@ namespace worlds
         Window* createWindow();
         void setupPhysfs(char* argv0);
         void drawDebugInfoWindow(DebugTimeInfo timeInfo);
-        void updateSimulation(float& interpAlpha, double deltaTime);
+        bool updateSimulation(float& interpAlpha, double deltaTime);
         void doSimStep(float deltaTime);
         void tickRenderer(bool renderImgui = false);
         void runSingleFrame(bool processEvents);
