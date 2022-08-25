@@ -11,7 +11,7 @@ using namespace R2;
 
 namespace worlds
 {
-    const int SHADOWMAP_RES = 512;
+    const int SHADOWMAP_RES = 1024;
     ShadowmapManager::ShadowmapManager(VKRenderer* renderer)
         : renderer(renderer)
     {
