@@ -68,7 +68,7 @@ namespace worlds
 
             if (allocedMaterials.contains(id))
             {
-                return allocedMaterials[id].offset;
+                return allocedMaterials.at(id).offset;
             }
 
             mai.offset = (uint32_t)materialBuffer->Allocate(sizeof(StandardPBRMaterial), mai.handle);
@@ -118,7 +118,7 @@ namespace worlds
 
     void RenderMaterialManager::Unload(AssetID id)
     {
-        MaterialAllocInfo mai = allocedMaterials[id];
+        MaterialAllocInfo mai = allocedMaterials.at(id);
         materialBuffer->Free(mai.handle);
         allocedMaterials.erase(id);
 
