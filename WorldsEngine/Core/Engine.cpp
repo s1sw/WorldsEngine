@@ -609,7 +609,8 @@ namespace worlds
                 .useForPicking = false,
                 .enableShadows = true,
                 .msaaLevel = 4,
-                .numViews = screenPassIsVR ? 2 : 1
+                .numViews = screenPassIsVR ? 2 : 1,
+                .outputToXR = screenPassIsVR
             };
 
             screenRTTPass = renderer->createRTTPass(screenRTTCI);
@@ -725,6 +726,7 @@ namespace worlds
             if (w != screenRTTPass->width || h != screenRTTPass->height)
             {
                 screenRTTPass->resize(w, h);
+                logMsg("Screen pass resized to %ux%u", w, h);
             }
             else if (screenPassIsVR != lastIsVR)
             {
@@ -737,6 +739,7 @@ namespace worlds
                     .height = h,
                     .useForPicking = false,
                     .enableShadows = true,
+                    .outputToXR = screenPassIsVR
                 };
 
                 screenRTTPass = renderer->createRTTPass(screenRTTCI);
