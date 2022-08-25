@@ -45,6 +45,7 @@ namespace worlds
         UniquePtr<R2::VK::FrameSeparatedBuffer> modelMatrixBuffers;
         UniquePtr<R2::VK::FrameSeparatedBuffer> lightBuffers;
         UniquePtr<R2::VK::Buffer> lightTileBuffer;
+        UniquePtr<R2::VK::Buffer> poissonKernelBuffer;
         UniquePtr<R2::VK::FrameSeparatedBuffer> drawInfoBuffers;
         UniquePtr<R2::VK::FrameSeparatedBuffer> drawCommandBuffers;
         UniquePtr<R2::VK::Texture> depthBuffer;

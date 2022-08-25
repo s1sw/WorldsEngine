@@ -54,6 +54,15 @@ namespace worlds
         uint32_t modelMatrixID;
     };
 
+    static glm::vec2 poissonDisk[24] = {
+        glm::vec2(0.511749, 0.547686), glm::vec2(0.58929, 0.257224), glm::vec2(0.165018, 0.57663), glm::vec2(0.407692, 0.742285),
+        glm::vec2(0.707012, 0.646523), glm::vec2(0.31463, 0.466825), glm::vec2(0.801257, 0.485186), glm::vec2(0.418136, 0.146517),
+        glm::vec2(0.579889, 0.0368284), glm::vec2(0.79801, 0.140114), glm::vec2(-0.0413185, 0.371455), glm::vec2(-0.0529108, 0.627352),
+        glm::vec2(0.0821375, 0.882071), glm::vec2(0.17308, 0.301207), glm::vec2(-0.120452, 0.867216), glm::vec2(0.371096, 0.916454),
+        glm::vec2(-0.178381, 0.146101), glm::vec2(-0.276489, 0.550525), glm::vec2(0.12542, 0.126643), glm::vec2(-0.296654, 0.286879),
+        glm::vec2(0.261744, -0.00604975), glm::vec2(-0.213417, 0.715776), glm::vec2(0.425684, -0.153211), glm::vec2(-0.480054, 0.321357)
+    };
+
     robin_hood::unordered_flat_map<AssetID, int> materialRefCount;
     std::deque<AssetID> convoluteQueue;
 
@@ -164,6 +173,10 @@ namespace worlds
         VK::BufferCreateInfo drawInfoBCI{VK::BufferUsage::Storage, sizeof(GPUDrawInfo) * MAX_DRAWS, true};
         drawInfoBuffers = new VK::FrameSeparatedBuffer(core, drawInfoBCI);
 
+        VK::BufferCreateInfo pkBCI { VK::BufferUsage::Uniform, sizeof(poissonDisk) };
+        poissonKernelBuffer = core->CreateBuffer(pkBCI);
+        core->QueueBufferUpload(poissonKernelBuffer.Get(), poissonDisk, sizeof(poissonDisk), 0);
+
         VK::BufferCreateInfo drawCmdsBCI{
             VK::BufferUsage::Indirect, sizeof(VK::DrawIndexedIndirectCommand) * MAX_DRAWS, true};
         drawCommandBuffers = new VK::FrameSeparatedBuffer(core, drawCmdsBCI);
@@ -180,6 +193,7 @@ namespace worlds
         dslb.Binding(4, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
         dslb.UpdateAfterBind();
         dslb.Binding(5, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
+        dslb.Binding(6, VK::DescriptorType::UniformBuffer, 1, VK::ShaderStage::Fragment);
         descriptorSetLayout = dslb.Build();
 
         for (int i = 0; i < 2; i++)
@@ -192,6 +206,7 @@ namespace worlds
             dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, RenderMaterialManager::GetBuffer());
             dsu.AddBuffer(3, 0, VK::DescriptorType::StorageBuffer, lightBuffers->GetBuffer(i));
             dsu.AddBuffer(5, 0, VK::DescriptorType::StorageBuffer, drawInfoBuffers->GetBuffer(i));
+            dsu.AddBuffer(6, 0, VK::DescriptorType::UniformBuffer, poissonKernelBuffer.Get());
             dsu.Update();
         }
 

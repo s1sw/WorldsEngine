@@ -58,9 +58,7 @@ float3 SchlickFresnelWithRoughness(float cosVh, float3 f0, float roughness)
 struct ShadeInfo
 {
     float3 albedoColor;
-    float metallic;
     float3 normal;
-    float roughness;
     float3 viewDir;
-    float ao;
+    float roughness, ao, metallic;
 };

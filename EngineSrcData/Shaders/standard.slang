@@ -96,6 +96,11 @@ ByteAddressBuffer RawLightBuffer;
 StructuredBuffer<LightingTile> LightTiles;
 StructuredBuffer<DrawInfo> DrawInfos;
 
+cbuffer PKernel
+{
+    float2 PoissonKernel[24];
+};
+
 [[vk::binding(0, 1)]]
 Sampler2D<float4> Textures[];
 
@@ -129,15 +134,6 @@ float3x3 ConstructTBN(VertexOutput input)
 
     return transpose(float3x3(tangent, bitangent, input.Normal));
 }
-
-static const float2 poissonDisk[24] = { // don't use 'const' b/c of OSX GL compiler bug
-    float2(0.511749, 0.547686), float2(0.58929, 0.257224), float2(0.165018, 0.57663), float2(0.407692, 0.742285),
-    float2(0.707012, 0.646523), float2(0.31463, 0.466825), float2(0.801257, 0.485186), float2(0.418136, 0.146517),
-    float2(0.579889, 0.0368284), float2(0.79801, 0.140114), float2(-0.0413185, 0.371455), float2(-0.0529108, 0.627352),
-    float2(0.0821375, 0.882071), float2(0.17308, 0.301207), float2(-0.120452, 0.867216), float2(0.371096, 0.916454),
-    float2(-0.178381, 0.146101), float2(-0.276489, 0.550525), float2(0.12542, 0.126643), float2(-0.296654, 0.286879),
-    float2(0.261744, -0.00604975), float2(-0.213417, 0.715776), float2(0.425684, -0.153211), float2(-0.480054, 0.321357)
-};
 
 float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, uint viewIndex)
 {
@@ -181,13 +177,14 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                 {
                     float occlusionAmount = 0.0;
 
-                    for (int t = 0; t < 24; t++)
+                    [[loop]]
+                    for (int t = 0; t < 8; t++)
                     {
-                        float2 offsetCoord = coord + poissonDisk[t] * (2.0 / 512.0);
+                        float2 offsetCoord = coord + PoissonKernel[t] * (2.0 / 512.0);
                         float d = Textures[NonUniformResourceIndex(lbl.GetShadowmapId(light.ShadowmapIndex))].SampleLevel(offsetCoord, 0).x;
                         occlusionAmount += d - 0.0002 > shadowPos.z ? 0 : 1;
                     }
-                    occlusionAmount /= 24.0;
+                    occlusionAmount /= 8.0;
                     contribution *= occlusionAmount;
                 }
             }
