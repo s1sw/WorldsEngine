@@ -122,6 +122,9 @@ namespace R2::VK
         PipelineBuilder& DepthCompareOp(CompareOp op);
         PipelineBuilder& MSAASamples(int sampleCount);
         PipelineBuilder& ViewMask(uint32_t viewMask);
+        PipelineBuilder& DepthBias(bool enable);
+        PipelineBuilder& ConstantDepthBias(float b);
+        PipelineBuilder& SlopeDepthBias(float b);
         Pipeline* Build();
     private:
         Core* core;
@@ -135,12 +138,15 @@ namespace R2::VK
         TextureFormat depthFormat;
         std::vector<ShaderStageCreateInfo> shaderStages;
         std::vector<VertexBinding> vertexBindings;
-        Topology topology;
-        VK::CullMode cullMode;
+        Topology topology = Topology::TriangleList;
+        VK::CullMode cullMode = VK::CullMode::Back;
         VkPipelineLayout layout;
         bool alphaBlend = false;
         bool depthTest = false;
         bool depthWrite = false;
+        bool depthBias = false;
+        float constantDepthBias = 0.0f;
+        float slopeDepthBias = 0.0f;
         CompareOp depthCompareOp = CompareOp::Always;
         int numSamples = 1;
         uint32_t viewMask = 0;

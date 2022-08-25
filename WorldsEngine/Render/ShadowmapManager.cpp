@@ -24,16 +24,20 @@ namespace worlds
         vertBinding.Attributes.emplace_back(0, VK::TextureFormat::R32G32B32_SFLOAT, 0);
 
         VK::PipelineBuilder pb{renderer->getCore()};
-        pb.AddShader(VK::ShaderStage::Vertex, ShaderCache::getModule(AssetDB::pathToId("Shaders/shadowmap.vert.spv")))
-        .AddShader(VK::ShaderStage::Fragment, ShaderCache::getModule(AssetDB::pathToId("Shaders/blank.frag.spv")))
-        .AddVertexBinding(std::move(vertBinding))
-        .Layout(pipelineLayout.Get())
-        .DepthTest(true)
-        .DepthWrite(true)
-        .DepthCompareOp(VK::CompareOp::Greater)
-        .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
-        .CullMode(VK::CullMode::Back)
-        .PrimitiveTopology(VK::Topology::TriangleList);
+        pb
+            .AddShader(VK::ShaderStage::Vertex, ShaderCache::getModule(AssetDB::pathToId("Shaders/shadowmap.vert.spv")))
+            .AddShader(VK::ShaderStage::Fragment, ShaderCache::getModule(AssetDB::pathToId("Shaders/blank.frag.spv")))
+            .AddVertexBinding(std::move(vertBinding))
+            .Layout(pipelineLayout.Get())
+            .DepthTest(true)
+            .DepthWrite(true)
+            .DepthCompareOp(VK::CompareOp::Greater)
+            .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
+            .CullMode(VK::CullMode::Back)
+            .PrimitiveTopology(VK::Topology::TriangleList)
+            .DepthBias(true)
+            .ConstantDepthBias(-1.4f)
+            .SlopeDepthBias(-1.75f);
 
         pipeline = pb.Build();
 

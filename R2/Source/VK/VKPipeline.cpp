@@ -186,6 +186,24 @@ namespace R2::VK
         return *this;
     }
 
+    PipelineBuilder& PipelineBuilder::DepthBias(bool enable)
+    {
+        depthBias = enable;
+        return *this;
+    }
+
+    PipelineBuilder& PipelineBuilder::ConstantDepthBias(float b)
+    {
+        constantDepthBias = b;
+        return *this;
+    }
+
+    PipelineBuilder& PipelineBuilder::SlopeDepthBias(float b)
+    {
+        slopeDepthBias = b;
+        return *this;
+    }
+
     Pipeline* PipelineBuilder::Build()
     {
         // Rendering state
@@ -245,6 +263,9 @@ namespace R2::VK
         rasterizationStateCI.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizationStateCI.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizationStateCI.lineWidth = 1.0f;
+        rasterizationStateCI.depthBiasEnable = depthBias;
+        rasterizationStateCI.depthBiasConstantFactor = constantDepthBias;
+        rasterizationStateCI.depthBiasSlopeFactor = slopeDepthBias;
 
         // Depth stencil state
         VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
