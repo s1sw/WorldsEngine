@@ -1,4 +1,5 @@
 #include <Core/AssetDB.hpp>
+#include <Core/ConVar.hpp>
 #include <Core/Engine.hpp>
 #include <Core/Log.hpp>
 #include <Core/MaterialManager.hpp>
@@ -258,8 +259,11 @@ namespace worlds
         }
     }
 
+    static ConVar showRenderDebugMenus{ "r_showExtraDebug", "0" };
     void VKRenderer::drawDebugMenus()
     {
+        if (!showRenderDebugMenus) return;
+
         textureManager->showDebugMenu();
         RenderMaterialManager::ShowDebugMenu();
 
