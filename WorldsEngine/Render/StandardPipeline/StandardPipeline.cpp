@@ -618,147 +618,147 @@ namespace worlds
         SkinnedWorldObjectMaterialLoadTask swoLoadTask{renderer, reg};
         swoLoadTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
 
-        enki::TaskSet recordCBTask([&](enki::TaskSetPartition, uint32_t) {
-            lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
-            modelMatrixBuffers->GetCurrentBuffer()->Acquire(
-                cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::VertexShader);
-
-            // Set up culling frustums and fill the VP buffer
-            Camera* camera = rttPass->getCamera();
-            Frustum* frustums = (Frustum*)alloca(sizeof(Frustum) * rttPass->getSettings().numViews);
-
-            MultiVP multiVPs{};
-            multiVPs.screenWidth = rttPass->width;
-            multiVPs.screenHeight = rttPass->height;
-            for (int i = 0; i < rttPass->getSettings().numViews; i++)
-            {
-                glm::mat4 view;
-                glm::mat4 proj;
-
-                if (useViewOverrides)
-                {
-                    view = overrideViews[i] * camera->getViewMatrix();
-                    proj = overrideProjs[i];
-                }
-                else
-                {
-                    view = camera->getViewMatrix();
-                    proj = camera->getProjectionMatrix((float)rttPass->width / rttPass->height);
-                }
-
-                multiVPs.views[i] = view;
-                multiVPs.projections[i] = proj;
-                multiVPs.inverseVP[i] = glm::inverse(proj * view);
-                multiVPs.viewPos[i] = glm::vec4((glm::vec3)glm::inverse(view)[3], 0.0f);
-
-                new (&frustums[i]) Frustum();
-                frustums[i].fromVPMatrix(proj * view);
-            }
-
-            core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
-
-            glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrixBuffers->MapCurrent();
-            GPUDrawInfo* drawInfosMapped = (GPUDrawInfo*)drawInfoBuffers->MapCurrent();
-            VK::DrawIndexedIndirectCommand* drawCmdsMapped =
-                (VK::DrawIndexedIndirectCommand*)drawCommandBuffers->MapCurrent();
-
-            AtomicBufferWrapper<glm::mat4> matrixWrapper{modelMatricesMapped};
-
-            FillDrawBufferTask fdbTask{renderer, reg};
-            fdbTask.numViews = rttPass->getSettings().numViews;
-            fdbTask.frustums = frustums;
-            fdbTask.modelMatrices = &matrixWrapper;
-            fdbTask.gpuDrawInfos = drawInfosMapped;
-            fdbTask.drawCmds = drawCmdsMapped;
-
-            fdbTask.m_SetSize = reg.view<WorldObject>().size();
-
-            g_taskSched.AddTaskSetToPipe(&fdbTask);
-            g_taskSched.WaitforTask(&fdbTask);
-
-            modelMatrixBuffers->UnmapCurrent();
-            drawInfoBuffers->UnmapCurrent();
-            drawCommandBuffers->UnmapCurrent();
-
-            // Depth Pre-Pass
-            cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
-
-            cb.BindPipeline(depthPrePipeline.Get());
-            VK::RenderPass depthPass;
-            depthPass.DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
-                .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
-                .RenderArea(rttPass->width, rttPass->height)
-                .ViewMask(getViewMask(rttPass->getSettings().numViews));
-
-            depthPass.Begin(cb);
-
-            cb.BindGraphicsDescriptorSet(
-                pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
-            cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
-            cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
-            cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
-            cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
-            cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
-
-            cb.DrawIndexedIndirect(
-                drawCommandBuffers->GetCurrentBuffer(),
-                0,
-                fdbTask.drawIdCounter,
-                sizeof(VK::DrawIndexedIndirectCommand));
-            depthPass.End(cb);
-            renderer->getDebugStats().numDrawCalls = fdbTask.drawIdCounter;
-
-            cb.EndDebugLabel();
-
-            // Run light culling using the depth buffer
-            lightCull->Execute(cb);
-
-            lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::FragmentShader);
-
-            // Actual "opaque" pass
-            cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
-            cb.BindPipeline(pipeline.Get());
-
-            VK::RenderPass colorPass;
-            colorPass.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
-                .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.0f, 0.0f, 0.0f, 1.0f))
-                .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Load, VK::StoreOp::Store)
-                .RenderArea(rttPass->width, rttPass->height)
-                .ViewMask(getViewMask(rttPass->getSettings().numViews));
-
-            colorPass.Begin(cb);
-
-            cb.DrawIndexedIndirect(
-                drawCommandBuffers->GetCurrentBuffer(),
-                0,
-                fdbTask.drawIdCounter,
-                sizeof(VK::DrawIndexedIndirectCommand));
-
-            skyboxRenderer->Execute(cb);
-
-            cb.BeginDebugLabel("Debug Lines", 0.1f, 0.1f, 0.1f);
-            size_t dbgLinesCount;
-            const DebugLine* dbgLines = renderer->getCurrentDebugLines(&dbgLinesCount);
-
-            debugLineDrawer->Execute(cb, dbgLines, dbgLinesCount);
-            cb.EndDebugLabel();
-
-            colorPass.End(cb);
-            cb.EndDebugLabel();
-
-            // Post-processing
-            bloom->Execute(cb);
-            tonemapper->Execute(cb);
-        });
+        
 
         finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
-            finisher.dependencies, {&fillTask, &woLoadTask, &swoLoadTask, &recordCBTask});
+            finisher.dependencies, {&fillTask, &woLoadTask, &swoLoadTask});
 
         g_taskSched.AddTaskSetToPipe(&fillTask);
         g_taskSched.AddTaskSetToPipe(&woLoadTask);
         g_taskSched.AddTaskSetToPipe(&swoLoadTask);
-        g_taskSched.AddTaskSetToPipe(&recordCBTask);
         g_taskSched.WaitforTask(&finisher);
+
+        lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
+        modelMatrixBuffers->GetCurrentBuffer()->Acquire(
+            cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::VertexShader);
+
+        // Set up culling frustums and fill the VP buffer
+        Camera* camera = rttPass->getCamera();
+        Frustum* frustums = (Frustum*)alloca(sizeof(Frustum) * rttPass->getSettings().numViews);
+
+        MultiVP multiVPs{};
+        multiVPs.screenWidth = rttPass->width;
+        multiVPs.screenHeight = rttPass->height;
+        for (int i = 0; i < rttPass->getSettings().numViews; i++)
+        {
+            glm::mat4 view;
+            glm::mat4 proj;
+
+            if (useViewOverrides)
+            {
+                view = overrideViews[i] * camera->getViewMatrix();
+                proj = overrideProjs[i];
+            }
+            else
+            {
+                view = camera->getViewMatrix();
+                proj = camera->getProjectionMatrix((float)rttPass->width / rttPass->height);
+            }
+
+            multiVPs.views[i] = view;
+            multiVPs.projections[i] = proj;
+            multiVPs.inverseVP[i] = glm::inverse(proj * view);
+            multiVPs.viewPos[i] = glm::vec4((glm::vec3)glm::inverse(view)[3], 0.0f);
+
+            new (&frustums[i]) Frustum();
+            frustums[i].fromVPMatrix(proj * view);
+        }
+
+        core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
+
+        glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrixBuffers->MapCurrent();
+        GPUDrawInfo* drawInfosMapped = (GPUDrawInfo*)drawInfoBuffers->MapCurrent();
+        VK::DrawIndexedIndirectCommand* drawCmdsMapped =
+            (VK::DrawIndexedIndirectCommand*)drawCommandBuffers->MapCurrent();
+
+        AtomicBufferWrapper<glm::mat4> matrixWrapper{modelMatricesMapped};
+
+        FillDrawBufferTask fdbTask{renderer, reg};
+        fdbTask.numViews = rttPass->getSettings().numViews;
+        fdbTask.frustums = frustums;
+        fdbTask.modelMatrices = &matrixWrapper;
+        fdbTask.gpuDrawInfos = drawInfosMapped;
+        fdbTask.drawCmds = drawCmdsMapped;
+
+        fdbTask.m_SetSize = reg.view<WorldObject>().size();
+
+        g_taskSched.AddTaskSetToPipe(&fdbTask);
+        g_taskSched.WaitforTask(&fdbTask);
+
+        modelMatrixBuffers->UnmapCurrent();
+        drawInfoBuffers->UnmapCurrent();
+        drawCommandBuffers->UnmapCurrent();
+
+        // Depth Pre-Pass
+        cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
+
+        cb.BindPipeline(depthPrePipeline.Get());
+        VK::RenderPass depthPass;
+        depthPass.DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
+            .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
+            .RenderArea(rttPass->width, rttPass->height)
+            .ViewMask(getViewMask(rttPass->getSettings().numViews));
+
+        depthPass.Begin(cb);
+
+        cb.BindGraphicsDescriptorSet(
+            pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
+        cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
+        cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
+        cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
+        cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
+
+        cb.DrawIndexedIndirect(
+            drawCommandBuffers->GetCurrentBuffer(),
+            0,
+            fdbTask.drawIdCounter,
+            sizeof(VK::DrawIndexedIndirectCommand));
+        depthPass.End(cb);
+        renderer->getDebugStats().numDrawCalls = fdbTask.drawIdCounter;
+
+        cb.EndDebugLabel();
+
+        // Run light culling using the depth buffer
+        lightCull->Execute(cb);
+
+        lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::FragmentShader);
+
+        // Actual "opaque" pass
+        cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
+        cb.BindPipeline(pipeline.Get());
+
+        VK::RenderPass colorPass;
+        colorPass.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
+            .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.0f, 0.0f, 0.0f, 1.0f))
+            .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Load, VK::StoreOp::Store)
+            .RenderArea(rttPass->width, rttPass->height)
+            .ViewMask(getViewMask(rttPass->getSettings().numViews));
+
+        colorPass.Begin(cb);
+
+        cb.DrawIndexedIndirect(
+            drawCommandBuffers->GetCurrentBuffer(),
+            0,
+            fdbTask.drawIdCounter,
+            sizeof(VK::DrawIndexedIndirectCommand));
+
+        skyboxRenderer->Execute(cb);
+
+        cb.BeginDebugLabel("Debug Lines", 0.1f, 0.1f, 0.1f);
+        size_t dbgLinesCount;
+        const DebugLine* dbgLines = renderer->getCurrentDebugLines(&dbgLinesCount);
+
+        debugLineDrawer->Execute(cb, dbgLines, dbgLinesCount);
+        cb.EndDebugLabel();
+
+        colorPass.End(cb);
+        cb.EndDebugLabel();
+
+        // Post-processing
+        bloom->Execute(cb);
+        tonemapper->Execute(cb);
+
         lightBuffers->UnmapCurrent();
     }
 
