@@ -187,12 +187,15 @@ namespace worlds
             cb, VK::ImageLayout::PresentSrc, VK::AccessFlags::MemoryRead, VK::PipelineStageFlags::AllCommands);
 
         timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 2 + 1);
+
+        if (this->xrPresentManager && xrRendered)
+            xrPresentManager->preSubmit();
         core->EndFrame();
+
+        swapchain->Present();
 
         if (this->xrPresentManager && xrRendered)
             xrPresentManager->submit(vrUsedPose);
-
-        swapchain->Present();
     }
 
     float VKRenderer::getLastGPUTime() const

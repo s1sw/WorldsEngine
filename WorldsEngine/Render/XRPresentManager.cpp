@@ -26,6 +26,8 @@ namespace worlds
             this->height = (int)uHeight;
         }
 
+        vr::VRCompositor()->SetExplicitTimingMode(vr::VRCompositorTimingMode_Explicit_ApplicationPerformsPostPresentHandoff);
+
         createTextures();
     }
 
@@ -81,9 +83,14 @@ namespace worlds
         return r;
     }
 
+    void XRPresentManager::preSubmit()
+    {
+        vr::VRCompositor()->SubmitExplicitTimingData();
+    }
 
     void XRPresentManager::submit(glm::mat4 usedPose)
     {
+        vr::VRCompositor()->PostPresentHandoff();
         const VK::Handles* handles = core->GetHandles();
 
         VkImage leftNativeHandle = leftEye->GetNativeHandle();

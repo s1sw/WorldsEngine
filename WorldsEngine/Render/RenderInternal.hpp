@@ -253,6 +253,7 @@ namespace worlds
         XRPresentManager(R2::VK::Core* core, int width, int height);
         void resize(int width, int height);
         void copyFromLayered(R2::VK::CommandBuffer cb, R2::VK::Texture* layeredTexture);
+        void preSubmit();
         void submit(glm::mat4 usedPose);
     };
 
