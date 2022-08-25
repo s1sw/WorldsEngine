@@ -28,6 +28,7 @@ struct VertexOutput
     float3 Normal : NORMAL;
     float4 TangentWithSign : TANGENT;
     float2 UV : TEXCOORD;
+    nointerpolation uint DrawID : DRAWID;
 }
 
 struct MultiVP
@@ -82,11 +83,18 @@ struct PBRMaterial
     }
 }
 
+struct DrawInfo
+{
+    uint MaterialOffset;
+    uint ModelMatrixID;
+}
+
 ConstantBuffer<MultiVP> VPBuffer;
 StructuredBuffer<float4x4> ModelMatrices;
 ByteAddressBuffer MaterialBuffer;
 ByteAddressBuffer RawLightBuffer;
 StructuredBuffer<LightingTile> LightTiles;
+StructuredBuffer<DrawInfo> DrawInfos;
 
 [[vk::binding(0, 1)]]
 Sampler2D<float4> Textures[];
@@ -94,28 +102,22 @@ Sampler2D<float4> Textures[];
 [[vk::binding(0, 1)]]
 SamplerCube<float4> Cubemaps[];
 
-[[vk::push_constant]]
-cbuffer PushConstants
-{
-    uint ModelMatrixID;
-    uint MaterialOffset;
-    float2 TextureScale;
-    float2 TextureOffset;
-}
 
 [shader("vertex")]
-VertexOutput VertexShader(VertexInput input, uint viewIndex : SV_ViewID)
+VertexOutput VertexShader(VertexInput input, uint viewIndex : SV_ViewID, uint drawIndex : SV_DrawID)
 {
     VertexOutput output;
+    DrawInfo di = DrawInfos[drawIndex];
 
-    float4x4 model = ModelMatrices[ModelMatrixID];
+    float4x4 model = ModelMatrices[di.ModelMatrixID];
     float4x4 mvp = mul(VPBuffer.ProjectionMatrices[viewIndex], mul(VPBuffer.ViewMatrices[viewIndex], model));
     output.Position = mul(mvp, float4(input.Position, 1.0));
     output.WorldPosition = mul(model, float4(input.Position, 1.0)).xyz;
     output.Normal = normalize(mul(adjoint(model), input.Normal));
     output.TangentWithSign = float4(mul(adjoint(model), input.Tangent).xyz, input.BitangentSign);
-    output.UV = (input.UV * TextureScale) + TextureOffset;
+    output.UV = input.UV;
     output.Position.y = -output.Position.y;
+    output.DrawID = drawIndex;
 
     return output;
 }
@@ -329,7 +331,8 @@ float3 GetHeatmapColor(uint number, float2 fragCoord)
 [shader("fragment")]
 float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position, uint viewIndex : SV_ViewID) : SV_TARGET
 {
-    PBRMaterial material = MaterialBuffer.Load<PBRMaterial>(MaterialOffset);
+    DrawInfo di = DrawInfos[WaveReadLaneFirst(input.DrawID)];
+    PBRMaterial material = MaterialBuffer.Load<PBRMaterial>(int(di.MaterialOffset));
 
     float3x3 tbn = ConstructTBN(input);
     float3 normal = material.GetNormal(input.UV, tbn);

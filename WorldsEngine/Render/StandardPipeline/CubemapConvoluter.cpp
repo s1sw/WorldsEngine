@@ -36,6 +36,7 @@ namespace worlds
         {
             for (int i = 0; i < 6; i++)
             {
+                tex->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderRead | VK::AccessFlags::ShaderWrite, VK::PipelineStageFlags::ComputeShader);
                 SimpleCompute sc{core, AssetDB::pathToId("Shaders/cubemap_convolute.comp.spv")};
 
                 VK::TextureSubset subset{};

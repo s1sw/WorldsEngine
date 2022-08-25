@@ -203,7 +203,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
 #ifdef MULTIVP
         float3 raw = hdrImage.Load(int3(threadID.xy, idx), i).xyz;
 #else
-        float3 raw = hdrImage.Load(threadID.xy, i).xyz;
+        float3 raw = hdrImage.Load(int2(threadID.xy), i).xyz;
 #endif
 
         accumulator += reversibleTonemap.Tonemap(lerp(raw, bloom, 0.2));

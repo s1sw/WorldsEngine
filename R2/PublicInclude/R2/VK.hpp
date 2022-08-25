@@ -5,6 +5,7 @@
 #include "VKCore.hpp"
 #include "VKDescriptorSet.hpp"
 #include "VKEnums.hpp"
+#include "VKFrameSeparatedBuffer.hpp"
 #include "VKPipeline.hpp"
 #include "VKRenderPass.hpp"
 #include "VKSampler.hpp"

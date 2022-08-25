@@ -1086,12 +1086,12 @@ namespace worlds
 
                 if (ImGui::CollapsingHeader(ICON_FA_MEMORY u8" Memory Stats"))
                 {
-                    ImGui::Text("CPU:");
 #ifdef CHECK_NEW_DELETE
+                    ImGui::Text("CPU:");
                     ImGui::Text("Live allocations: %lu", liveAllocations);
                     ImGui::Text("Allocated bytes: %lu", allocatedMem);
-#endif
                     ImGui::Separator();
+#endif
                     ImGui::Text("GPU:");
                 }
 

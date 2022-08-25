@@ -16,6 +16,7 @@ namespace R2::VK
     class Pipeline;
     class PipelineLayout;
     class Buffer;
+    class FrameSeparatedBuffer;
     class SubAllocatedBuffer;
     class Texture;
     class Core;
@@ -42,8 +43,10 @@ namespace worlds
         UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
         UniquePtr<R2::VK::Buffer> multiVPBuffer;
         UniquePtr<R2::VK::Buffer> modelMatrixBuffers[2];
-        UniquePtr<R2::VK::Buffer> lightBuffers[2];
+        UniquePtr<R2::VK::FrameSeparatedBuffer> lightBuffers;
         UniquePtr<R2::VK::Buffer> lightTileBuffer;
+        UniquePtr<R2::VK::FrameSeparatedBuffer> drawInfoBuffers;
+        UniquePtr<R2::VK::FrameSeparatedBuffer> drawCommandBuffers;
         UniquePtr<R2::VK::Texture> depthBuffer;
         UniquePtr<R2::VK::Texture> colorBuffer;
 
@@ -62,8 +65,6 @@ namespace worlds
         std::vector<glm::mat4> overrideProjs;
 
         void createSizeDependants();
-        void drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices, Frustum* frustums,
-                      int numViews);
     public:
         StandardPipeline(VKRenderer* renderer);
         ~StandardPipeline();

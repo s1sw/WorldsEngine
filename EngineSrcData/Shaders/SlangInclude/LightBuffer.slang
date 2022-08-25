@@ -42,7 +42,7 @@ struct LightBufferLoader
         return rawLightBuffer.Load(256);
     }
 
-    Light GetLight(int lightIndex)
+    Light GetLight(uint lightIndex)
     {
         return rawLightBuffer.Load<Light>(544 + LIGHT_SIZE * lightIndex);
     }
@@ -77,7 +77,7 @@ struct LightBufferLoader
         return rawLightBuffer.Load(268);
     }
 
-    Cubemap GetCubemap(int cubemapIndex)
+    Cubemap GetCubemap(uint cubemapIndex)
     {
         return rawLightBuffer.Load<Cubemap>(21344 + CUBEMAP_SIZE * cubemapIndex);
     }

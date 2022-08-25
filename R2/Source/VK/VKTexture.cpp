@@ -380,6 +380,14 @@ namespace R2::VK
         VKCHECK(vkCreateImageView(core->GetHandles()->Device, &ivci, core->GetHandles()->AllocCallbacks, &imageView));
     }
 
+    TextureView::~TextureView()
+    {
+        DeletionQueue* dq;
+
+        dq = core->perFrameResources[core->frameIndex].DeletionQueue;
+        dq->QueueObjectDeletion(imageView, VK_OBJECT_TYPE_IMAGE_VIEW);
+    }
+
     VkImageView TextureView::GetNativeHandle()
     {
         return imageView;

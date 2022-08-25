@@ -14,7 +14,7 @@ namespace worlds
 {
     struct MaterialAllocInfo
     {
-        size_t offset;
+        uint32_t offset;
         SubAllocationHandle handle;
         AssetID albedoID = ~0u;
         AssetID normalID = ~0u;
@@ -60,7 +60,7 @@ namespace worlds
         return allocedMaterials.contains(id);
     }
 
-    size_t RenderMaterialManager::LoadOrGetMaterial(AssetID id)
+    uint32_t RenderMaterialManager::LoadOrGetMaterial(AssetID id)
     {
         MaterialAllocInfo mai{};
         {
@@ -71,7 +71,7 @@ namespace worlds
                 return allocedMaterials[id].offset;
             }
 
-            mai.offset = materialBuffer->Allocate(sizeof(StandardPBRMaterial), mai.handle);
+            mai.offset = (uint32_t)materialBuffer->Allocate(sizeof(StandardPBRMaterial), mai.handle);
             allocedMaterials.insert({id, mai});
         }
 
@@ -109,6 +109,11 @@ namespace worlds
         allocedMaterials[id] = mai;
 
         return mai.offset;
+    }
+
+    uint32_t RenderMaterialManager::GetMaterial(AssetID id)
+    {
+        return allocedMaterials[id].offset;
     }
 
     void RenderMaterialManager::Unload(AssetID id)

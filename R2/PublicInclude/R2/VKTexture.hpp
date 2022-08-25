@@ -456,6 +456,7 @@ namespace R2::VK
     {
     public:
         TextureView(Core* core, Texture* texture, TextureSubset subset);
+        ~TextureView();
         VkImageView GetNativeHandle();
     private:
         Core* core;

@@ -6,6 +6,7 @@ namespace R2::VK
 {
     class Texture;
     class Buffer;
+    class FrameSeparatedBuffer;
     class Pipeline;
     class PipelineLayout;
     class Core;
@@ -23,13 +24,13 @@ namespace worlds
     {
         R2::VK::Core* core;
         R2::VK::Texture* depthBuffer;
-        UniquePtr<R2::VK::Buffer>* lightBuffers;
+        R2::VK::FrameSeparatedBuffer* lightBuffers;
         R2::VK::Buffer* lightTiles;
         R2::VK::Buffer* multiVPBuffer;
         UniquePtr<R2::VK::Sampler> sampler;
         UniquePtr<SimpleCompute> cs[2];
     public:
-        LightCull(R2::VK::Core* core, R2::VK::Texture* depthBuffer, UniquePtr<R2::VK::Buffer>* lightBuffers, R2::VK::Buffer* lightTiles, R2::VK::Buffer* multiVPBuffer);
+        LightCull(R2::VK::Core* core, R2::VK::Texture* depthBuffer, R2::VK::FrameSeparatedBuffer* lightBuffers, R2::VK::Buffer* lightTiles, R2::VK::Buffer* multiVPBuffer);
         void Execute(R2::VK::CommandBuffer& cb);
     };
 }

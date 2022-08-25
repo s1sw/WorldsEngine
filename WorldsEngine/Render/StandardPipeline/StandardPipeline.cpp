@@ -1,6 +1,7 @@
 #include "StandardPipeline.hpp"
 #include <Core/AssetDB.hpp>
 #include <Core/Engine.hpp>
+#include <Core/ConVar.hpp>
 #include <Core/MaterialManager.hpp>
 #include <Core/TaskScheduler.hpp>
 #include <R2/BindlessTextureManager.hpp>
@@ -17,8 +18,9 @@
 #include <Render/StandardPipeline/Tonemapper.hpp>
 #include <Render/StandardPipeline/RenderMaterialManager.hpp>
 #include <entt/entity/registry.hpp>
-#include <Util/JsonUtil.hpp>
 #include <Util/AABB.hpp>
+#include <Util/AtomicBufferWrapper.hpp>
+#include <Util/JsonUtil.hpp>
 #include <Tracy.hpp>
 
 #include <deque>
@@ -28,6 +30,7 @@ using namespace R2;
 
 namespace worlds
 {
+    const uint32_t MAX_DRAWS = 8192;
     struct StandardPushConstants
     {
         uint32_t modelMatrixID;
@@ -42,6 +45,12 @@ namespace worlds
         uint32_t cubemapIdMasks[2];
         uint32_t aoBoxIdMasks[2];
         uint32_t aoSphereIdMasks[2];
+    };
+
+    struct GPUDrawInfo
+    {
+        uint32_t materialOffset;
+        uint32_t modelMatrixID;
     };
 
     const VK::TextureFormat colorBufferFormat = VK::TextureFormat::B10G11R11_UFLOAT_PACK32;
@@ -107,7 +116,7 @@ namespace worlds
         }
 
         lightCull =
-            new LightCull(core, depthBuffer.Get(), lightBuffers, lightTileBuffer.Get(), multiVPBuffer.Get());
+            new LightCull(core, depthBuffer.Get(), lightBuffers.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
         debugLineDrawer = new DebugLineDrawer(core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel,
                                               getViewMask(settings.numViews));
         bloom = new Bloom(core, colorBuffer.Get());
@@ -142,10 +151,13 @@ namespace worlds
         modelMatrixBuffers[1] = core->CreateBuffer(modelMatrixBci);
 
         VK::BufferCreateInfo lightBci{VK::BufferUsage::Storage, sizeof(LightUB), true};
-        lightBuffers[0] = core->CreateBuffer(lightBci);
-        lightBuffers[0]->SetDebugName("Light Buffer");
-        lightBuffers[1] = core->CreateBuffer(lightBci);
-        lightBuffers[1]->SetDebugName("Light Buffer");
+        lightBuffers = new VK::FrameSeparatedBuffer(core, lightBci);
+
+        VK::BufferCreateInfo drawInfoBCI{VK::BufferUsage::Storage, sizeof(GPUDrawInfo) * MAX_DRAWS, true};
+        drawInfoBuffers = new VK::FrameSeparatedBuffer(core, drawInfoBCI);
+
+        VK::BufferCreateInfo drawCmdsBCI{VK::BufferUsage::Indirect, sizeof(VK::DrawIndexedIndirectCommand) * MAX_DRAWS, true};
+        drawCommandBuffers = new VK::FrameSeparatedBuffer(core, drawCmdsBCI);
 
         AssetID vs = AssetDB::pathToId("Shaders/standard.vert.spv");
         AssetID fs = AssetDB::pathToId("Shaders/standard.frag.spv");
@@ -157,6 +169,7 @@ namespace worlds
         dslb.Binding(2, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
         dslb.Binding(3, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
         dslb.Binding(4, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
+        dslb.Binding(5, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
         dslb.UpdateAfterBind();
         descriptorSetLayout = dslb.Build();
 
@@ -168,7 +181,8 @@ namespace worlds
             dsu.AddBuffer(0, 0, VK::DescriptorType::UniformBuffer, multiVPBuffer.Get());
             dsu.AddBuffer(1, 0, VK::DescriptorType::StorageBuffer, modelMatrixBuffers[i].Get());
             dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, RenderMaterialManager::GetBuffer());
-            dsu.AddBuffer(3, 0, VK::DescriptorType::StorageBuffer, lightBuffers[i].Get());
+            dsu.AddBuffer(3, 0, VK::DescriptorType::StorageBuffer, lightBuffers->GetBuffer(i));
+            dsu.AddBuffer(5, 0, VK::DescriptorType::StorageBuffer, drawInfoBuffers->GetBuffer(i));
             dsu.Update();
         }
 
@@ -269,99 +283,6 @@ namespace worlds
             return false;
 
         return true;
-    }
-
-    void StandardPipeline::drawLoop(entt::registry& reg, R2::VK::CommandBuffer& cb, bool writeMatrices,
-                                    Frustum* frustums, int numViews)
-    {
-        ZoneScoped;
-        RenderMeshManager* meshManager = renderer->getMeshManager();
-        VK::Core* core = renderer->getCore();
-
-        uint32_t modelMatrixIndex = 0;
-        glm::mat4* modelMatricesMapped;
-
-        if (writeMatrices)
-            modelMatricesMapped = (glm::mat4*)modelMatrixBuffers[core->GetFrameIndex()]->Map();
-
-        RenderDebugStats& debugStats = renderer->getDebugStats();
-
-        cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
-        cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
-        reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
-            const RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
-
-            if (!cullMesh(rmi, t, frustums, numViews))
-                return;
-
-            if (writeMatrices)
-                modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
-            else
-                modelMatrixIndex++;
-
-            for (int i = 0; i < rmi.numSubmeshes; i++)
-            {
-                const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
-
-                StandardPushConstants spc{};
-                spc.modelMatrixID = modelMatrixIndex - 1;
-                spc.textureScale = glm::vec2(wo.texScaleOffset.x, wo.texScaleOffset.y);
-                spc.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
-                uint8_t materialIndex = rsi.materialIndex;
-
-                if (!wo.presentMaterials[materialIndex])
-                {
-                    materialIndex = 0;
-                }
-
-                spc.materialID = RenderMaterialManager::LoadOrGetMaterial(wo.materials[materialIndex]);
-                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
-
-                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t)),
-                               (rmi.vertsOffset / sizeof(Vertex)), 0);
-                debugStats.numDrawCalls++;
-                debugStats.numTriangles += rsi.indexCount / 3;
-            }
-        });
-
-        reg.view<SkinnedWorldObject, Transform>().each([&](SkinnedWorldObject& wo, Transform& t) {
-            RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
-
-            if (writeMatrices)
-                modelMatricesMapped[modelMatrixIndex++] = t.getMatrix();
-            else
-                modelMatrixIndex++;
-
-            cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), rmi.vertsOffset);
-
-            cb.BindIndexBuffer(meshManager->getIndexBuffer(), rmi.indexOffset, VK::IndexType::Uint32);
-
-            for (int i = 0; i < rmi.numSubmeshes; i++)
-            {
-                RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
-
-                StandardPushConstants spc{};
-                spc.modelMatrixID = modelMatrixIndex - 1;
-                uint8_t materialIndex = rsi.materialIndex;
-
-                if (!wo.presentMaterials[materialIndex])
-                {
-                    materialIndex = 0;
-                }
-
-                spc.materialID = RenderMaterialManager::LoadOrGetMaterial(wo.materials[materialIndex]);
-                spc.textureScale = glm::vec2(wo.texScaleOffset.x, wo.texScaleOffset.y);
-                spc.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
-                cb.PushConstants(spc, VK::ShaderStage::AllRaster, pipelineLayout.Get());
-
-                cb.DrawIndexed(rsi.indexCount, 1, rsi.indexOffset, 0, 0);
-                debugStats.numDrawCalls++;
-                debugStats.numTriangles += rsi.indexCount / 3;
-            }
-        });
-
-        if (writeMatrices)
-            modelMatrixBuffers[core->GetFrameIndex()]->Unmap();
     }
 
     std::deque<AssetID> convoluteQueue;
@@ -569,6 +490,71 @@ namespace worlds
         }
     };
 
+    struct FillDrawBufferTask : public enki::ITaskSet
+    {
+        VKRenderer* renderer;
+        entt::registry& reg;
+        int numViews;
+        Frustum* frustums;
+        AtomicBufferWrapper<glm::mat4>* modelMatrices;
+        AtomicBufferWrapper<GPUDrawInfo>* gpuDrawInfos;
+        AtomicBufferWrapper<VK::DrawIndexedIndirectCommand>* drawCmds;
+
+        FillDrawBufferTask(VKRenderer* renderer, entt::registry& reg)
+            : renderer(renderer)
+            , reg(reg)
+        {
+        }
+
+        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
+        {
+            auto view = reg.view<WorldObject>();
+
+            auto begin = view.begin();
+            auto end = view.begin();
+            std::advance(begin, range.start);
+            std::advance(end, range.end);
+
+            for (auto it = begin; it != end; it++)
+            {
+                WorldObject& wo = reg.get<WorldObject>(*it);
+                const Transform& t = reg.get<Transform>(*it);
+                const RenderMeshInfo& rmi = renderer->getMeshManager()->loadOrGet(wo.mesh);
+                
+                // Cull against frustum
+                if (!cullMesh(rmi, t, frustums, numViews)) continue;
+
+                uint32_t modelMatrixIdx = modelMatrices->Append(t.getMatrix());
+
+                for (int i = 0; i < rmi.numSubmeshes; i++)
+                {
+                    const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
+
+                    AssetID material = wo.materials[rsi.materialIndex];
+
+                    if (!wo.presentMaterials[rsi.materialIndex])
+                        material = wo.materials[0];
+
+                    if (!RenderMaterialManager::IsMaterialLoaded(material)) continue;
+
+                    GPUDrawInfo di{};
+                    di.materialOffset = RenderMaterialManager::GetMaterial(material);
+                    di.modelMatrixID = modelMatrixIdx;
+
+                    uint32_t index = gpuDrawInfos->Append(di);
+
+                    VK::DrawIndexedIndirectCommand drawCmd{};
+                    drawCmd.indexCount = rsi.indexCount;
+                    drawCmd.firstIndex = rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t));
+                    drawCmd.firstInstance = 0;
+                    drawCmd.instanceCount = 1;
+                    drawCmd.vertexOffset = rmi.vertsOffset / sizeof(Vertex);
+                    drawCmds->Buffer[index] = drawCmd;
+                }
+            }
+        }
+    };
+
     robin_hood::unordered_flat_map<AssetID, int> materialRefCount;
 
     struct GCResources : public enki::ITaskSet
@@ -581,6 +567,8 @@ namespace worlds
     {
         std::vector<enki::Dependency> dependencies;
     };
+
+    static ConVar singleThreadDraw{"r_singleThreadDraw", "0"};
 
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
     {
@@ -609,7 +597,7 @@ namespace worlds
 
         TasksFinished finisher;
 
-        LightUB* lightUB = (LightUB*)lightBuffers[frameIdx]->Map();
+        LightUB* lightUB = (LightUB*)lightBuffers->GetCurrentBuffer()->Map();
 
         FillLightBufferTask fillTask{lightUB, reg, textureManager};
 
@@ -658,6 +646,30 @@ namespace worlds
 
             core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
 
+            glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrixBuffers[core->GetFrameIndex()]->Map();
+            GPUDrawInfo* drawInfosMapped = (GPUDrawInfo*)drawInfoBuffers->GetCurrentBuffer()->Map();
+            VK::DrawIndexedIndirectCommand* drawCmdsMapped = (VK::DrawIndexedIndirectCommand*)drawCommandBuffers->GetCurrentBuffer()->Map();
+
+            AtomicBufferWrapper<glm::mat4> matrixWrapper{modelMatricesMapped};
+            AtomicBufferWrapper<GPUDrawInfo> drawInfoWrapper{drawInfosMapped};
+            AtomicBufferWrapper<VK::DrawIndexedIndirectCommand> drawCmdWrapper{drawCmdsMapped};
+
+            FillDrawBufferTask fdbTask{renderer, reg};
+            fdbTask.numViews = rttPass->getSettings().numViews;
+            fdbTask.frustums = frustums;
+            fdbTask.modelMatrices = &matrixWrapper;
+            fdbTask.gpuDrawInfos = &drawInfoWrapper;
+            fdbTask.drawCmds = &drawCmdWrapper;
+
+            fdbTask.m_SetSize = reg.view<WorldObject>().size();
+
+            g_taskSched.AddTaskSetToPipe(&fdbTask);
+            g_taskSched.WaitforTask(&fdbTask);
+
+            modelMatrixBuffers[core->GetFrameIndex()]->Unmap();
+            drawInfoBuffers->GetCurrentBuffer()->Unmap();
+            drawCommandBuffers->GetCurrentBuffer()->Unmap();
+
             // Depth Pre-Pass
             cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
 
@@ -674,8 +686,10 @@ namespace worlds
             cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
             cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
             cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
+            cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
+            cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
 
-            drawLoop(reg, cb, true, frustums, rttPass->getSettings().numViews);
+            cb.DrawIndexedIndirect(drawCommandBuffers->GetCurrentBuffer(), 0, drawInfoWrapper.CurrentLoc, sizeof(VK::DrawIndexedIndirectCommand));
             depthPass.End(cb);
 
             cb.EndDebugLabel();
@@ -683,7 +697,7 @@ namespace worlds
             // Run light culling using the depth buffer
             lightCull->Execute(cb);
 
-            lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
+            lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::FragmentShader);
 
             // Actual "opaque" pass
             cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
@@ -698,7 +712,7 @@ namespace worlds
 
             colorPass.Begin(cb);
 
-            drawLoop(reg, cb, false, frustums, rttPass->getSettings().numViews);
+            cb.DrawIndexedIndirect(drawCommandBuffers->GetCurrentBuffer(), 0, drawInfoWrapper.CurrentLoc, sizeof(VK::DrawIndexedIndirectCommand));
 
             skyboxRenderer->Execute(cb);
 
@@ -724,7 +738,7 @@ namespace worlds
         g_taskSched.AddTaskSetToPipe(&swoLoadTask);
         g_taskSched.AddTaskSetToPipe(&recordCBTask);
         g_taskSched.WaitforTask(&finisher);
-        lightBuffers[frameIdx]->Unmap();
+        lightBuffers->GetCurrentBuffer()->Unmap();
     }
 
     void StandardPipeline::setView(int viewIndex, glm::mat4 viewMatrix, glm::mat4 projectionMatrix)

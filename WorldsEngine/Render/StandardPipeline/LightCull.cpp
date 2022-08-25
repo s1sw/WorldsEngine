@@ -14,7 +14,7 @@ namespace worlds
         uint32_t eyeIndex;
     };
 
-    LightCull::LightCull(VK::Core* core, VK::Texture* depthBuffer, UniquePtr<VK::Buffer>* lightBuffers, VK::Buffer* lightTiles, VK::Buffer* multiVPBuffer)
+    LightCull::LightCull(VK::Core* core, VK::Texture* depthBuffer, VK::FrameSeparatedBuffer* lightBuffers, VK::Buffer* lightTiles, VK::Buffer* multiVPBuffer)
         : core(core)
         , depthBuffer(depthBuffer)
         , lightBuffers(lightBuffers)
@@ -46,7 +46,7 @@ namespace worlds
             cs[i] = new SimpleCompute(core, lightCullShader);
             cs[i]->BindUniformBuffer(0, multiVPBuffer);
             cs[i]->BindSampledTexture(1, depthBuffer, sampler.Get());
-            cs[i]->BindStorageBuffer(2, lightBuffers[i].Get());
+            cs[i]->BindStorageBuffer(2, lightBuffers->GetBuffer(i));
             cs[i]->BindStorageBuffer(3, lightTiles);
             cs[i]->PushConstantSize(sizeof(LightCullPushConstants));
             cs[i]->Build();

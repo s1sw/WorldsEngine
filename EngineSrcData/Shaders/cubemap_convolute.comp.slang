@@ -58,6 +58,7 @@ float3 GetSamplingVector(float2 uv)
     float3 ret;
     switch (faceIdx)
     {
+        default:
         case 0:
             return normalize(float3(1.0, uv.y, -uv.x));
         case 1:
@@ -111,7 +112,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
 
     prefilteredColor = prefilteredColor / totalWeight;
 
-    if (outputIsSRGB)
+    if (outputIsSRGB == 1)
         prefilteredColor = ConvertToSRGB(prefilteredColor);
 
     outFace[threadID.xy] = float4(prefilteredColor, 1.0f);

@@ -27,7 +27,8 @@ namespace worlds
         static void Initialize(VKRenderer* renderer);
         static R2::VK::Buffer* GetBuffer();
         static bool IsMaterialLoaded(AssetID id);
-        static size_t LoadOrGetMaterial(AssetID id);
+        static unsigned int LoadOrGetMaterial(AssetID id);
+        static unsigned int GetMaterial(AssetID id);
         static void Unload(AssetID id);
         static void UnloadUnusedMaterials(entt::registry& reg);
         static void ShowDebugMenu();

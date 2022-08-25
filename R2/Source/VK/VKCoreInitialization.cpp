@@ -180,7 +180,9 @@ namespace R2::VK
 
         features.features.shaderStorageImageMultisample = true;
         features.features.samplerAnisotropy = true;
+        features.features.multiDrawIndirect = true;
         features11.multiview = true;
+        features11.shaderDrawParameters = true;
         features12.descriptorIndexing = true;
         features12.descriptorBindingPartiallyBound = true;
         features12.descriptorBindingVariableDescriptorCount = true;

@@ -183,5 +183,6 @@ namespace R2::VK
 		friend class Pipeline;
 		friend class Sampler;
 		friend class Texture;
+		friend class TextureView;
 	};
 }

@@ -49,7 +49,7 @@ float4 DoUpsample(float2 uv, float2 resolution)
 [numthreads(16, 16, 1)]
 void main(uint3 threadID : SV_DispatchThreadID)
 {
-    arrayIdx = threadID.z;
+    arrayIdx = int(threadID.z);
     float2 resolution = outputResolution; 
     float2 uv = (float2(threadID.xy) + 0.5) / resolution;
 

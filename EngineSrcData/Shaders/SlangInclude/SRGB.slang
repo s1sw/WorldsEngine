@@ -6,7 +6,7 @@ float3 ConvertToSRGB(float3 col)
     float3 above = 1.055 * (pow(col, float3(1.0 / 2.4))) - 0.055;
     float3 below = 12.92 * col;
 
-    return lerp(below, above, cutoff);
+    return lerp(below, above, float3(cutoff));
 }
 
 float3 ConvertFromSRGB(float3 col)
@@ -16,5 +16,5 @@ float3 ConvertFromSRGB(float3 col)
     float3 above = pow(((col + 0.055) / 1.055), float3(2.4));
     float3 below = col / 12.92;
 
-    return lerp(below, above, cutoff);
+    return lerp(below, above, float3(cutoff));
 }
