@@ -1,6 +1,6 @@
 float4 Downsample13(float2 uv, float2 resolution)
 {
-    float2 texelSize = 2.0 / resolution;
+    float2 texelSize = 1.0 / resolution;
     
     // A  B  C
     //  D  E
