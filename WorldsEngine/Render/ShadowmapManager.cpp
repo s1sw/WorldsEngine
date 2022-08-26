@@ -33,7 +33,7 @@ namespace worlds
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
             .CullMode(VK::CullMode::Back)
             .PrimitiveTopology(VK::Topology::TriangleList)
-            .DepthBias(true)
+            .DepthBias(false)
             .ConstantDepthBias(-1.4f)
             .SlopeDepthBias(-1.75f);
 
