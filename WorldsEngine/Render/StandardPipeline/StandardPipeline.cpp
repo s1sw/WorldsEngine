@@ -55,13 +55,14 @@ namespace worlds
     };
 
     static glm::vec2 poissonDisk[24] = {
-        glm::vec2(0.511749, 0.547686), glm::vec2(0.58929, 0.257224), glm::vec2(0.165018, 0.57663), glm::vec2(0.407692, 0.742285),
-        glm::vec2(0.707012, 0.646523), glm::vec2(0.31463, 0.466825), glm::vec2(0.801257, 0.485186), glm::vec2(0.418136, 0.146517),
-        glm::vec2(0.579889, 0.0368284), glm::vec2(0.79801, 0.140114), glm::vec2(-0.0413185, 0.371455), glm::vec2(-0.0529108, 0.627352),
-        glm::vec2(0.0821375, 0.882071), glm::vec2(0.17308, 0.301207), glm::vec2(-0.120452, 0.867216), glm::vec2(0.371096, 0.916454),
-        glm::vec2(-0.178381, 0.146101), glm::vec2(-0.276489, 0.550525), glm::vec2(0.12542, 0.126643), glm::vec2(-0.296654, 0.286879),
-        glm::vec2(0.261744, -0.00604975), glm::vec2(-0.213417, 0.715776), glm::vec2(0.425684, -0.153211), glm::vec2(-0.480054, 0.321357)
-    };
+        glm::vec2(0.511749, 0.547686),  glm::vec2(0.58929, 0.257224),    glm::vec2(0.165018, 0.57663),
+        glm::vec2(0.407692, 0.742285),  glm::vec2(0.707012, 0.646523),   glm::vec2(0.31463, 0.466825),
+        glm::vec2(0.801257, 0.485186),  glm::vec2(0.418136, 0.146517),   glm::vec2(0.579889, 0.0368284),
+        glm::vec2(0.79801, 0.140114),   glm::vec2(-0.0413185, 0.371455), glm::vec2(-0.0529108, 0.627352),
+        glm::vec2(0.0821375, 0.882071), glm::vec2(0.17308, 0.301207),    glm::vec2(-0.120452, 0.867216),
+        glm::vec2(0.371096, 0.916454),  glm::vec2(-0.178381, 0.146101),  glm::vec2(-0.276489, 0.550525),
+        glm::vec2(0.12542, 0.126643),   glm::vec2(-0.296654, 0.286879),  glm::vec2(0.261744, -0.00604975),
+        glm::vec2(-0.213417, 0.715776), glm::vec2(0.425684, -0.153211),  glm::vec2(-0.480054, 0.321357)};
 
     robin_hood::unordered_flat_map<AssetID, int> materialRefCount;
     std::deque<AssetID> convoluteQueue;
@@ -117,12 +118,10 @@ namespace worlds
         colorBuffer->SetDebugName("Color Buffer");
 
         // Tiled lighting stuff
-        VK::BufferCreateInfo lightTileBci
-        {
+        VK::BufferCreateInfo lightTileBci{
             VK::BufferUsage::Storage,
             sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32) * settings.numViews,
-            true
-        };
+            true};
         lightTileBuffer = core->CreateBuffer(lightTileBci);
         lightTileBuffer->SetDebugName("Light Tile Buffer");
 
@@ -173,7 +172,7 @@ namespace worlds
         VK::BufferCreateInfo drawInfoBCI{VK::BufferUsage::Storage, sizeof(GPUDrawInfo) * MAX_DRAWS, true};
         drawInfoBuffers = new VK::FrameSeparatedBuffer(core, drawInfoBCI);
 
-        VK::BufferCreateInfo pkBCI { VK::BufferUsage::Uniform, sizeof(poissonDisk) };
+        VK::BufferCreateInfo pkBCI{VK::BufferUsage::Uniform, sizeof(poissonDisk)};
         poissonKernelBuffer = core->CreateBuffer(pkBCI);
         core->QueueBufferUpload(poissonKernelBuffer.Get(), poissonDisk, sizeof(poissonDisk), 0);
 
@@ -341,7 +340,7 @@ namespace worlds
             registry.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t) {
                 if (!wl.enabled)
                     return;
-                
+
                 if (wl.shadowmapIdx != ~0u)
                 {
                     Camera shadowCam{};
@@ -398,8 +397,7 @@ namespace worlds
             }
 
             uint32_t cubemapIdx = 1;
-            lightUB->cubemaps[0] =
-                GPUCubemap{glm::vec3{100000.0f}, textureManager->get(skybox), glm::vec3{0.0f}, 0};
+            lightUB->cubemaps[0] = GPUCubemap{glm::vec3{100000.0f}, textureManager->get(skybox), glm::vec3{0.0f}, 0};
 
             registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t) {
                 GPUCubemap gc{};
@@ -547,7 +545,77 @@ namespace worlds
                     if (!wo.presentMaterials[rsi.materialIndex])
                         material = wo.materials[0];
 
-                    if (!RenderMaterialManager::IsMaterialLoaded(material)) continue;
+                    if (!RenderMaterialManager::IsMaterialLoaded(material))
+                        continue;
+
+                    uint32_t drawId = drawIdCounter.fetch_add(1);
+
+                    GPUDrawInfo di{};
+                    di.materialOffset = RenderMaterialManager::GetMaterial(material);
+                    di.modelMatrixID = modelMatrixIdx;
+
+                    VK::DrawIndexedIndirectCommand drawCmd{};
+                    drawCmd.indexCount = rsi.indexCount;
+                    drawCmd.firstIndex = rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t));
+                    drawCmd.firstInstance = 0;
+                    drawCmd.instanceCount = 1;
+                    drawCmd.vertexOffset = rmi.vertsOffset / sizeof(Vertex);
+
+                    drawCmds[drawId] = drawCmd;
+                    gpuDrawInfos[drawId] = di;
+                }
+            }
+        }
+    };
+
+    struct FillDrawBufferSkinnedTask : public enki::ITaskSet
+    {
+        VKRenderer* renderer;
+        entt::registry& reg;
+        int numViews;
+        Frustum* frustums;
+        AtomicBufferWrapper<glm::mat4>* modelMatrices;
+        GPUDrawInfo* gpuDrawInfos;
+        VK::DrawIndexedIndirectCommand* drawCmds;
+        std::atomic<uint32_t>& drawIdCounter;
+
+        FillDrawBufferSkinnedTask(VKRenderer* renderer, entt::registry& reg, std::atomic<uint32_t>& drawIdCounter)
+            : renderer(renderer), reg(reg), drawIdCounter(drawIdCounter)
+        {
+        }
+
+        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
+        {
+            auto view = reg.view<SkinnedWorldObject>();
+
+            auto begin = view.begin();
+            auto end = view.begin();
+            std::advance(begin, range.start);
+            std::advance(end, range.end);
+
+            for (auto it = begin; it != end; it++)
+            {
+                SkinnedWorldObject& wo = reg.get<SkinnedWorldObject>(*it);
+                const Transform& t = reg.get<Transform>(*it);
+                const RenderMeshInfo& rmi = renderer->getMeshManager()->loadOrGet(wo.mesh);
+
+                // Cull against frustum
+                if (!cullMesh(rmi, t, frustums, numViews))
+                    continue;
+
+                uint32_t modelMatrixIdx = modelMatrices->Append(t.getMatrix());
+
+                for (int i = 0; i < rmi.numSubmeshes; i++)
+                {
+                    const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
+
+                    AssetID material = wo.materials[rsi.materialIndex];
+
+                    if (!wo.presentMaterials[rsi.materialIndex])
+                        material = wo.materials[0];
+
+                    if (!RenderMaterialManager::IsMaterialLoaded(material))
+                        continue;
 
                     uint32_t drawId = drawIdCounter.fetch_add(1);
 
@@ -618,8 +686,6 @@ namespace worlds
         SkinnedWorldObjectMaterialLoadTask swoLoadTask{renderer, reg};
         swoLoadTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
 
-        
-
         finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
             finisher.dependencies, {&fillTask, &woLoadTask, &swoLoadTask});
 
@@ -682,8 +748,22 @@ namespace worlds
 
         fdbTask.m_SetSize = reg.view<WorldObject>().size();
 
+        FillDrawBufferSkinnedTask fdbsTask{renderer, reg, fdbTask.drawIdCounter};
+        fdbsTask.numViews = rttPass->getSettings().numViews;
+        fdbsTask.frustums = frustums;
+        fdbsTask.modelMatrices = &matrixWrapper;
+        fdbsTask.gpuDrawInfos = drawInfosMapped;
+        fdbsTask.drawCmds = drawCmdsMapped;
+
+        fdbsTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
+
+        TasksFinished finisher2;
+        finisher2.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
+            finisher2.dependencies, {&fdbTask, &fdbsTask});
+
         g_taskSched.AddTaskSetToPipe(&fdbTask);
-        g_taskSched.WaitforTask(&fdbTask);
+        g_taskSched.AddTaskSetToPipe(&fdbsTask);
+        g_taskSched.WaitforTask(&finisher2);
 
         modelMatrixBuffers->UnmapCurrent();
         drawInfoBuffers->UnmapCurrent();
@@ -701,8 +781,7 @@ namespace worlds
 
         depthPass.Begin(cb);
 
-        cb.BindGraphicsDescriptorSet(
-            pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
         cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
         cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
         cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
@@ -710,10 +789,7 @@ namespace worlds
         cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
 
         cb.DrawIndexedIndirect(
-            drawCommandBuffers->GetCurrentBuffer(),
-            0,
-            fdbTask.drawIdCounter,
-            sizeof(VK::DrawIndexedIndirectCommand));
+            drawCommandBuffers->GetCurrentBuffer(), 0, fdbTask.drawIdCounter, sizeof(VK::DrawIndexedIndirectCommand));
         depthPass.End(cb);
         renderer->getDebugStats().numDrawCalls = fdbTask.drawIdCounter;
 
@@ -738,10 +814,7 @@ namespace worlds
         colorPass.Begin(cb);
 
         cb.DrawIndexedIndirect(
-            drawCommandBuffers->GetCurrentBuffer(),
-            0,
-            fdbTask.drawIdCounter,
-            sizeof(VK::DrawIndexedIndirectCommand));
+            drawCommandBuffers->GetCurrentBuffer(), 0, fdbTask.drawIdCounter, sizeof(VK::DrawIndexedIndirectCommand));
 
         skyboxRenderer->Execute(cb);
 
