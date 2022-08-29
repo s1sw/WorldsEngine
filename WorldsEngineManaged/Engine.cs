@@ -73,6 +73,7 @@ namespace WorldsEngine
         static double _simulationTime = 0.0;
         static double _updateTime = 0.0;
         static bool _isDebug = false;
+        static bool _editorActive = false;
 
         public static bool SceneRunning { get; private set; }
 
@@ -87,6 +88,7 @@ namespace WorldsEngine
             if (!editorActive)
                 AssemblyLoadManager.RegisterAssembly(Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName) + @"\GameAssemblies\Game.dll");
             Log.Msg($".NET initialised, isDebug: {_isDebug}");
+            _editorActive = editorActive;
         }
 
         [UsedImplicitly]
@@ -120,7 +122,8 @@ namespace WorldsEngine
             updateSyncContext.ClearCallbacks();
 
             SceneRunning = true;
-            Editor.Editor.Notify("Scene started");
+            if (_editorActive)
+                Editor.Editor.Notify("Scene started");
 
             Registry.OverrideTransformToDPAPose = true;
 

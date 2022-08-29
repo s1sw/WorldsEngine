@@ -5,16 +5,18 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "nlohmann/json.hpp"
 #define TINYGLTF_IMPLEMENTATION
-#include "../Libs/mikktspace.h"
-#include "../Libs/weldmesh.h"
+#include <Libs/mikktspace.h>
+#include <Libs/weldmesh.h>
 #include "robin_hood.h"
 #include <WMDL.hpp>
+#ifdef ENABLE_ASSIMP
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/LogStream.hpp>
 #include <assimp/Logger.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#endif
 #include <filesystem>
 #include <optional>
 #include <slib/Path.hpp>
@@ -43,6 +45,7 @@ namespace worlds
 
     namespace mc_internal
     {
+#ifdef ENABLE_ASSIMP
         using namespace Assimp;
 
         glm::vec3 toGlm(aiVector3D v)
@@ -58,6 +61,7 @@ namespace worlds
                 printf("assimp: %s\n", msg);
             }
         };
+#endif
 
         struct TangentCalcCtx
         {
@@ -134,6 +138,7 @@ namespace worlds
             return 3;
         }
 
+#ifdef USE_ASSIMP
         struct IntermediateBone
         {
             aiBone* bone;
@@ -594,6 +599,7 @@ namespace worlds
 
             return ErrorCodes::None;
         }
+#endif
 
         class GltfModelConverter
         {
@@ -1110,8 +1116,14 @@ namespace worlds
             }
             else
             {
+#ifdef USE_ASSIMP
                 mc_internal::convertAssimpModel(compileOp, outFile, result.value, fileLen, p.fileExtension().cStr(),
                                                 settings);
+#else
+                compileOp->progress = 1.0f;
+                compileOp->complete = true;
+                compileOp->result = CompilationResult::Error;
+#endif
             }
             PHYSFS_close(outFile);
         }).detach();

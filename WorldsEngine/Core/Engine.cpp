@@ -40,6 +40,12 @@
 #include <Util/TimingUtil.hpp>
 #include <VR/OpenVRInterface.hpp>
 
+#ifdef BUILD_EDITOR
+#define EDITORONLY(expr) expr
+#else
+#define EDITORONLY(expr)
+#endif
+
 #ifdef CHECK_NEW_DELETE
 robin_hood::unordered_map<void*, size_t> allocatedPtrs;
 size_t allocatedMem = 0;
@@ -284,6 +290,10 @@ namespace worlds
         enableOpenVR = initOptions.enableVR;
         dedicatedServer = initOptions.dedicatedServer;
 
+#ifndef BUILD_EDITOR
+        runAsEditor = false;
+#endif
+
         enki::TaskSchedulerConfig tsc{};
         tsc.numTaskThreadsToCreate =
             workerThreadOverride == -1 ? enki::GetNumHardwareThreads() - 1 : workerThreadOverride;
@@ -458,17 +468,23 @@ namespace worlds
         if (!dedicatedServer && runAsEditor)
         {
             splashWindow->changeOverlay("initialising editor");
+#ifdef BUILD_EDITOR
             editor = std::make_unique<Editor>(registry, interfaces);
+            interfaces.editor = editor.get();
+#endif
         }
         else
         {
             ComponentMetadataManager::setupLookup(&interfaces);
         }
 
-        interfaces.editor = editor.get();
-
+#ifdef BUILD_EDITOR
         if (!scriptEngine->initialise(editor.get()))
             fatalErr("Failed to initialise .net");
+#else
+        if (!scriptEngine->initialise(nullptr))
+            fatalErr("Failed to initialise .net");
+#endif
 
         inputManager->setScriptEngine(scriptEngine.get());
 
@@ -761,7 +777,7 @@ namespace worlds
 
         float interpAlpha = 1.0f;
 
-        if (!runAsEditor || editor->isPlaying())
+        if (!runAsEditor EDITORONLY(|| editor->isPlaying()))
         {
             evtHandler->preSimUpdate(registry, interFrameInfo.deltaTime);
 
@@ -778,7 +794,7 @@ namespace worlds
             simTime = perfTimer.stopGetMs();
         }
 
-        if (!runAsEditor || editor->isPlaying())
+        if (!runAsEditor EDITORONLY(|| editor->isPlaying()))
         {
             for (auto* system : systems)
                 system->update(registry, interFrameInfo.deltaTime * timeScale, interpAlpha);
@@ -794,7 +810,7 @@ namespace worlds
 
             if (runAsEditor)
             {
-                editor->update((float)interFrameInfo.deltaTime);
+                EDITORONLY(editor->update((float)interFrameInfo.deltaTime));
             }
         }
 
@@ -884,7 +900,7 @@ namespace worlds
             t.scale = c.offset.scale * registry.get<Transform>(c.parent).scale;
         });
 
-        if (screenPassIsVR && editor == nullptr)
+        if (screenPassIsVR && !runAsEditor)
         {
             if (renderer->getVsync())
             {
@@ -935,7 +951,7 @@ namespace worlds
 
             // TODO: Load content here
 
-            if (!runAsEditor || editor->isPlaying())
+            if (!runAsEditor EDITORONLY(|| editor->isPlaying()))
             {
                 evtHandler->onSceneStart(registry);
 
@@ -1148,7 +1164,7 @@ namespace worlds
     {
         ZoneScoped;
 
-        if (!runAsEditor || editor->isPlaying())
+        if (!runAsEditor EDITORONLY(|| editor->isPlaying()))
         {
             evtHandler->simulate(registry, deltaTime);
 
@@ -1156,7 +1172,7 @@ namespace worlds
                 system->simulate(registry, deltaTime);
         }
 
-        if (!runAsEditor || editor->isPlaying())
+        if (!runAsEditor EDITORONLY(|| editor->isPlaying()))
         {
             scriptEngine->onSimulate(deltaTime);
         }
@@ -1171,7 +1187,7 @@ namespace worlds
     {
         ZoneScoped;
         bool ran = false;
-        if (lockSimToRefresh.getInt() || disableSimInterp.getInt() || (editor && !editor->isPlaying()))
+        if (lockSimToRefresh.getInt() || disableSimInterp.getInt() EDITORONLY(|| (editor && !editor->isPlaying())))
         {
             registry.view<RigidBody, Transform>().each([](RigidBody& dpa, Transform& transform) {
                 auto curr = dpa.actor->getGlobalPose();
@@ -1315,8 +1331,10 @@ namespace worlds
 
         registry.clear();
 
+#ifdef BUILD_EDITOR
         if (runAsEditor)
             editor.reset();
+#endif
 
         if (!dedicatedServer)
         {

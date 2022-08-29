@@ -16,6 +16,7 @@ extern "C"
         return ComponentMetadataManager::sorted[index]->getName();
     }
 
+#ifdef BUILD_EDITOR
     EXPORT void componentmeta_editIfNecessary(entt::registry* reg, entt::entity entity, int index)
     {
         ComponentEditor* meta = ComponentMetadataManager::sorted[index];
@@ -28,6 +29,7 @@ extern "C"
             meta->edit(entity, *reg, csharpEditor);
         }
     }
+#endif
 
     EXPORT void componentmeta_create(entt::registry* reg, entt::entity entity, int index)
     {

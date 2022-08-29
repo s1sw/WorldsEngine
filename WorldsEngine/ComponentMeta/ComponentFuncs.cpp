@@ -147,6 +147,7 @@ namespace worlds
             return false;
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader(ICON_FA_ARROWS_ALT u8" Transform"))
@@ -172,6 +173,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, nlohmann::json& j) override
         {
@@ -209,6 +211,7 @@ namespace worlds
             reg.emplace<WorldObject>(ent, matId, cubeId);
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" WorldObject"))
@@ -332,6 +335,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -394,6 +398,7 @@ namespace worlds
             reg.emplace<SkinnedWorldObject>(ent, matId, cubeId);
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" SkinnedWorldObject"))
@@ -480,6 +485,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -580,6 +586,7 @@ namespace worlds
             return "World Light";
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader(ICON_FA_LIGHTBULB u8" Light"))
@@ -649,6 +656,7 @@ namespace worlds
                 }
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -978,6 +986,7 @@ namespace worlds
             interfaces->physics->updatePhysicsShapes(newPhysActor, t.scale);
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             auto& pa = reg.get<PhysicsActor>(ent);
@@ -1001,6 +1010,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1137,6 +1147,7 @@ namespace worlds
             interfaces->physics->updatePhysicsShapes(newPhysActor, t.scale);
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             auto& pa = reg.get<RigidBody>(ent);
@@ -1189,6 +1200,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1310,6 +1322,7 @@ namespace worlds
             return "Name Component";
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& registry, Editor* ed) override
         {
             auto& nc = registry.get<NameComponent>(ent);
@@ -1322,6 +1335,7 @@ namespace worlds
             }
             ImGui::Separator();
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1349,6 +1363,7 @@ namespace worlds
             reg.emplace<OldAudioSource>(ent, AssetDB::pathToId("Audio/SFX/dlgsound.ogg"));
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& registry, Editor* ed) override
         {
             auto& as = registry.get<OldAudioSource>(ent);
@@ -1375,6 +1390,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1412,6 +1428,7 @@ namespace worlds
             reg.emplace<AudioSource>(ent);
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& registry, Editor* ed) override
         {
             auto& as = registry.get<AudioSource>(ent);
@@ -1459,6 +1476,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1494,6 +1512,7 @@ namespace worlds
             wc.extent = glm::vec3{1.0f};
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             auto& wc = reg.get<WorldCubemap>(ent);
@@ -1521,6 +1540,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1556,6 +1576,7 @@ namespace worlds
             return "Reverb Probe Box";
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader("Reverb Probe Box"))
@@ -1563,6 +1584,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1584,6 +1606,7 @@ namespace worlds
             return "Audio Trigger";
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             auto& trigger = reg.get<AudioTrigger>(ent);
@@ -1600,6 +1623,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1625,6 +1649,7 @@ namespace worlds
             return "AO Proxy";
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             auto& pac = reg.get<ProxyAOComponent>(ent);
@@ -1640,6 +1665,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1665,6 +1691,7 @@ namespace worlds
             return "World Text Component";
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             auto& wtc = reg.get<WorldTextComponent>(ent);
@@ -1689,6 +1716,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1721,6 +1749,7 @@ namespace worlds
             return "Prefab Instance";
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             auto& pic = reg.get<PrefabInstanceComponent>(ent);
@@ -1750,6 +1779,7 @@ namespace worlds
                 ImGui::Separator();
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1769,6 +1799,7 @@ namespace worlds
             return "Sphere AO Proxy";
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity entity, entt::registry& reg, Editor* ed) override
         {
             auto& proxy = reg.get<SphereAOProxy>(entity);
@@ -1784,6 +1815,7 @@ namespace worlds
                 ImGui::DragFloat("Radius", &proxy.radius);
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1809,6 +1841,7 @@ namespace worlds
             return "Editor Label";
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity entity, entt::registry& reg, Editor* ed) override
         {
             auto& label = reg.get<EditorLabel>(entity);
@@ -1824,6 +1857,7 @@ namespace worlds
                 ImGui::InputText("Label", &label.label);
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1849,6 +1883,7 @@ namespace worlds
             return "AudioListenerOverride";
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity entity, entt::registry& reg, Editor* ed) override
         {
             if (ImGui::CollapsingHeader("AudioListenerOverride"))
@@ -1860,6 +1895,7 @@ namespace worlds
                 }
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {
@@ -1891,6 +1927,7 @@ namespace worlds
             return false;
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity entity, entt::registry& reg, Editor* ed) override
         {
             static bool changingTarget = false;
@@ -1926,6 +1963,7 @@ namespace worlds
                 changingTarget = false;
             }
         }
+#endif
 
         void toJson(entt::entity ent, entt::registry& reg, json& j) override
         {

@@ -105,6 +105,7 @@ namespace worlds
             reg.emplace<D6Joint>(ent);
         }
 
+#ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             auto& j = reg.get<D6Joint>(ent);
@@ -397,6 +398,7 @@ namespace worlds
                 }
             }
         }
+#endif
 
         void clone(entt::entity from, entt::entity to, entt::registry& reg) override
         {

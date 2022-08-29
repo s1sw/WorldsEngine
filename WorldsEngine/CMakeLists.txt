@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
 
 include(FetchContent)
+option(WORLDS_USE_ASSIMP "Build with Assimp to import models." ON)
+option(WORLDS_USE_OPENVR "Build with OpenVR for VR support." ON)
+option(WORLDS_BUILD_EDITOR "Build the editor." ON)
 
 FetchContent_Declare(
     SDL2
@@ -50,17 +53,74 @@ set(RECASTNAVIGATION_TESTS off CACHE BOOL "" FORCE)
 
 set(ASSIMP_BUILD_TESTS off CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ASSIMP_TOOLS off CACHE BOOL "" FORCE)
+set(ASSIMP_NO_EXPORT off CACHE BOOL "" FORCE)
+set(ASSIMP_INSTALL off CACHE BOOL "" FORCE)
+
 set(ENKITS_BUILD_C_INTERFACE off CACHE BOOL "" FORCE)
 set(ENKITS_BUILD_EXAMPLES off CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(SDL2 PHYSFS TRACY SLIB RECASTDETOUR ASSIMP ENKITS)
+FetchContent_MakeAvailable(SDL2 PHYSFS TRACY SLIB RECASTDETOUR ENKITS)
+
+if(WORLDS_USE_ASSIMP)
+    FetchContent_MakeAvailable(ASSIMP)
+endif()
 
 project(EngineLibrary)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
-file(GLOB_RECURSE wsrc ./*.cpp ./*.cc ./*.c)
+
+include("Audio/CMakeLists.txt")
+include("ComponentMeta/CMakeLists.txt")
+include("Core/CMakeLists.txt")
+include("ImGui/CMakeLists.txt")
+include("Input/CMakeLists.txt")
+include("IO/CMakeLists.txt")
+include("Libs/CMakeLists.txt")
+include("Navigation/CMakeLists.txt")
+include("Physics/CMakeLists.txt")
+include("Render/CMakeLists.txt")
+include("Scripting/CMakeLists.txt")
+include("Serialization/CMakeLists.txt")
+include("Util/CMakeLists.txt")
+if(WORLDS_USE_OPENVR)
+    include("VR/CMakeLists.txt")
+endif()
+
+if(WORLDS_BUILD_EDITOR)
+    include("AssetCompilation/CMakeLists.txt")
+    include("Editor/CMakeLists.txt")
+endif()
+
+set(
+    wsrc 
+    ${worlds_audio_src} ${worlds_componentmeta_src} ${worlds_core_src} 
+    ${worlds_imgui_src} ${worlds_input_src} ${worlds_io_src} ${worlds_libs_src}
+    ${worlds_navigation_src} ${worlds_physics_src} ${worlds_render_src}
+    ${worlds_scripting_src} ${worlds_serialization_src} ${worlds_util_src}
+)
+
+if(WORLDS_BUILD_EDITOR)
+    list(APPEND wsrc ${worlds_editor_src} ${worlds_assetcompilation_src})
+endif()
+
+if(WORLDS_USE_OPENVR)
+    list(APPEND wsrc ${worlds_vr_src})
+endif()
 
 add_library(${PROJECT_NAME} STATIC ${wsrc})
 target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_STEAM_AUDIO)
+
+if(WORLDS_USE_ASSIMP)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_ASSIMP)
+    target_link_libraries(${PROJECT_NAME} assimp::assimp)
+endif()
+
+if(WORLDS_USE_OPENVR)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_OPENVR)
+endif()
+
+if(WORLDS_BUILD_EDITOR)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE BUILD_EDITOR)
+endif()
 
 if(WIN32)
     set(LIB_PATH ../External/Lib/windows64$<IF:$<CONFIG:Debug>,dbg,rel>)
@@ -79,6 +139,6 @@ if(WIN32)
     target_link_libraries(${PROJECT_NAME} "../External/Lib/phonon")
 endif()
 
-target_link_libraries(${PROJECT_NAME} R2 SDL2::SDL2 physfs TracyClient slib Recast Detour assimp::assimp enkiTS)
+target_link_libraries(${PROJECT_NAME} R2 SDL2::SDL2 physfs TracyClient slib Recast Detour enkiTS)
 target_include_directories(${PROJECT_NAME} PUBLIC . ../External/Include ../TextureFormat ../ModelFormat)
 target_include_directories(${PROJECT_NAME} PUBLIC "${FMOD_DIR}/core/inc" "${FMOD_DIR}/studio/inc")

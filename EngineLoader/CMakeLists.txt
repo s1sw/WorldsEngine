@@ -37,10 +37,12 @@ add_custom_command (TARGET ${PROJECT_NAME} POST_BUILD
     $<TARGET_FILE:TracyClient> $<TARGET_FILE_DIR:${PROJECT_NAME}>
 )
 
-add_custom_command (TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    $<TARGET_FILE:assimp::assimp> $<TARGET_FILE_DIR:${PROJECT_NAME}>
-)
+if (WORLDS_USE_ASSIMP)
+    add_custom_command (TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:assimp::assimp> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+    )
+endif ()
 
 add_custom_command (TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different

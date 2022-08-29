@@ -43,10 +43,6 @@
 
 namespace worlds
 {
-    std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
-    std::vector<ComponentEditor*> ComponentMetadataManager::sorted;
-    std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::bySerializedID;
-    std::unordered_map<std::string, ComponentEditor*> ComponentMetadataManager::byName;
     slib::Subprocess* dotnetWatchProcess = nullptr;
     static ConVar ed_saveAsJson{"ed_saveAsJson", "0", "Save scene files as JSON rather than MessagePack."};
 

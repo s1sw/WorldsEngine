@@ -79,7 +79,9 @@ namespace worlds
         }
 
         if (info.tex != missingTexture)
+        {
             delete info.tex;
+        }
 
         textureIds.erase(id);
         textureManager->FreeTextureHandle(info.bindlessId);

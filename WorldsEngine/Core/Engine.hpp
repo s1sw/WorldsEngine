@@ -167,7 +167,9 @@ namespace worlds
         std::unique_ptr<InputManager> inputManager;
         std::unique_ptr<AudioSystem> audioSystem;
         std::unique_ptr<Console> console;
+#ifdef BUILD_EDITOR
         std::unique_ptr<Editor> editor;
+#endif
         std::unique_ptr<DotNetScriptEngine> scriptEngine;
         std::unique_ptr<OpenVRInterface> openvrInterface;
         std::unique_ptr<PhysicsSystem> physicsSystem;

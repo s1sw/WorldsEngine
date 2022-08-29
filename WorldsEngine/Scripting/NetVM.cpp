@@ -64,8 +64,6 @@ EngineInterfaces const* csharpInterfaces;
 #include "ConsoleBindings.hpp"
 #include "DebugShapeBindings.hpp"
 #include "DynamicPhysicsActorBindings.hpp"
-#include "EditorBindings.hpp"
-#include "GameProjectBindings.hpp"
 #include "ImGui/cimgui.h"
 #include "InputBindings.hpp"
 #include "MeshManagerBindings.hpp"
@@ -77,6 +75,11 @@ EngineInterfaces const* csharpInterfaces;
 #include "WorldLightBindings.hpp"
 #include "WorldObjectBindings.hpp"
 #include "WorldTextBindings.hpp"
+
+#ifdef BUILD_EDITOR
+#include "EditorBindings.hpp"
+#include "GameProjectBindings.hpp"
+#endif
 
 entt::registry* sceneLoaderBindReg;
 extern "C"

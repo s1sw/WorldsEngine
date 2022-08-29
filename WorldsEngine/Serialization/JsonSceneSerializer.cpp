@@ -77,6 +77,8 @@ namespace worlds
         return arr;
     }
 
+// Entity folders exist solely in the editor
+#ifdef BUILD_EDITOR
     nlohmann::json getJsonForFolder(const EntityFolder& folder)
     {
         nlohmann::json children = nlohmann::json::array();
@@ -105,6 +107,7 @@ namespace worlds
 
         return f;
     }
+#endif
 
     void serializeEntityInScene(nlohmann::json& entities, entt::entity ent, entt::registry& reg)
     {
@@ -152,12 +155,14 @@ namespace worlds
                               {{"skyboxPath", AssetDB::idToPath(reg.ctx<SceneSettings>().skybox)},
                                {"skyboxBoost", reg.ctx<SceneSettings>().skyboxBoost}}}};
 
+#ifdef BUILD_EDITOR
         EntityFolders* entityFolders = reg.try_ctx<EntityFolders>();
 
         if (entityFolders)
         {
             scene["rootEntityFolder"] = getJsonForFolder(entityFolders->rootFolder);
         }
+#endif
 
         return scene;
     }
@@ -437,6 +442,7 @@ namespace worlds
             settings.skyboxBoost = j["settings"].value("skyboxBoost", 1.0f);
             reg.set<SceneSettings>(settings);
 
+#ifdef BUILD_EDITOR
             if (j.contains("rootEntityFolder"))
             {
                 EntityFolders folders;
@@ -444,6 +450,7 @@ namespace worlds
                 validateFolder(folders.rootFolder, reg);
                 reg.set<EntityFolders>(folders);
             }
+#endif
         }
     }
 
