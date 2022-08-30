@@ -75,6 +75,8 @@ namespace WorldsEngine
         static bool _isDebug = false;
         static bool _editorActive = false;
 
+        public static bool InEditor => _editorActive;
+
         public static bool SceneRunning { get; private set; }
 
         static void ActualInit(IntPtr registryPtr, bool editorActive)

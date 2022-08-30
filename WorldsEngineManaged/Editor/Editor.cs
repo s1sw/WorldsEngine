@@ -63,7 +63,13 @@ namespace WorldsEngine.Editor
             editor_select(entity.ID);
         }
 
-        public static void Notify(string content, NotificationType type = NotificationType.Info) => editor_addNotification(content, type);
+        public static void Notify(string content, NotificationType type = NotificationType.Info)
+        {
+            if (!Engine.InEditor) return;
+
+            editor_addNotification(content, type);
+        }
+
         public static void OverrideHandle(Entity entity) => editor_overrideHandle(entity.ID);
 
         public static void OpenWindowOfType(Type type)
