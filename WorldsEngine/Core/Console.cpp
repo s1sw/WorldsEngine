@@ -688,6 +688,8 @@ namespace worlds
                     }
                     ImGui::EndTabItem();
                 }
+
+                ImGui::EndTabBar();
             }
         }
         ImGui::End();
