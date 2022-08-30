@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 
 project(WorldsEngine)
 set(CMAKE_CXX_STANDARD 20)
