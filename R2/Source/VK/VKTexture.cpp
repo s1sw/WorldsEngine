@@ -108,10 +108,13 @@ namespace R2::VK
         if (supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format))
             ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 
+        bool forceSRGBView = false;
         if (createInfo.Format == TextureFormat::R8G8B8A8_SRGB)
         {
             ici.flags |= VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
             ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+            ici.format = (VkFormat)TextureFormat::R8G8B8A8_UNORM;
+            forceSRGBView = true;
         }
 
         if (createInfo.IsRenderTarget)
@@ -160,6 +163,11 @@ namespace R2::VK
         if (!supportsStorage(core->GetHandles()->PhysicalDevice, createInfo.Format))
         {
             ivci.pNext = &usageCI;
+        }
+
+        if (forceSRGBView)
+        {
+            ivci.format = VK_FORMAT_R8G8B8A8_SRGB;
         }
 
         VKCHECK(vkCreateImageView(handles->Device, &ivci, handles->AllocCallbacks, &imageView));

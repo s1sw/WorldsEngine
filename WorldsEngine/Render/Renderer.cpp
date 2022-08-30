@@ -126,7 +126,6 @@ namespace worlds
         swapchain->GetSize(width, height);
 
         core->BeginFrame();
-        bindlessTextureManager->UpdateDescriptorsIfNecessary();
 
         VK::CommandBuffer cb = core->GetFrameCommandBuffer();
 
@@ -187,6 +186,7 @@ namespace worlds
             cb, VK::ImageLayout::PresentSrc, VK::AccessFlags::MemoryRead, VK::PipelineStageFlags::AllCommands);
 
         timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 2 + 1);
+        bindlessTextureManager->UpdateDescriptorsIfNecessary();
 
         if (this->xrPresentManager && xrRendered)
             xrPresentManager->preSubmit();

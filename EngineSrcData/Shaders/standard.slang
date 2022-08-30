@@ -366,11 +366,15 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position, uint v
     DrawInfo di = DrawInfos[WaveReadLaneFirst(input.DrawID)];
     PBRMaterial material = MaterialBuffer.Load<PBRMaterial>(int(di.MaterialOffset));
 
+
     float3x3 tbn = ConstructTBN(input);
     float3 normal = material.GetNormal(input.UV, tbn);
 
     ShadeInfo shadeInfo;
-    shadeInfo.albedoColor = Textures[NonUniformResourceIndex(material.AlbedoTexture)].Sample(input.UV).xyz;
+    if (material.AlbedoTexture != ~0u)
+        shadeInfo.albedoColor = Textures[NonUniformResourceIndex(material.AlbedoTexture)].Sample(input.UV).xyz;
+    else
+        shadeInfo.albedoColor = float3(1.0, 0.0, 1.0);
     shadeInfo.normal = normalize(normal);
     shadeInfo.viewDir = normalize(VPBuffer.viewPos[0].xyz - input.WorldPosition.xyz);
     shadeInfo.ao = 1;
