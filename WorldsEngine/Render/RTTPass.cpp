@@ -33,6 +33,7 @@ namespace worlds
 
     VKRTTPass::~VKRTTPass()
     {
+        renderer->bindlessTextureManager->FreeTextureHandle(finalTargetBindlessID);
         renderer->core->DestroyTexture(finalTarget);
         delete pipeline;
     }
