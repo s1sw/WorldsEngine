@@ -55,27 +55,10 @@ int main(int argc, char **argv)
     worlds::EngineInitOptions initOptions;
     initOptions.gameName = "Lightline";
 
-    std::vector<std::string> startupCommands;
-
     EngineArguments::parseArguments(argc, argv);
     initOptions.runAsEditor = EngineArguments::hasArgument("editor");
     initOptions.enableVR = !EngineArguments::hasArgument("novr");
     initOptions.dedicatedServer = EngineArguments::hasArgument("dedicated-server");
-
-    for (int i = 0; i < argc; i++)
-    {
-        if (argv[i][0] == '+')
-        {
-            std::string strArg = argv[i];
-            size_t colonPos = strArg.find(":");
-            if (colonPos != std::string::npos)
-            {
-                std::string cmd = strArg.substr(1, colonPos - 1);
-                std::string cmdArg = strArg.substr(colonPos + 1);
-                startupCommands.push_back(cmd + " " + cmdArg);
-            }
-        }
-    }
 
     if (initOptions.dedicatedServer && (initOptions.enableVR || initOptions.runAsEditor))
     {
