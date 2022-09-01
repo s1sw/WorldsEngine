@@ -65,7 +65,8 @@ namespace worlds
                 {
                     for (int i = 0; i < lm.numSubmeshes; i++)
                     {
-                        ImGui::Text("%i indices", lm.submeshes[i].indexCount);
+                        ImGui::Text(
+                            "%i indices, material %i", lm.submeshes[i].indexCount, lm.submeshes[i].materialIndex);
                     }
                     ImGui::TreePop();
                 }
@@ -83,9 +84,10 @@ namespace worlds
 
     void ModelEditor::save()
     {
-        nlohmann::json j = {{"srcPath", AssetDB::idToPath(srcModel)},
-                            {"uniformScale", uniformScale},
-                            {"removeRedundantMaterials", removeRedundantMaterials}};
+        nlohmann::json j = {
+            {"srcPath", AssetDB::idToPath(srcModel)},
+            {"uniformScale", uniformScale},
+            {"removeRedundantMaterials", removeRedundantMaterials}};
 
         if (preTransformVerts)
             j["preTransformVerts"] = true;
