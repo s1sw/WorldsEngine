@@ -7,6 +7,8 @@
 
 namespace worlds
 {
+    AssetID missingModel;
+
     RenderMeshManager::RenderMeshManager(R2::VK::Core* core) : core(core)
     {
         R2::VK::BufferCreateInfo createInfo{};
@@ -17,6 +19,9 @@ namespace worlds
         createInfo.Size = 9 * 1000 * 1000 * sizeof(uint32_t); // 3 million triangles
         createInfo.Usage = R2::VK::BufferUsage::Index | R2::VK::BufferUsage::Storage;
         indexBuffer = new R2::SubAllocatedBuffer(core, createInfo);
+
+        missingModel = AssetDB::pathToId("Models/missing.wmdl");
+        loadOrGet(missingModel);
     }
 
     RenderMeshManager::~RenderMeshManager()
@@ -51,6 +56,11 @@ namespace worlds
 
         LoadedMeshData lmd{};
         loadWorldsModel(asset, lmd);
+
+        if (lmd.vertices.size() == 0)
+        {
+            return meshes.at(missingModel);
+        }
 
         // We don't support 16 bit indices anymore so we can bind the index buffer just once.
         if (lmd.indexType == IndexType::Uint16)
