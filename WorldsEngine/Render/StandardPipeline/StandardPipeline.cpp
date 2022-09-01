@@ -656,7 +656,7 @@ namespace worlds
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* textureManager = renderer->getTextureManager();
         uint32_t frameIdx = renderer->getCore()->GetFrameIndex();
-        RenderMaterialManager::UnloadUnusedMaterials(reg);
+        //RenderMaterialManager::UnloadUnusedMaterials(reg);
 
         // If there's anything in the convolution queue, convolute 1 cubemap
         // per frame (convolution is slow!)
