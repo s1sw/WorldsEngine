@@ -135,6 +135,17 @@ float3x3 ConstructTBN(VertexOutput input)
     return transpose(float3x3(tangent, bitangent, input.Normal));
 }
 
+float hardenedKernel(float x)
+{
+    // this is basically a stronger smoothstep()
+    x = 2.0 * x - 1.0;
+    float s = sign(x);
+    x = 1.0 - s * x;
+    x = x * x * x;
+    x = s - x * s;
+    return 0.5 * x + 0.5;
+}
+
 float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, uint viewIndex)
 {
     LightBufferLoader lbl;
@@ -176,16 +187,32 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                 if (all(coord.xy > 0.0) && all(coord.xy < 1.0))
                 {
                     float occlusionAmount = 0.0;
+                    uint shadowTexIdx = NonUniformResourceIndex(lbl.GetShadowmapId(light.ShadowmapIndex));
+
+                    // estimate blocker distance
+                    float avgBlockDist = 0.0;
+                    int blockCount = 0;
 
                     [[loop]]
-                    for (int t = 0; t < 8; t++)
+                    for (int t = 0; t < 12; t++)
                     {
-                        float2 offsetCoord = coord + PoissonKernel[t] * (2.0 / 512.0);
-                        float d = Textures[NonUniformResourceIndex(lbl.GetShadowmapId(light.ShadowmapIndex))].SampleLevel(offsetCoord, 0).x;
-                        occlusionAmount += d - 0.0002 > shadowPos.z ? 0 : 1;
+                        float2 offsetCoord = coord + (PoissonKernel[t] * (4.0 / 512.0)); //* (avgBlockDist * 500.0);
+                        float d = Textures[shadowTexIdx].SampleLevel(offsetCoord, 0).x;
+                        if (d - 0.0002 > shadowPos.z)
+                        {
+                            avgBlockDist += d;
+                            blockCount++;
+                        }
                     }
-                    occlusionAmount /= 8.0;
-                    contribution *= occlusionAmount;
+
+                    if (blockCount > 0)
+                    {
+                        avgBlockDist /= float(blockCount);
+                        occlusionAmount = 1.0 - (float(blockCount) / 12.0);
+
+                        float blendAmount = (0.00005 + avgBlockDist) / (0.00005 + shadowPos.z) - 1.0;
+                        contribution *= lerp(hardenedKernel(occlusionAmount), occlusionAmount, blendAmount);
+                    }
                 }
             }
 
