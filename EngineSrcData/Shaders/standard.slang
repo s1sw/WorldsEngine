@@ -98,6 +98,7 @@ StructuredBuffer<DrawInfo> DrawInfos;
 
 cbuffer SceneGlobals 
 {
+    float time;
     float2 PoissonKernel[24];
 };
 
@@ -223,7 +224,7 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                     int blockCount = 0;
 
                     int sampleCount = 12;
-                    float2 rotationComponents = getRotationComponents(random(fragCoord) * 1.5);
+                    float2 rotationComponents = getRotationComponents(random(fragCoord + time) * 1.5);
 
                     [[loop]]
                     for (int t = 0; t < sampleCount; t++)

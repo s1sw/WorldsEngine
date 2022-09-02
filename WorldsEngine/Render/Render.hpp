@@ -188,7 +188,7 @@ namespace worlds
     class Renderer
     {
     public:
-        virtual void frame(entt::registry& reg) = 0;
+        virtual void frame(entt::registry& reg, float deltaTime) = 0;
 
         //! Gets time spent rendering the scene on the GPU.
         virtual float getLastGPUTime() const = 0;

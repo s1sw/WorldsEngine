@@ -36,6 +36,7 @@ namespace worlds
     };
 
     VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
+        : timeAccumulator(0.0)
     {
         ZoneScoped;
         bool enableValidation = true;
@@ -103,9 +104,11 @@ namespace worlds
         delete core;
     }
 
-    void VKRenderer::frame(entt::registry& registry)
+    void VKRenderer::frame(entt::registry& registry, float deltaTime)
     {
         ZoneScoped;
+
+        timeAccumulator += (double)deltaTime;
 
         // Reset debug stats
         debugStats.numDrawCalls = 0;
@@ -309,5 +312,10 @@ namespace worlds
     {
         *count = currentDebugLineCount;
         return currentDebugLines;
+    }
+
+    double VKRenderer::getTime()
+    {
+        return timeAccumulator;
     }
 }

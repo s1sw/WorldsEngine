@@ -297,6 +297,7 @@ namespace worlds
         RenderDebugStats debugStats;
         float lastGPUTime;
         float timestampPeriod;
+        double timeAccumulator;
         friend class VKRTTPass;
         const DebugLine* currentDebugLines;
         size_t currentDebugLineCount;
@@ -305,7 +306,7 @@ namespace worlds
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
         ~VKRenderer();
 
-        void frame(entt::registry& reg) override;
+        void frame(entt::registry& reg, float deltaTime) override;
 
         float getLastGPUTime() const override;
         void setVRUsedPose(glm::mat4 pose) override;
@@ -330,5 +331,6 @@ namespace worlds
         VKTextureManager* getTextureManager();
         ShadowmapManager* getShadowmapManager();
         const DebugLine* getCurrentDebugLines(size_t* count);
+        double getTime();
     };
 }

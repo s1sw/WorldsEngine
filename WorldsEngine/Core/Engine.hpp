@@ -139,7 +139,7 @@ namespace worlds
         void drawDebugInfoWindow(DebugTimeInfo timeInfo);
         bool updateSimulation(float& interpAlpha, double deltaTime);
         void doSimStep(float deltaTime);
-        void tickRenderer(bool renderImgui = false);
+        void tickRenderer(float deltaTime, bool renderImgui = false);
         void runSingleFrame(bool processEvents);
 
         Window* window;

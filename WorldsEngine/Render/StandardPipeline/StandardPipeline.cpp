@@ -54,6 +54,12 @@ namespace worlds
         uint32_t modelMatrixID;
     };
 
+    struct SceneGlobals
+    {
+        float time;
+        glm::vec2 poissonDisk[24];
+    };
+
     static glm::vec2 poissonDisk[24] = {
         glm::vec2(0.511749, 0.547686),  glm::vec2(0.58929, 0.257224),    glm::vec2(0.165018, 0.57663),
         glm::vec2(0.407692, 0.742285),  glm::vec2(0.707012, 0.646523),   glm::vec2(0.31463, 0.466825),
@@ -172,9 +178,9 @@ namespace worlds
         VK::BufferCreateInfo drawInfoBCI{VK::BufferUsage::Storage, sizeof(GPUDrawInfo) * MAX_DRAWS, true};
         drawInfoBuffers = new VK::FrameSeparatedBuffer(core, drawInfoBCI);
 
-        VK::BufferCreateInfo pkBCI{VK::BufferUsage::Uniform, sizeof(poissonDisk)};
-        sceneGlobals = core->CreateBuffer(pkBCI);
-        core->QueueBufferUpload(sceneGlobals.Get(), poissonDisk, sizeof(poissonDisk), 0);
+        VK::BufferCreateInfo globalsBCI{VK::BufferUsage::Uniform, sizeof(SceneGlobals), true};
+        sceneGlobals = core->CreateBuffer(globalsBCI);
+        core->QueueBufferUpload(sceneGlobals.Get(), poissonDisk, sizeof(poissonDisk), offsetof(SceneGlobals, poissonDisk));
 
         VK::BufferCreateInfo drawCmdsBCI{
             VK::BufferUsage::Indirect, sizeof(VK::DrawIndexedIndirectCommand) * MAX_DRAWS, true};
@@ -657,6 +663,10 @@ namespace worlds
         VKTextureManager* textureManager = renderer->getTextureManager();
         uint32_t frameIdx = renderer->getCore()->GetFrameIndex();
         //RenderMaterialManager::UnloadUnusedMaterials(reg);
+
+        SceneGlobals* globals = (SceneGlobals*)sceneGlobals->Map();
+        globals->time = renderer->getTime();
+        sceneGlobals->Unmap();
 
         // If there's anything in the convolution queue, convolute 1 cubemap
         // per frame (convolution is slow!)

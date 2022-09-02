@@ -921,7 +921,7 @@ namespace worlds
 
         if (!dedicatedServer)
         {
-            tickRenderer(true);
+            tickRenderer(interFrameInfo.deltaTime, true);
         }
 
         interFrameInfo.frameCounter++;
@@ -993,7 +993,7 @@ namespace worlds
         inFrame = false;
     }
 
-    void WorldsEngine::tickRenderer(bool renderImGui)
+    void WorldsEngine::tickRenderer(float deltaTime, bool renderImGui)
     {
         ZoneScoped;
         const physx::PxRenderBuffer& pxRenderBuffer = physicsSystem->scene()->getRenderBuffer();
@@ -1024,7 +1024,7 @@ namespace worlds
             ImGui::RenderPlatformWindowsDefault();
         }
 
-        renderer->frame(registry);
+        renderer->frame(registry, deltaTime);
         FrameMark;
     }
 
