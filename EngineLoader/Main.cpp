@@ -45,6 +45,11 @@ LONG unhandledExceptionHandler(LPEXCEPTION_POINTERS exceptionPtrs)
 }
 #endif
 
+worlds::WorldsEngine* createEngine(worlds::EngineInitOptions& initOptions, char* argv0)
+{
+    return new worlds::WorldsEngine(initOptions, argv0);
+}
+
 int main(int argc, char **argv)
 {
 #ifdef _WIN32
@@ -52,6 +57,7 @@ int main(int argc, char **argv)
         SetUnhandledExceptionFilter(unhandledExceptionHandler);
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 #endif
+
     worlds::EngineInitOptions initOptions;
     initOptions.gameName = "Lightline";
 
@@ -68,8 +74,9 @@ int main(int argc, char **argv)
 
     initOptions.useEventThread = false;
 
-    worlds::WorldsEngine engine(initOptions, argv[0]);
-    engine.run();
+    worlds::WorldsEngine* engine = createEngine(initOptions, argv[0]);
+    engine->run();
+    delete engine;
 
     return 0;
 }
