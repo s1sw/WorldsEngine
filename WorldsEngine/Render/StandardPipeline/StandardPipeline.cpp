@@ -173,8 +173,8 @@ namespace worlds
         drawInfoBuffers = new VK::FrameSeparatedBuffer(core, drawInfoBCI);
 
         VK::BufferCreateInfo pkBCI{VK::BufferUsage::Uniform, sizeof(poissonDisk)};
-        poissonKernelBuffer = core->CreateBuffer(pkBCI);
-        core->QueueBufferUpload(poissonKernelBuffer.Get(), poissonDisk, sizeof(poissonDisk), 0);
+        sceneGlobals = core->CreateBuffer(pkBCI);
+        core->QueueBufferUpload(sceneGlobals.Get(), poissonDisk, sizeof(poissonDisk), 0);
 
         VK::BufferCreateInfo drawCmdsBCI{
             VK::BufferUsage::Indirect, sizeof(VK::DrawIndexedIndirectCommand) * MAX_DRAWS, true};
@@ -205,7 +205,7 @@ namespace worlds
             dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, RenderMaterialManager::GetBuffer());
             dsu.AddBuffer(3, 0, VK::DescriptorType::StorageBuffer, lightBuffers->GetBuffer(i));
             dsu.AddBuffer(5, 0, VK::DescriptorType::StorageBuffer, drawInfoBuffers->GetBuffer(i));
-            dsu.AddBuffer(6, 0, VK::DescriptorType::UniformBuffer, poissonKernelBuffer.Get());
+            dsu.AddBuffer(6, 0, VK::DescriptorType::UniformBuffer, sceneGlobals.Get());
             dsu.Update();
         }
 

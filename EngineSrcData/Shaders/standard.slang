@@ -96,7 +96,7 @@ ByteAddressBuffer RawLightBuffer;
 StructuredBuffer<LightingTile> LightTiles;
 StructuredBuffer<DrawInfo> DrawInfos;
 
-cbuffer PKernel
+cbuffer SceneGlobals 
 {
     float2 PoissonKernel[24];
 };
@@ -146,6 +146,35 @@ float hardenedKernel(float x)
     return 0.5 * x + 0.5;
 }
 
+float linearize_depth(float d,float zNear,float zFar)
+{
+    return zNear * zFar / (zFar + d * (zNear - zFar));
+}
+
+float random( float2 p )
+{
+    float2 K1 = float2(
+        23.14069263277926, // e^pi (Gelfond's constant)
+         2.665144142690225 // 2^sqrt(2) (Gelfondâ€“Schneider constant)
+    );
+    return frac( cos( dot(p,K1) ) * 12345.6789 );
+}
+
+float2 rotateSample(float2 inSample, float2 rotComponents) {
+    float sinTheta = rotComponents.x;
+    float cosTheta = rotComponents.y;
+
+    float2 outSample;
+    outSample.x = inSample.x * cosTheta - inSample.y * sinTheta;
+    outSample.y = inSample.x * sinTheta + inSample.y * cosTheta;
+    return outSample;
+}
+
+float2 getRotationComponents(float angle) {
+    return float2(sin(angle), cos(angle));
+}
+
+
 float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, uint viewIndex)
 {
     LightBufferLoader lbl;
@@ -193,25 +222,40 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                     float avgBlockDist = 0.0;
                     int blockCount = 0;
 
+                    int sampleCount = 12;
+                    float2 rotationComponents = getRotationComponents(random(fragCoord) * 1.5);
+
                     [[loop]]
-                    for (int t = 0; t < 12; t++)
+                    for (int t = 0; t < sampleCount; t++)
                     {
-                        float2 offsetCoord = coord + (PoissonKernel[t] * (4.0 / 512.0)); //* (avgBlockDist * 500.0);
-                        float d = Textures[shadowTexIdx].SampleLevel(offsetCoord, 0).x;
-                        if (d - 0.0002 > shadowPos.z)
+                        float2 offset = rotateSample(PoissonKernel[t] * (3.0 / 512.0), rotationComponents);
+                        float2 offsetCoord = coord + offset;
+                        float4 depths = Textures[shadowTexIdx].Gather(offsetCoord);
+                        for (int i = 0; i < 4; i++)
                         {
-                            avgBlockDist += d;
-                            blockCount++;
+                            float d = depths[i];
+                            float dist = (d - shadowPos.z);
+
+                            float bias = 0.0002;
+                            float occluded = step(dist, bias);
+                            occlusionAmount += occluded;
+
+                            avgBlockDist += dist * occluded;
+                            blockCount += (dist >= bias ? 1 : 0);
                         }
                     }
 
                     if (blockCount > 0)
                     {
                         avgBlockDist /= float(blockCount);
-                        occlusionAmount = 1.0 - (float(blockCount) / 12.0);
+                        occlusionAmount /= float(4 * sampleCount);
+                        float recv = shadowPos.z;
+                        float block = avgBlockDist;
+                        float nofmn = (0.05 / 100.0) - 0.05;
 
-                        float blendAmount = (0.00005 + avgBlockDist) / (0.00005 + shadowPos.z) - 1.0;
-                        contribution *= lerp(hardenedKernel(occlusionAmount), occlusionAmount, blendAmount);
+                        float blendAmount = saturate((nofmn + block) / (nofmn + recv) - 1.0);
+                        //contribution *= occlusionAmount;
+                        contribution *= float3(lerp(hardenedKernel(occlusionAmount), occlusionAmount, blendAmount));
                     }
                 }
             }
