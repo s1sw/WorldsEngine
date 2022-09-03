@@ -48,6 +48,7 @@ namespace worlds
                 strcat(buf, "Temp/");
                 strcat(buf, name);
                 PHYSFS_delete(buf);
+                delete[] buf;
 
                 return PHYSFS_ENUM_OK;
             },
