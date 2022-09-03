@@ -56,6 +56,7 @@ namespace R2::VK
         : handles(renderer->GetHandles())
         , renderer(renderer)
         , swapchain(VK_NULL_HANDLE)
+        , previousSwapchain(VK_NULL_HANDLE)
     {
         surface = createInfo.surface;
         vsyncEnabled = true;
@@ -90,6 +91,12 @@ namespace R2::VK
         presentInfo.waitSemaphoreCount = 1;
 
         VkResult result = vkQueuePresentKHR(handles->Queues.Graphics, &presentInfo);
+
+        if (previousSwapchain != VK_NULL_HANDLE)
+        {
+            vkDestroySwapchainKHR(handles->Device, previousSwapchain, handles->AllocCallbacks);
+            previousSwapchain = VK_NULL_HANDLE;
+        }
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
         {
@@ -173,7 +180,7 @@ namespace R2::VK
             imageTextures.clear();
             images.clear();
 
-            vkDestroySwapchainKHR(handles->Device, oldSwapchain, handles->AllocCallbacks);
+            previousSwapchain = oldSwapchain;
         }
 
         uint32_t swapchainImageCount;

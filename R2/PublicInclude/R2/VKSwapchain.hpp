@@ -44,6 +44,7 @@ namespace R2::VK
         const Handles* handles;
         Core* renderer;
         VkSwapchainKHR swapchain;
+        VkSwapchainKHR previousSwapchain;
         VkSurfaceKHR surface;
         std::vector<VkImage> images;
         std::vector<Texture*> imageTextures;
