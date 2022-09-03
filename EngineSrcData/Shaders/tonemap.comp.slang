@@ -31,6 +31,7 @@ cbuffer TonemapSettings
     float contrast;
     float saturation;
     float resolutionScale;
+    int skipBloom;
 };
 
 interface ITonemapper
@@ -188,12 +189,16 @@ void main(uint3 threadID : SV_DispatchThreadID)
     float3 accumulator = 0.0;
     float2 uv = (float2(threadID.xy) + 0.5) / (texSettings.HDRResolution / resolutionScale);
 
-#ifdef MULTIVP
-    float3 bloom = bloomImage.SampleLevel(float3(uv * resolutionScale, idx), 0).xyz;
-#else
-    float3 bloom = bloomImage.SampleLevel(uv * resolutionScale, 0).xyz;
-#endif
-    bloom = max(bloom, float3(0.0));
+    float3 bloom = 0.0;
+    if (skipBloom == 0)
+    {
+        #ifdef MULTIVP
+            bloom = bloomImage.SampleLevel(float3(uv * resolutionScale, idx), 0).xyz;
+        #else
+            bloom = bloomImage.SampleLevel(uv * resolutionScale, 0).xyz;
+        #endif
+        bloom = max(bloom, float3(0.0));
+    }
 
 #ifdef MSAA
     // If we're using MSAA, resolve using the reversible tonemapper

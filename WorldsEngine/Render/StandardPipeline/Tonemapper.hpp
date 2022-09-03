@@ -31,6 +31,6 @@ namespace worlds
         UniquePtr<R2::VK::Sampler> sampler;
     public:
         Tonemapper(R2::VK::Core* core, R2::VK::Texture* colorBuffer, R2::VK::Texture* target, R2::VK::Texture* bloom);
-        void Execute(R2::VK::CommandBuffer& cb);
+        void Execute(R2::VK::CommandBuffer& cb, bool skipBloom);
     };
 }

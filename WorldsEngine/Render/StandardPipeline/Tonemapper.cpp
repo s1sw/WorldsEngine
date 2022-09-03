@@ -17,6 +17,7 @@ namespace worlds
         float contrast;
         float saturation;
         float resolutionScale;
+        int skipBloom;
     };
 
     Tonemapper::Tonemapper(VK::Core* core, VK::Texture* colorBuffer, VK::Texture* target, VK::Texture* bloom)
@@ -80,7 +81,7 @@ namespace worlds
     static ConVar contrast{"r_contrast", "0.87", "Sets the rendering contrast."};
     static ConVar saturation{"r_saturation", "1.0", "Sets the rendering saturation."};
 
-    void Tonemapper::Execute(VK::CommandBuffer& cb)
+    void Tonemapper::Execute(VK::CommandBuffer& cb, bool skipBloom)
     {
         bloom->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
         colorBuffer->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
@@ -95,6 +96,7 @@ namespace worlds
             ts.saturation = saturation.getFloat();
             ts.resolutionScale = 1.0f;
             ts.idx = i;
+            ts.skipBloom = (int)skipBloom;
 
             cb.BindComputeDescriptorSet(pipelineLayout.Get(), descriptorSets[i]->GetNativeHandle(), 0);
             cb.PushConstants(ts, VK::ShaderStage::Compute, pipelineLayout.Get());

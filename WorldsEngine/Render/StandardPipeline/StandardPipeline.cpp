@@ -839,8 +839,11 @@ namespace worlds
         cb.EndDebugLabel();
 
         // Post-processing
-        bloom->Execute(cb);
-        tonemapper->Execute(cb);
+        static ConVar r_skipBloom {"r_skipBloom", "0", "Skips bloom rendering."};
+        if (!r_skipBloom)
+            bloom->Execute(cb);
+
+        tonemapper->Execute(cb, r_skipBloom);
 
         lightBuffers->UnmapCurrent();
     }
