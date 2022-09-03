@@ -50,19 +50,20 @@ namespace worlds
             {
                 currentWidth = contentRegion.x;
                 currentHeight = contentRegion.y;
-                if (isVR)
-                {
-                    uint32_t vrWidth, vrHeight;
-                    interfaces.vrInterface->getRenderResolution(&vrWidth, &vrHeight);
-
-                    if (gameRTTPass->width != vrWidth || gameRTTPass->height != vrHeight)
-                    {
-                        gameRTTPass->resize((int)vrWidth, (int)vrHeight);
-                    }
-                }
-                else
+                if (!isVR)
                 {
                     gameRTTPass->resize(currentWidth, currentHeight);
+                }
+            }
+
+            if (isVR)
+            {
+                uint32_t vrWidth, vrHeight;
+                interfaces.vrInterface->getRenderResolution(&vrWidth, &vrHeight);
+
+                if (gameRTTPass->width != vrWidth || gameRTTPass->height != vrHeight)
+                {
+                    gameRTTPass->resize((int)vrWidth, (int)vrHeight);
                 }
             }
 
