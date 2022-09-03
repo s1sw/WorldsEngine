@@ -29,8 +29,8 @@ struct VertexOutput
 [shader("vertex")]
 VertexOutput VertexShader(uint vertexID : SV_VertexID, uint viewIndex : SV_ViewID)
 {
-    int tri = vertexID / 3;
-    int idx = vertexID % 3;
+    int tri = int(vertexID) / 3;
+    int idx = int(vertexID) % 3;
     int face = tri / 2;
     int top = tri % 2;
 

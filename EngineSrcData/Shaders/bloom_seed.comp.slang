@@ -19,12 +19,12 @@ RWTexture2D<float4> OutputTexture;
 void main(uint3 threadID : SV_DispatchThreadID)
 {
     #ifndef MSAA
-    OutputTexture[threadID.xy] = InputTexture.Load(int3(threadID.xy, 0));
+    OutputTexture[int2(threadID.xy)] = InputTexture.Load(int3(int2(threadID.xy), 0));
     #else
         #ifdef MULTIVP
-            OutputTexture[threadID.xyz] = InputTexture.Load(threadID.xyz, 0);
+            OutputTexture[int3(threadID.xyz)] = InputTexture.Load(int3(threadID.xyz), 0);
         #else
-            OutputTexture[threadID.xy] = InputTexture.Load(threadID.xy, 0);
+            OutputTexture[int2(threadID.xy)] = InputTexture.Load(int2(threadID.xy), 0);
         #endif
     #endif
 }

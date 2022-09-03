@@ -201,7 +201,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
     for (int i = 0; i < texSettings.msaaSamples; i++)
     {
 #ifdef MULTIVP
-        float3 raw = hdrImage.Load(int3(threadID.xy, idx), i).xyz;
+        float3 raw = hdrImage.Load(int3(int2(threadID.xy), idx), i).xyz;
 #else
         float3 raw = hdrImage.Load(int2(threadID.xy), i).xyz;
 #endif
@@ -214,9 +214,9 @@ void main(uint3 threadID : SV_DispatchThreadID)
 #else
     // Otherwise just load it directly
 #ifdef MULTIVP
-    accumulator = hdrImage.Load(int4(threadID.xy, idx, 0)).xyz;
+    accumulator = hdrImage.Load(int4(int2(threadID.xy), idx, 0)).xyz;
 #else
-    accumulator = hdrImage.Load(int3(threadID.xy, 0)).xyz;
+    accumulator = hdrImage.Load(int3(int2(threadID.xy), 0)).xyz;
 #endif
 #endif
 

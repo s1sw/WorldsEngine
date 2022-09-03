@@ -61,8 +61,8 @@ void main(uint3 threadID : SV_DispatchThreadID)
 
 
 #ifdef MULTIVP
-    OutputTexture[int3(threadID.xy, threadID.z)] = result;
+    OutputTexture[int3(threadID)] = result;
 #else
-    OutputTexture[threadID.xy] = result;
+    OutputTexture[int2(threadID.xy)] = result;
 #endif
 }

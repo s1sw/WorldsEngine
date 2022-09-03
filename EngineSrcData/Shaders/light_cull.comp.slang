@@ -328,7 +328,7 @@ void cullLights(uint tileIndex, uint groupIndex)
     // the light count.
     if (groupIndex < lbl.GetLightCount())
     {
-        uint lightIndex = groupIndex;
+        int lightIndex = int(groupIndex);
         Light light = lbl.GetLight(lightIndex);
         float3 lightPosition = light.pack2.xyz;
 
@@ -390,7 +390,7 @@ void cullAO(uint tileIndex, uint groupIndex)
     // Stage 3: Cull AO spheres against the frustum
     if (groupIndex < lbl.GetAOSphereCount())
     {
-        uint sphereIndex = groupIndex;
+        int sphereIndex = int(groupIndex);
         AOSphere sph = lbl.GetAOSphere(sphereIndex);
         float3 spherePos = sph.Position;
         float cullRadius = sph.Radius + 1.0;
@@ -420,7 +420,7 @@ void cullAO(uint tileIndex, uint groupIndex)
     // Stage 4: Cull AO boxes against the frustum
     if (groupIndex < lbl.GetAOBoxCount() && groupIndex < 64)
     {
-        uint boxIdx = groupIndex;
+        int boxIdx = int(groupIndex);
         AOBox box = lbl.GetAOBox(boxIdx);
 
         float3 scale = box.Scale + float3(0.5);
@@ -452,7 +452,7 @@ void cullCubemaps(uint tileIndex, uint groupIndex)
 
     if (groupIndex < lbl.GetCubemapCount() && groupIndex > 0) 
     {
-        uint cubemapIdx = groupIndex;
+        int cubemapIdx = int(groupIndex);
         Cubemap c = lbl.GetCubemap(cubemapIdx);
 
         float3 mi = c.Position - c.Extent;
@@ -480,13 +480,13 @@ float depthBufferLoad(int2 coord, int msaaSample)
 {
 #ifdef MSAA
     #ifdef MULTIVP
-        return depthBuffer.Load(int3(coord, eyeIdx), msaaSample).x;
+        return depthBuffer.Load(int3(coord, int(eyeIdx)), msaaSample).x;
     #else
         return depthBuffer.Load(int2(coord), 0).x;
     #endif
 #else
     #ifdef MULTIVP
-        return depthBuffer.Load(int4(coord, eyeIdx, 0)).x;
+        return depthBuffer.Load(int4(coord, int(eyeIdx), 0)).x;
     #else
         return depthBuffer.Load(int3(coord, 0)).x;
     #endif
@@ -514,8 +514,8 @@ uint getDepthBufferSamples()
 void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dispatchID : SV_DispatchThreadID)
 {
     LightTileInfo tileInfo = CalculateTileInfo(screenWidth, screenHeight);
-    int tileIdxX = groupID.x; 
-    int tileIdxY = groupID.y;
+    int tileIdxX = int(groupID.x); 
+    int tileIdxY = int(groupID.y);
     uint tileIndex = ((tileIdxY * tileInfo.numTilesX) + tileIdxX) + tileInfo.tilesPerEye * eyeIdx;
 
     clearBuffers(tileIndex, groupIndex);
@@ -571,7 +571,7 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
     // Stage 2: Calculate frustum points.
     if (groupIndex == 0)
     {
-        setupTile(tileIndex, tileIdxX, tileIdxY, tileInfo.tileSize);
+        setupTile(tileIndex, tileIdxX, tileIdxY, int(tileInfo.tileSize));
     }
 
     GroupMemoryBarrierWithGroupSync();

@@ -37,12 +37,12 @@ struct LightBufferLoader
 {
     ByteAddressBuffer rawLightBuffer;
 
-    float4x4 GetShadowMatrix(uint idx)
+    float4x4 GetShadowMatrix(int idx)
     {
         return rawLightBuffer.Load<float4x4>(idx * 64);
     }
 
-    uint GetShadowmapId(uint idx)
+    uint GetShadowmapId(int idx)
     {
         return rawLightBuffer.Load(272 + idx * 4);
     }
@@ -52,7 +52,7 @@ struct LightBufferLoader
         return rawLightBuffer.Load(256);
     }
 
-    Light GetLight(uint lightIndex)
+    Light GetLight(int lightIndex)
     {
         return rawLightBuffer.Load<Light>(544 + LIGHT_SIZE * lightIndex);
     }
@@ -87,7 +87,7 @@ struct LightBufferLoader
         return rawLightBuffer.Load(268);
     }
 
-    Cubemap GetCubemap(uint cubemapIndex)
+    Cubemap GetCubemap(int cubemapIndex)
     {
         return rawLightBuffer.Load<Cubemap>(21344 + CUBEMAP_SIZE * cubemapIndex);
     }

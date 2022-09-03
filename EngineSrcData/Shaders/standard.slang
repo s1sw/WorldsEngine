@@ -9,15 +9,15 @@ import Cubemap;
 
 struct VertexInput
 {
-    [[vk::location(0)]]
+    [vk::location(0)]
     float3 Position : POSITION;
-    [[vk::location(1)]]
+    [vk::location(1)]
     float3 Normal : NORMAL;
-    [[vk::location(2)]]
+    [vk::location(2)]
     float3 Tangent : TANGENT;
-    [[vk::location(3)]]
+    [vk::location(3)]
     float BitangentSign : BITANGENTSIGN;
-    [[vk::location(4)]]
+    [vk::location(4)]
     float2 UV : TEXCOORD;
 }
 
@@ -102,10 +102,12 @@ cbuffer SceneGlobals
     float2 PoissonKernel[24];
 };
 
-[[vk::binding(0, 1)]]
+[vk::binding(0, 1)]
+[allow("parameterBindingsOverlap")]
 Sampler2D<float4> Textures[];
 
-[[vk::binding(0, 1)]]
+[vk::binding(0, 1)]
+[allow("parameterBindingsOverlap")]
 SamplerCube<float4> Cubemaps[];
 
 
@@ -199,12 +201,12 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
             lightBits ^= 1 << lightBitIndex;
 
             uint realIndex = lightBitIndex + (32 * i);
-            Light light = lbl.GetLight(realIndex);
+            Light light = lbl.GetLight(int(realIndex));
             float3 contribution = calculateLighting(light, shadeInfo, worldPos);
 
             if (light.ShadowmapIndex != 0xF)
             {
-                float4x4 shadowVP = transpose(lbl.GetShadowMatrix(light.ShadowmapIndex));
+                float4x4 shadowVP = transpose(lbl.GetShadowMatrix(int(light.ShadowmapIndex)));
                 float4 shadowPos = mul(shadowVP, float4(worldPos, 1.0));
                 shadowPos.y = -shadowPos.y;
                 shadowPos /= shadowPos.w;
@@ -213,7 +215,7 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                 if (all(coord.xy > 0.0) && all(coord.xy < 1.0))
                 {
                     float occlusionAmount = 0.0;
-                    uint shadowTexIdx = NonUniformResourceIndex(lbl.GetShadowmapId(light.ShadowmapIndex));
+                    uint shadowTexIdx = NonUniformResourceIndex(lbl.GetShadowmapId(int(light.ShadowmapIndex)));
 
                     // estimate blocker distance
                     float avgBlockDist = 0.0;
@@ -335,7 +337,7 @@ float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, ui
             cubemapBits ^= 1 << cubemapBitIndex;
 
             uint realIndex = cubemapBitIndex + (32 * i);
-            Cubemap c = lbl.GetCubemap(realIndex);
+            Cubemap c = lbl.GetCubemap(int(realIndex));
             numCubemaps++;
             weightSum += calcBlendWeight(c, worldPos);
         }
@@ -354,7 +356,7 @@ float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, ui
             cubemapBits ^= 1 << cubemapBitIndex;
 
             uint realIndex = cubemapBitIndex + (32 * i);
-            Cubemap c = lbl.GetCubemap(realIndex);
+            Cubemap c = lbl.GetCubemap(int(realIndex));
             float blendWeight = calcBlendWeight(c, worldPos) / weightSum;
             specularAmbient += sampleCubemap(c, R, specMipLevel, worldPos) * blendWeight;
             diffuseAmbient += sampleCubemap(c, R, 12.0, worldPos) * blendWeight;
