@@ -33,8 +33,8 @@ namespace worlds
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
             .CullMode(VK::CullMode::Back)
             .PrimitiveTopology(VK::Topology::TriangleList)
-            .DepthBias(false)
-            .ConstantDepthBias(-1.4f)
+            .DepthBias(true)
+            .ConstantDepthBias(-1.0f)
             .SlopeDepthBias(-1.75f);
 
         pipeline = pb.Build();
