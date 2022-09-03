@@ -397,6 +397,7 @@ namespace R2::VK
         TextureFormat Format;
         TextureDimension Dimension;
         int Samples;
+        bool CanUseAsStorage = true;
     };
 
     class Texture

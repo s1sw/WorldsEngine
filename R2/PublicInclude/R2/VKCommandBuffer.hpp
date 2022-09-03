@@ -64,12 +64,28 @@ namespace R2::VK
         int Z;
     };
 
+    struct BlitExtent
+    {
+        uint32_t X;
+        uint32_t Y;
+        uint32_t Z;
+    };
+
     struct TextureBlit
     {
         BlitSubtexture Source;
         BlitOffset SourceOffsets[2];
         BlitSubtexture Destination;
         BlitOffset DestinationOffsets[2];
+    };
+
+    struct TextureCopy
+    {
+        BlitSubtexture Source;
+        BlitOffset SourceOffset;
+        BlitSubtexture Destination;
+        BlitOffset DestinationOffset;
+        BlitExtent Extent;
     };
 
     struct DrawIndexedIndirectCommand
@@ -117,6 +133,7 @@ namespace R2::VK
 
         void TextureBarrier(Texture* tex, PipelineStageFlags srcStage, PipelineStageFlags dstStage, AccessFlags srcAccess, AccessFlags dstAccess);
         void TextureBlit(Texture* source, Texture* destination, TextureBlit blitInfo);
+        void TextureCopy(Texture* source, Texture* destination, TextureCopy copyInfo);
 
         VkCommandBuffer GetNativeHandle();
     private:

@@ -147,6 +147,11 @@ namespace R2::VK
         return VkOffset3D { offset.X, offset.Y, offset.Z };
     }
 
+    VkExtent3D convertExtent(BlitExtent extent)
+    {
+        return VkExtent3D { extent.X, extent.Y, extent.Z };
+    }
+
     void CommandBuffer::TextureBlit(Texture* source, Texture* destination, R2::VK::TextureBlit blitInfo)
     {
         source->Acquire(*this, ImageLayout::TransferSrcOptimal, AccessFlags::TransferRead, PipelineStageFlags::Transfer);
@@ -176,6 +181,36 @@ namespace R2::VK
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1, &imageBlit,
             VK_FILTER_LINEAR
+        );
+    }
+
+    void CommandBuffer::TextureCopy(Texture* source, Texture* destination, R2::VK::TextureCopy copyInfo)
+    {
+        source->Acquire(*this, ImageLayout::TransferSrcOptimal, AccessFlags::TransferRead, PipelineStageFlags::Transfer);
+        destination->Acquire(*this, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite, PipelineStageFlags::Transfer);
+
+        VkImageCopy imageCopy{};
+        imageCopy.srcSubresource.aspectMask = source->getAspectFlags();
+        imageCopy.srcSubresource.baseArrayLayer = copyInfo.Source.LayerStart;
+        imageCopy.srcSubresource.layerCount = copyInfo.Source.LayerCount;
+        imageCopy.srcSubresource.mipLevel = copyInfo.Source.MipLevel;
+
+        imageCopy.dstSubresource.aspectMask = destination->getAspectFlags();
+        imageCopy.dstSubresource.baseArrayLayer = copyInfo.Destination.LayerStart;
+        imageCopy.dstSubresource.layerCount = copyInfo.Destination.LayerCount;
+        imageCopy.dstSubresource.mipLevel = copyInfo.Destination.MipLevel;
+
+        imageCopy.srcOffset = convertOffset(copyInfo.SourceOffset);
+        imageCopy.dstOffset = convertOffset(copyInfo.DestinationOffset);
+
+        imageCopy.extent = convertExtent(copyInfo.Extent);
+
+        vkCmdCopyImage(cb,
+            source->GetNativeHandle(),
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            destination->GetNativeHandle(),
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1, &imageCopy
         );
     }
 

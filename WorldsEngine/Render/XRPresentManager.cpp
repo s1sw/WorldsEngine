@@ -8,15 +8,18 @@ namespace worlds
 {
     void XRPresentManager::createTextures()
     {
-        VK::TextureCreateInfo tci = VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::R8G8B8A8_SRGB, width, height);
+        VK::TextureCreateInfo tci =
+            VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::R8G8B8A8_SRGB, width, height);
+        // When CanUseAsStorage is true, the texture created is actually in UNORM format, but with an SRGB view.
+        // This causes the blit below to incorrectly apply a linear->SRGB corretion.
+        tci.CanUseAsStorage = false;
         leftEye = core->CreateTexture(tci);
+        leftEye->SetDebugName("Left Eye Submit Texture");
         rightEye = core->CreateTexture(tci);
+        rightEye->SetDebugName("Left Eye Submit Texture");
     }
 
-    XRPresentManager::XRPresentManager(VK::Core* core, int width, int height)
-        : width(width)
-        , height(height)
-        , core(core)
+    XRPresentManager::XRPresentManager(VK::Core* core, int width, int height) : width(width), height(height), core(core)
     {
         if (width == 0 || height == 0)
         {
@@ -26,7 +29,8 @@ namespace worlds
             this->height = (int)uHeight;
         }
 
-        vr::VRCompositor()->SetExplicitTimingMode(vr::VRCompositorTimingMode_Explicit_ApplicationPerformsPostPresentHandoff);
+        vr::VRCompositor()->SetExplicitTimingMode(
+            vr::VRCompositorTimingMode_Explicit_RuntimePerformsPostPresentHandoff);
 
         createTextures();
     }
@@ -40,34 +44,21 @@ namespace worlds
 
     void XRPresentManager::copyFromLayered(VK::CommandBuffer cb, VK::Texture* layeredTexture)
     {
-        VK::TextureBlit leftBlit{};
-        leftBlit.Source.LayerCount = 1;
-        leftBlit.Destination.LayerCount = 1;
+        VK::TextureCopy leftCopy{};
+        leftCopy.Source.LayerCount = 1;
+        leftCopy.Destination.LayerCount = 1;
+        leftCopy.Extent =
+            VK::BlitExtent{(uint32_t)layeredTexture->GetWidth(), (uint32_t)layeredTexture->GetHeight(), 1};
 
-        leftBlit.SourceOffsets[1].X = layeredTexture->GetWidth();
-        leftBlit.SourceOffsets[1].Y = layeredTexture->GetHeight();
-        leftBlit.SourceOffsets[1].Z = 1;
+        cb.TextureCopy(layeredTexture, leftEye.Get(), leftCopy);
 
-        leftBlit.DestinationOffsets[1].X = leftEye->GetWidth();
-        leftBlit.DestinationOffsets[1].Y = leftEye->GetHeight();
-        leftBlit.DestinationOffsets[1].Z = 1;
+        VK::TextureCopy rightCopy{};
+        rightCopy.Source.LayerCount = 1;
+        rightCopy.Source.LayerStart = 1;
+        rightCopy.Destination.LayerCount = 1;
+        rightCopy.Extent = leftCopy.Extent;
 
-        cb.TextureBlit(layeredTexture, leftEye.Get(), leftBlit);
-
-        VK::TextureBlit rightBlit{};
-        rightBlit.Source.LayerCount = 1;
-        rightBlit.Source.LayerStart = 1;
-        rightBlit.Destination.LayerCount = 1;
-
-        rightBlit.SourceOffsets[1].X = layeredTexture->GetWidth();
-        rightBlit.SourceOffsets[1].Y = layeredTexture->GetHeight();
-        rightBlit.SourceOffsets[1].Z = 1;
-
-        rightBlit.DestinationOffsets[1].X = rightEye->GetWidth();
-        rightBlit.DestinationOffsets[1].Y = rightEye->GetHeight();
-        rightBlit.DestinationOffsets[1].Z = 1;
-
-        cb.TextureBlit(layeredTexture, rightEye.Get(), rightBlit);
+        cb.TextureCopy(layeredTexture, rightEye.Get(), rightCopy);
     }
 
     vr::HmdMatrix34_t fromMat4(glm::mat4 mat)
@@ -75,16 +66,23 @@ namespace worlds
         vr::HmdMatrix34_t r{};
 
         for (int x = 0; x < 3; x++)
-        for (int y = 0; y < 4; y++)
-        {
-            r.m[x][y] = mat[y][x];
-        }
+            for (int y = 0; y < 4; y++)
+            {
+                r.m[x][y] = mat[y][x];
+            }
 
         return r;
     }
 
     void XRPresentManager::preSubmit()
     {
+        uint32_t uWidth, uHeight;
+        vr::VRSystem()->GetRecommendedRenderTargetSize(&uWidth, &uHeight);
+        if ((int)uWidth != width || (int)uHeight != height)
+        {
+            resize((int)uWidth, (int)uHeight);
+        }
+
         vr::VRCompositor()->SubmitExplicitTimingData();
     }
 
@@ -125,7 +123,7 @@ namespace worlds
         leftTex.eColorSpace = vr::ColorSpace_Gamma;
         leftTex.eType = vr::TextureType_Vulkan;
         leftTex.mDeviceToAbsoluteTracking = fromMat4(usedPose);
-        
+
         vr::VRCompositor()->Submit(vr::Eye_Left, &leftTex, nullptr, vr::Submit_TextureWithPose);
 
         vr::VRTextureWithPose_t rightTex{};

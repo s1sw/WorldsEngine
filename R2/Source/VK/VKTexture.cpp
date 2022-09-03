@@ -109,7 +109,7 @@ namespace R2::VK
             ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 
         bool forceSRGBView = false;
-        if (createInfo.Format == TextureFormat::R8G8B8A8_SRGB)
+        if (createInfo.Format == TextureFormat::R8G8B8A8_SRGB && createInfo.CanUseAsStorage)
         {
             ici.flags |= VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
             ici.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
