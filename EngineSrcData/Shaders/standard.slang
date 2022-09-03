@@ -224,20 +224,21 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                     int blockCount = 0;
 
                     int sampleCount = 12;
-                    float2 rotationComponents = getRotationComponents(random(fragCoord + time) * 1.5);
+                    float2 rotationComponents = getRotationComponents((random(fragCoord + time) * 2.0 - 1.0) * 1.5);
 
                     [[loop]]
                     for (int t = 0; t < sampleCount; t++)
                     {
-                        float2 offset = rotateSample(PoissonKernel[t] * (3.0 / 512.0), rotationComponents);
+                        float2 offset = rotateSample(PoissonKernel[t] * (1.0 / 512.0), rotationComponents);
                         float2 offsetCoord = coord + offset;
                         float4 depths = Textures[shadowTexIdx].Gather(offsetCoord);
+
                         for (int i = 0; i < 4; i++)
                         {
                             float d = depths[i];
                             float dist = (d - shadowPos.z);
 
-                            float bias = 0.0002;
+                            float bias = 0.00005;
                             float occluded = step(dist, bias);
                             occlusionAmount += occluded;
 
