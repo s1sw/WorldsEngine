@@ -37,7 +37,7 @@ namespace R2::VK
         submitInfo.pCommandBuffers = &immediateCommandBuffer;
 
         VKCHECK(vkQueueSubmit(handles->Queues.Graphics, 1, &submitInfo, VK_NULL_HANDLE));
-        vkDeviceWaitIdle(handles->Device);
+        VKCHECK(vkDeviceWaitIdle(handles->Device));
     }
 
     bool hasAF(AccessFlags access, AccessFlags test)
