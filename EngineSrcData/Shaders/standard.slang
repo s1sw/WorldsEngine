@@ -147,21 +147,17 @@ float hardenedKernel(float x)
     return 0.5 * x + 0.5;
 }
 
-float linearize_depth(float d,float zNear,float zFar)
-{
-    return zNear * zFar / (zFar + d * (zNear - zFar));
-}
-
-float random( float2 p )
+float random(float2 p)
 {
     float2 K1 = float2(
         23.14069263277926, // e^pi (Gelfond's constant)
-         2.665144142690225 // 2^sqrt(2) (Gelfondâ€“Schneider constant)
+        2.665144142690225 // 2^sqrt(2) (Gelfond-Schneider constant)
     );
     return frac( cos( dot(p,K1) ) * 12345.6789 );
 }
 
-float2 rotateSample(float2 inSample, float2 rotComponents) {
+float2 rotateSample(float2 inSample, float2 rotComponents)
+{
     float sinTheta = rotComponents.x;
     float cosTheta = rotComponents.y;
 
@@ -171,10 +167,10 @@ float2 rotateSample(float2 inSample, float2 rotComponents) {
     return outSample;
 }
 
-float2 getRotationComponents(float angle) {
+float2 getRotationComponents(float angle)
+{
     return float2(sin(angle), cos(angle));
 }
-
 
 float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, uint viewIndex)
 {
