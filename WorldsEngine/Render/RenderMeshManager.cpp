@@ -20,17 +20,28 @@ namespace worlds
         createInfo.Usage = R2::VK::BufferUsage::Index | R2::VK::BufferUsage::Storage;
         indexBuffer = new R2::SubAllocatedBuffer(core, createInfo);
 
+        createInfo.Size = 1 * 1000 * 1000 * sizeof(VertexSkinInfo); // 1 million skinned vertices
+        createInfo.Usage = R2::VK::BufferUsage::Storage;
+        skinInfoBuffer = new R2::SubAllocatedBuffer(core, createInfo);
+
         missingModel = AssetDB::pathToId("Models/missing.wmdl");
         loadOrGet(missingModel);
+
+        skinnedVertsOffset = vertexBuffer->Allocate(1 * 1000 * 1000 * sizeof(Vertex), skinnedVertsAllocation);
     }
 
     RenderMeshManager::~RenderMeshManager()
     {
-        for (auto p : meshes)
+        for (auto& p : meshes)
         {
             vertexBuffer->Free(p.second.vertexAllocationHandle);
             indexBuffer->Free(p.second.indexAllocationHandle);
+
+            if (p.second.skinInfoAllocationHandle != nullptr)
+                skinInfoBuffer->Free(p.second.skinInfoAllocationHandle);
         }
+
+        vertexBuffer->Free(skinnedVertsAllocation);
 
         delete indexBuffer;
         delete vertexBuffer;
@@ -44,6 +55,11 @@ namespace worlds
     R2::VK::Buffer* RenderMeshManager::getIndexBuffer()
     {
         return indexBuffer->GetBuffer();
+    }
+
+    R2::VK::Buffer* RenderMeshManager::getSkinInfoBuffer()
+    {
+        return skinInfoBuffer->GetBuffer();
     }
 
     RenderMeshInfo& RenderMeshManager::loadOrGet(AssetID asset)
@@ -88,17 +104,12 @@ namespace worlds
             meshInfo.submeshInfo[i].materialIndex = lmd.submeshes[i].materialIndex;
         }
 
-        core->QueueBufferUpload(
-            indexBuffer->GetBuffer(),
-            lmd.indices32.data(), indicesSize,
-            meshInfo.indexOffset
-        );
+        meshInfo.numVertices = lmd.vertices.size();
+
+        core->QueueBufferUpload(indexBuffer->GetBuffer(), lmd.indices32.data(), indicesSize, meshInfo.indexOffset);
 
         core->QueueBufferUpload(
-            vertexBuffer->GetBuffer(), 
-            lmd.vertices.data(), lmd.vertices.size() * sizeof(Vertex),
-            meshInfo.vertsOffset
-        );
+            vertexBuffer->GetBuffer(), lmd.vertices.data(), lmd.vertices.size() * sizeof(Vertex), meshInfo.vertsOffset);
 
         meshInfo.aabbMax = glm::vec3(std::numeric_limits<float>::lowest());
         meshInfo.aabbMin = glm::vec3(std::numeric_limits<float>::max());
@@ -111,8 +122,25 @@ namespace worlds
             meshInfo.aabbMin = glm::min(meshInfo.aabbMin, vtx.position);
         }
 
+        if (lmd.isSkinned)
+        {
+            meshInfo.skinInfoOffset = skinInfoBuffer->Allocate(
+                lmd.skinningInfos.size() * sizeof(VertexSkinInfo), meshInfo.skinInfoAllocationHandle);
+
+            core->QueueBufferUpload(
+                skinInfoBuffer->GetBuffer(),
+                lmd.skinningInfos.data(),
+                lmd.skinningInfos.size() * sizeof(VertexSkinInfo),
+                meshInfo.skinInfoOffset);
+        }
+
         meshes.insert({asset, std::move(meshInfo)});
 
         return meshes.at(asset);
+    }
+
+    uint64_t RenderMeshManager::getSkinnedVertsOffset() const
+    {
+        return skinnedVertsOffset;
     }
 }

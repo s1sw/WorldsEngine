@@ -135,5 +135,8 @@
     },
     {
         "path": "blank.frag.slang"
+    },
+    {
+        "path": "skinning.comp.slang"
     }
 ]

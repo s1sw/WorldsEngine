@@ -12,6 +12,7 @@
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
 #include <Render/StandardPipeline/Bloom.hpp>
+#include <Render/StandardPipeline/ComputeSkinner.hpp>
 #include <Render/StandardPipeline/CubemapConvoluter.hpp>
 #include <Render/StandardPipeline/DebugLineDrawer.hpp>
 #include <Render/StandardPipeline/LightCull.hpp>
@@ -181,7 +182,8 @@ namespace worlds
 
         VK::BufferCreateInfo globalsBCI{VK::BufferUsage::Uniform, sizeof(SceneGlobals), true};
         sceneGlobals = core->CreateBuffer(globalsBCI);
-        core->QueueBufferUpload(sceneGlobals.Get(), poissonDisk, sizeof(poissonDisk), offsetof(SceneGlobals, poissonDisk));
+        core->QueueBufferUpload(
+            sceneGlobals.Get(), poissonDisk, sizeof(poissonDisk), offsetof(SceneGlobals, poissonDisk));
 
         VK::BufferCreateInfo drawCmdsBCI{
             VK::BufferUsage::Indirect, sizeof(VK::DrawIndexedIndirectCommand) * MAX_DRAWS, true};
@@ -275,6 +277,8 @@ namespace worlds
 
         if (settings.outputToXR)
             hiddenMeshRenderer = new HiddenMeshRenderer(core, settings.msaaLevel);
+        
+        computeSkinner = new ComputeSkinner(renderer);
     }
 
     void StandardPipeline::onResize(int width, int height)
@@ -578,6 +582,37 @@ namespace worlds
         }
     };
 
+    struct AllocatedSkinnedStorageTask : public enki::ITaskSet
+    {
+        VKRenderer* renderer;
+        entt::registry& reg;
+        std::atomic<uint32_t> vertCounter;
+
+        AllocatedSkinnedStorageTask(VKRenderer* renderer, entt::registry& reg)
+            : renderer(renderer), reg(reg), vertCounter(0)
+        {
+        }
+
+        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
+        {
+            auto view = reg.view<SkinnedWorldObject>();
+
+            auto begin = view.begin();
+            auto end = view.begin();
+            std::advance(begin, range.start);
+            std::advance(end, range.end);
+
+            for (auto it = begin; it != end; it++)
+            {
+                SkinnedWorldObject& wo = reg.get<SkinnedWorldObject>(*it);
+                const Transform& t = reg.get<Transform>(*it);
+                const RenderMeshInfo& rmi = renderer->getMeshManager()->loadOrGet(wo.mesh);
+
+                wo.skinnedVertexOffset = vertCounter.fetch_add(rmi.numVertices);
+            }
+        }
+    };
+
     struct FillDrawBufferSkinnedTask : public enki::ITaskSet
     {
         VKRenderer* renderer;
@@ -638,7 +673,7 @@ namespace worlds
                     drawCmd.firstIndex = rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t));
                     drawCmd.firstInstance = 0;
                     drawCmd.instanceCount = 1;
-                    drawCmd.vertexOffset = rmi.vertsOffset / sizeof(Vertex);
+                    drawCmd.vertexOffset = wo.skinnedVertexOffset + (renderer->getMeshManager()->getSkinnedVertsOffset() / sizeof(Vertex));
 
                     drawCmds[drawId] = drawCmd;
                     gpuDrawInfos[drawId] = di;
@@ -666,7 +701,7 @@ namespace worlds
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* textureManager = renderer->getTextureManager();
         uint32_t frameIdx = renderer->getCore()->GetFrameIndex();
-        //RenderMaterialManager::UnloadUnusedMaterials(reg);
+        // RenderMaterialManager::UnloadUnusedMaterials(reg);
 
         SceneGlobals* globals = (SceneGlobals*)sceneGlobals->Map();
         globals->time = renderer->getTime();
@@ -700,12 +735,17 @@ namespace worlds
         SkinnedWorldObjectMaterialLoadTask swoLoadTask{renderer, reg};
         swoLoadTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
 
+        AllocatedSkinnedStorageTask allocSkinnedStorageTask{renderer, reg};
+        allocSkinnedStorageTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
+        allocSkinnedStorageTask.m_MinRange = 10;
+
         finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
-            finisher.dependencies, {&fillTask, &woLoadTask, &swoLoadTask});
+            finisher.dependencies, {&fillTask, &woLoadTask, &swoLoadTask, &allocSkinnedStorageTask});
 
         g_taskSched.AddTaskSetToPipe(&fillTask);
         g_taskSched.AddTaskSetToPipe(&woLoadTask);
         g_taskSched.AddTaskSetToPipe(&swoLoadTask);
+        g_taskSched.AddTaskSetToPipe(&allocSkinnedStorageTask);
         g_taskSched.WaitforTask(&finisher);
 
         lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
@@ -745,6 +785,8 @@ namespace worlds
         }
 
         core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
+
+        computeSkinner->Execute(cb, reg);
 
         glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrixBuffers->MapCurrent();
         GPUDrawInfo* drawInfosMapped = (GPUDrawInfo*)drawInfoBuffers->MapCurrent();
@@ -846,7 +888,7 @@ namespace worlds
         cb.EndDebugLabel();
 
         // Post-processing
-        static ConVar r_skipBloom {"r_skipBloom", "0", "Skips bloom rendering."};
+        static ConVar r_skipBloom{"r_skipBloom", "0", "Skips bloom rendering."};
         if (!r_skipBloom)
             bloom->Execute(cb);
 

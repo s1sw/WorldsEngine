@@ -26,7 +26,7 @@ namespace R2
         return buf;
     }
 
-    size_t SubAllocatedBuffer::Allocate(size_t amount, SubAllocationHandle& allocation)
+    uint64_t SubAllocatedBuffer::Allocate(uint64_t amount, SubAllocationHandle& allocation)
     {
         std::lock_guard lg{mutex};
         VmaVirtualAllocationCreateInfo allocCreateInfo{};

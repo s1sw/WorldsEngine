@@ -123,7 +123,7 @@ namespace worlds
         uint32_t parentIdx;
     };
 
-    struct VertSkinningInfo
+    struct VertexSkinInfo
     {
         int boneIds[4];
         float weights[4];
@@ -146,9 +146,16 @@ namespace worlds
     {
         R2::SubAllocationHandle vertexAllocationHandle;
         R2::SubAllocationHandle indexAllocationHandle;
+        R2::SubAllocationHandle skinInfoAllocationHandle;
 
+        // All of these offsets are in units of bytes!!
+        // If you want to index into the buffer, make sure to divide
+        // by size first
         uint32_t vertsOffset;
         uint32_t indexOffset;
+        uint32_t skinInfoOffset;
+
+        uint32_t numVertices;
 
         uint8_t numSubmeshes;
         RenderSubmeshInfo submeshInfo[NUM_SUBMESH_MATS];
@@ -163,7 +170,11 @@ namespace worlds
         robin_hood::unordered_map<AssetID, RenderMeshInfo> meshes;
         R2::SubAllocatedBuffer* vertexBuffer;
         R2::SubAllocatedBuffer* indexBuffer;
+        R2::SubAllocatedBuffer* skinInfoBuffer;
         R2::VK::Core* core;
+
+        R2::SubAllocationHandle skinnedVertsAllocation;
+        uint64_t skinnedVertsOffset;
 
     public:
         RenderMeshManager(R2::VK::Core* core);
@@ -171,8 +182,10 @@ namespace worlds
 
         R2::VK::Buffer* getVertexBuffer();
         R2::VK::Buffer* getIndexBuffer();
+        R2::VK::Buffer* getSkinInfoBuffer();
 
         RenderMeshInfo& loadOrGet(AssetID id);
+        uint64_t getSkinnedVertsOffset() const;
     };
 
     class VKTextureManager

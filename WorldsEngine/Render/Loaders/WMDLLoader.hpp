@@ -29,7 +29,7 @@ namespace worlds
         std::vector<uint16_t> indices16;
         std::vector<uint32_t> indices32;
         std::vector<Vertex> vertices;
-        std::vector<VertSkinningInfo> skinningInfos;
+        std::vector<VertexSkinInfo> skinningInfos;
     };
 
     void loadWorldsModel(AssetID wmdlId, LoadedMeshData& lmd);

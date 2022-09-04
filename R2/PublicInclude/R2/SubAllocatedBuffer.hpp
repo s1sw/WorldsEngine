@@ -25,7 +25,7 @@ namespace R2
         SubAllocatedBuffer(VK::Core* core, const VK::BufferCreateInfo& ci);
         ~SubAllocatedBuffer();
         VK::Buffer* GetBuffer();
-        size_t Allocate(size_t amount, SubAllocationHandle& allocation);
+        uint64_t Allocate(uint64_t amount, SubAllocationHandle& allocation);
         void Free(SubAllocationHandle allocation);
     };
 }

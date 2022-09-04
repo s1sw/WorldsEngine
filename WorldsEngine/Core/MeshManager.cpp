@@ -47,6 +47,7 @@ namespace worlds
             b.name = lmd.bones[i].name.c_str();
             b.parentId = lmd.bones[i].parentIdx;
             b.restPose = lmd.bones[i].transform;
+            b.inverseBindPose = lmd.bones[i].inverseBindPose;
         }
 
         for (int i = 0; i < lmd.submeshes.size(); i++)

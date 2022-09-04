@@ -34,6 +34,7 @@ namespace worlds
     class Bloom;
     class SkyboxRenderer;
     class HiddenMeshRenderer;
+    class ComputeSkinner;
 
     class StandardPipeline : public IRenderPipeline
     {
@@ -59,6 +60,7 @@ namespace worlds
         UniquePtr<Bloom> bloom;
         UniquePtr<SkyboxRenderer> skyboxRenderer;
         UniquePtr<HiddenMeshRenderer> hiddenMeshRenderer;
+        UniquePtr<ComputeSkinner> computeSkinner;
 
         VKRenderer* renderer;
         VKRTTPass* rttPass;

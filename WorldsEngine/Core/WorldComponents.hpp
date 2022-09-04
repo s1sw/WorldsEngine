@@ -66,6 +66,7 @@ namespace worlds
         SkinnedWorldObject(AssetID material, AssetID mesh);
         void resetPose();
         Pose currentPose;
+        uint32_t skinnedVertexOffset;
     };
 
     struct UseWireframe

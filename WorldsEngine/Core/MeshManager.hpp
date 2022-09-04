@@ -11,6 +11,7 @@ namespace worlds
         uint32_t id;
         uint32_t parentId;
         glm::mat4 restPose;
+        glm::mat4 inverseBindPose;
         slib::String name;
     };
 
