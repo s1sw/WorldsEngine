@@ -45,6 +45,7 @@ namespace worlds
 
         delete indexBuffer;
         delete vertexBuffer;
+        delete skinInfoBuffer;
     }
 
     R2::VK::Buffer* RenderMeshManager::getVertexBuffer()

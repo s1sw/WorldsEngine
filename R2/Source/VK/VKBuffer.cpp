@@ -81,6 +81,8 @@ namespace R2::VK
             nameInfo.pNext = nullptr;
             vkSetDebugUtilsObjectNameEXT(renderer->GetHandles()->Device, &nameInfo);
         }
+
+        vmaSetAllocationName(renderer->GetHandles()->Allocator, allocation, name);
     }
 
     size_t Buffer::GetSize()

@@ -50,6 +50,16 @@ namespace worlds
         materialBuffer->GetBuffer()->SetDebugName("Material Buffer");
     }
 
+    void RenderMaterialManager::Shutdown()
+    {
+        for (auto& p : allocedMaterials)
+        {
+            materialBuffer->Free(p.second.handle);
+        }
+
+        delete materialBuffer;
+    }
+
     R2::VK::Buffer* RenderMaterialManager::GetBuffer()
     {
         return materialBuffer->GetBuffer();

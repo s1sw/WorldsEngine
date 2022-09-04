@@ -25,6 +25,7 @@ namespace worlds
     public:
         static bool IsInitialized();
         static void Initialize(VKRenderer* renderer);
+        static void Shutdown();
         static R2::VK::Buffer* GetBuffer();
         static bool IsMaterialLoaded(AssetID id);
         static unsigned int LoadOrGetMaterial(AssetID id);

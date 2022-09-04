@@ -87,6 +87,7 @@ namespace worlds
     VKRenderer::~VKRenderer()
     {
         core->WaitIdle();
+        RenderMaterialManager::Shutdown();
         delete frameFence;
         delete swapchain;
 
@@ -101,6 +102,7 @@ namespace worlds
         delete bindlessTextureManager;
         xrPresentManager.Reset();
         shadowmapManager.Reset();
+        ImGui_ImplR2_Shutdown();
 
         delete core;
     }

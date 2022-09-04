@@ -158,6 +158,7 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
         bci.Usage = VK::BufferUsage::Vertex;
 
         s->vertexBuffers[frameIdx] = s->core->CreateBuffer(bci);
+        vertexBuffer->SetDebugName("ImGui Vertex Buffer");
     }
 
     if (!indexBuffer || s->indexBufferCapacities[frameIdx] < drawData->TotalIdxCount)
@@ -174,7 +175,8 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
         bci.Size = s->indexBufferCapacities[frameIdx] * sizeof(ImDrawIdx);
         bci.Usage = VK::BufferUsage::Index;
 
-        indexBuffer = s->core->CreateBuffer(bci);
+        s->indexBuffers[frameIdx] = s->core->CreateBuffer(bci);
+        indexBuffer->SetDebugName("ImGui Index Buffer");
     }
 
     ImDrawVert* verts = static_cast<ImDrawVert*>(vertexBuffer->Map());
