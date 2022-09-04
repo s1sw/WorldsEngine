@@ -1,6 +1,4 @@
 #pragma once
-#include <memory>
-#include <slib/Bitset.hpp>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -12,6 +10,7 @@
 
 #include "AssetDB.hpp"
 #include <Render/Camera.hpp>
+#include <Util/UniquePtr.hpp>
 
 #ifdef CHECK_NEW_DELETE
 void* operator new(size_t count);
@@ -92,7 +91,7 @@ namespace worlds
 
     class WorldsEngine
     {
-      public:
+    public:
         WorldsEngine(EngineInitOptions initOptions, char* argv0);
         ~WorldsEngine();
 
@@ -131,6 +130,14 @@ namespace worlds
             int frameCounter;
         };
 
+        struct InterFrameInfo
+        {
+            uint64_t lastPerfCounter;
+            double deltaTime;
+            double lastUpdateTime;
+            int frameCounter;
+        };
+
         static int eventFilter(void* enginePtr, SDL_Event* evt);
         static int windowThread(void* data);
         void setupSDL();
@@ -163,27 +170,19 @@ namespace worlds
         double simAccumulator;
 
         EngineInterfaces interfaces;
-        std::unique_ptr<Renderer> renderer;
-        std::unique_ptr<InputManager> inputManager;
-        std::unique_ptr<AudioSystem> audioSystem;
-        std::unique_ptr<Console> console;
+        UniquePtr<Renderer> renderer;
+        UniquePtr<InputManager> inputManager;
+        UniquePtr<AudioSystem> audioSystem;
+        UniquePtr<Console> console;
 #ifdef BUILD_EDITOR
-        std::unique_ptr<Editor> editor;
+        UniquePtr<Editor> editor;
 #endif
-        std::unique_ptr<DotNetScriptEngine> scriptEngine;
-        std::unique_ptr<OpenVRInterface> openvrInterface;
-        std::unique_ptr<PhysicsSystem> physicsSystem;
+        UniquePtr<DotNetScriptEngine> scriptEngine;
+        UniquePtr<OpenVRInterface> openvrInterface;
+        UniquePtr<PhysicsSystem> physicsSystem;
 
         std::vector<ISystem*> systems;
         std::vector<entt::entity> nextFrameKillList;
-
-        struct InterFrameInfo
-        {
-            int frameCounter;
-            uint64_t lastPerfCounter;
-            double deltaTime;
-            double lastUpdateTime;
-        };
 
         InterFrameInfo interFrameInfo;
     };

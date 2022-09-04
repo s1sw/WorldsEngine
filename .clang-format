@@ -7,8 +7,9 @@ DerivePointerAlignment: false
 PointerAlignment: Left
 AccessModifierOffset: -4
 IndentAccessModifiers: false
-AlignAfterOpenBracket: AlwaysBreak
+AlignAfterOpenBracket: BlockIndent
 BinPackArguments: false
 BinPackParameters: false
+BreakBeforeBraces: Allman
 
 ...
