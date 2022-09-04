@@ -86,6 +86,7 @@ namespace worlds
 
     VKRenderer::~VKRenderer()
     {
+        core->WaitIdle();
         delete frameFence;
         delete swapchain;
 
