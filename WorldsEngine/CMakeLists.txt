@@ -119,7 +119,7 @@ if(WORLDS_USE_OPENVR)
 endif()
 
 if(WORLDS_BUILD_EDITOR)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE BUILD_EDITOR)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC BUILD_EDITOR)
 endif()
 
 if(WIN32)
