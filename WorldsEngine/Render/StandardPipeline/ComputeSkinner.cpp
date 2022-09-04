@@ -52,6 +52,8 @@ namespace worlds
     void ComputeSkinner::Execute(R2::VK::CommandBuffer& cb, entt::registry& reg)
     {
         cb.BeginDebugLabel("Compute Skinning", 0.561f, 0.192f, 0.004f);
+        RenderMeshManager* rmm = renderer->getMeshManager();
+        rmm->getVertexBuffer()->Acquire(cb, VK::AccessFlags::ShaderReadWrite, VK::PipelineStageFlags::ComputeShader);
 
         uint32_t matrixOffset = 0;
         glm::mat4* mappedPoses = (glm::mat4*)poseBuffer->Map();
@@ -77,6 +79,7 @@ namespace worlds
         });
 
         poseBuffer->Unmap();
+        rmm->getVertexBuffer()->Acquire(cb, VK::AccessFlags::VertexAttributeRead, VK::PipelineStageFlags::VertexInput);
         cb.EndDebugLabel();
     }
 }
