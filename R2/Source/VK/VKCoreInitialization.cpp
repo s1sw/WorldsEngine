@@ -15,12 +15,14 @@ namespace R2::VK
         void* pUserData)
     {
         Core* r = static_cast<Core*>(pUserData);
-        // Validation layers seem to have a bug where they constantly spam this error even when everything's fine
-        if (pCallbackData->messageIdNumber == 296975921 || pCallbackData->messageIdNumber == -690520546)
+        // Validation layers seem to have a bug where having a pipeline bound before beginning dynamic rendering that
+        // has the incorrect attachments will cause validation errors when changing to a correct pipeline
+        if (pCallbackData->messageIdNumber == 296975921 || pCallbackData->messageIdNumber == -690520546 ||
+            pCallbackData->messageIdNumber == 1813430196)
             return VK_FALSE;
 
         if (r->dbgOutRecv)
-           r->dbgOutRecv->DebugMessage(pCallbackData->pMessage);
+            r->dbgOutRecv->DebugMessage(pCallbackData->pMessage);
         else
             printf("vk: %s\n", pCallbackData->pMessage);
         return VK_FALSE;
