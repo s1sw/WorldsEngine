@@ -63,9 +63,9 @@ void StoreVertex(int index, Vertex vert)
 void main(uint threadID : SV_DispatchThreadID)
 {
     // Don't overrun because there will be other meshes packed in
-    if (threadID > NumVertices) return;
+    if (threadID >= NumVertices) return;
 
-    Vertex vert = LoadVertex(threadID + InputOffset);
+    Vertex vert = LoadVertex(int(threadID + InputOffset));
     VertexSkinInfo skinInfo = SkinInfoBuffer[threadID + SkinInfoOffset];
 
     float weightSum = 0.0;
@@ -92,5 +92,5 @@ void main(uint threadID : SV_DispatchThreadID)
     transformedVert.Normal = mul(transformAdjoint, vert.Normal);
     transformedVert.Tangent = mul(transformAdjoint, vert.Tangent);
 
-    StoreVertex(threadID + OutputOffset, transformedVert);
+    StoreVertex(int(threadID + OutputOffset), transformedVert);
 }
