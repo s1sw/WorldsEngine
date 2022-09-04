@@ -24,7 +24,7 @@ extern R2::VK::IDebugOutputReceiver* vmaDebugOutputRecv;
 namespace R2::VK
 {
 	const uint32_t NUM_FRAMES_IN_FLIGHT = 2;
-	const size_t STAGING_BUFFER_SIZE = 16_MB;
+	const size_t STAGING_BUFFER_SIZE = 64_MB;
 
 	Core::Core(IDebugOutputReceiver* dbgOutRecv, bool enableValidation)
 		: inFrame(false)
@@ -436,6 +436,11 @@ namespace R2::VK
 		return getPreviousFrameIndex(frameIndex);
 	}
 
+	uint32_t Core::GetNumFramesInFlight() const
+	{
+		return NUM_FRAMES_IN_FLIGHT;
+	}
+
 	void Core::EndFrame()
 	{
 		std::unique_lock queueLock{queueMutex};
@@ -535,16 +540,16 @@ namespace R2::VK
 			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite, PipelineStageFlags::Transfer);
 
 			uint64_t offset = 0;
-			int currWidth = bttc.Texture->GetWidth();
-			int currHeight = bttc.Texture->GetHeight();
+			int w = bttc.Texture->GetWidth();
+			int h = bttc.Texture->GetHeight();
 			for (int i = 0; i < bttc.numMips; i++)
 			{
 				VkBufferImageCopy vbic{};
 				vbic.imageSubresource.layerCount = bttc.Texture->GetLayers();
 				vbic.imageSubresource.mipLevel = i;
 				vbic.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				vbic.imageExtent.width = currWidth;
-				vbic.imageExtent.height = currHeight;
+				vbic.imageExtent.width = mipScale(w, i);
+				vbic.imageExtent.height = mipScale(h, i);
 				vbic.imageExtent.depth = 1;
 				vbic.bufferOffset = bttc.BufferOffset + offset;
 
@@ -552,10 +557,7 @@ namespace R2::VK
 					bttc.Texture->GetNativeHandle(),
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &vbic);
 
-				offset += calculateTextureByteSize(bttc.Texture->GetFormat(), currWidth, currHeight);
-				
-				currWidth /= 2;
-				currHeight /= 2;
+				offset += calculateTextureByteSize(bttc.Texture->GetFormat(), mipScale(w, i), mipScale(h, i));
 			}
 
 			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead, PipelineStageFlags::FragmentShader | PipelineStageFlags::ComputeShader);

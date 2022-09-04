@@ -112,6 +112,7 @@ namespace R2::VK
 		uint32_t GetFrameIndex() const;
 		uint32_t GetNextFrameIndex() const;
 		uint32_t GetPreviousFrameIndex() const;
+		uint32_t GetNumFramesInFlight() const;
 		void EndFrame();
 
 		void WaitIdle();
