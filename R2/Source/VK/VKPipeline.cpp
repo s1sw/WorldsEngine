@@ -45,6 +45,10 @@ namespace R2::VK
         : handles(handles)
     {}
 
+    PipelineLayoutBuilder::PipelineLayoutBuilder(Core* core)
+        : handles(core->GetHandles())
+    {}
+
     PipelineLayoutBuilder& PipelineLayoutBuilder::PushConstants(ShaderStage stages, uint32_t offset, uint32_t size)
     {
         pushConstants.push_back(PushConstantRange{ stages, offset, size });

@@ -78,6 +78,7 @@ namespace R2::VK
     {
     public:
         PipelineLayoutBuilder(const Handles* handles);
+        PipelineLayoutBuilder(Core* core);
         PipelineLayoutBuilder& PushConstants(ShaderStage stages, uint32_t offset, uint32_t size);
         PipelineLayoutBuilder& DescriptorSet(DescriptorSetLayout* layout);
         PipelineLayout* Build();

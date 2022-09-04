@@ -211,7 +211,7 @@ namespace R2::VK
 		return perFrameResources[frameIndex].Completion;
 	}
 
-	void Core::QueueBufferUpload(Buffer* buffer, void* data, uint64_t dataSize, uint64_t dataOffset)
+	void Core::QueueBufferUpload(Buffer* buffer, const void* data, uint64_t dataSize, uint64_t dataOffset)
 	{
 		PerFrameResources& frameResources = perFrameResources[frameIndex];
 		std::unique_lock buLock{frameResources.BufferUploadMutex};

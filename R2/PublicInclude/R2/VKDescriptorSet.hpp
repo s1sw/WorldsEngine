@@ -62,6 +62,7 @@ namespace R2::VK
     {
     public:
         DescriptorSetLayoutBuilder(const Handles* handles);
+        DescriptorSetLayoutBuilder(Core* core);
         DescriptorSetLayoutBuilder& Binding(uint32_t binding, DescriptorType type, uint32_t count, ShaderStage stage);
         DescriptorSetLayoutBuilder& PartiallyBound();
         DescriptorSetLayoutBuilder& UpdateAfterBind();
@@ -87,6 +88,7 @@ namespace R2::VK
     {
     public:
         DescriptorSetUpdater(const Handles* handles, DescriptorSet* ds);
+        DescriptorSetUpdater(Core* core, DescriptorSet* ds);
         DescriptorSetUpdater& AddTexture(uint32_t binding, uint32_t arrayElement, DescriptorType type, Texture* tex, Sampler* sampler = nullptr);
         DescriptorSetUpdater& AddTextureWithLayout(uint32_t binding, uint32_t arrayElement, DescriptorType type, Texture* tex, ImageLayout layout, Sampler* sampler = nullptr);
         DescriptorSetUpdater& AddTextureView(uint32_t binding, uint32_t arrayElement, DescriptorType type, TextureView* texView, Sampler* sampler = nullptr);

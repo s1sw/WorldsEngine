@@ -33,6 +33,7 @@ namespace worlds
     class Frustum;
     class Bloom;
     class SkyboxRenderer;
+    class HiddenMeshRenderer;
 
     class StandardPipeline : public IRenderPipeline
     {
@@ -57,6 +58,7 @@ namespace worlds
         UniquePtr<DebugLineDrawer> debugLineDrawer;
         UniquePtr<Bloom> bloom;
         UniquePtr<SkyboxRenderer> skyboxRenderer;
+        UniquePtr<HiddenMeshRenderer> hiddenMeshRenderer;
 
         VKRenderer* renderer;
         VKRTTPass* rttPass;

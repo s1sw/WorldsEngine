@@ -15,6 +15,7 @@
 #include <Render/StandardPipeline/CubemapConvoluter.hpp>
 #include <Render/StandardPipeline/DebugLineDrawer.hpp>
 #include <Render/StandardPipeline/LightCull.hpp>
+#include <Render/StandardPipeline/HiddenMeshRenderer.hpp>
 #include <Render/StandardPipeline/SkyboxRenderer.hpp>
 #include <Render/StandardPipeline/Tonemapper.hpp>
 #include <Render/StandardPipeline/RenderMaterialManager.hpp>
@@ -271,6 +272,9 @@ namespace worlds
 
         cubemapConvoluter = new CubemapConvoluter(core);
         createSizeDependants();
+
+        if (settings.outputToXR)
+            hiddenMeshRenderer = new HiddenMeshRenderer(core, settings.msaaLevel);
     }
 
     void StandardPipeline::onResize(int width, int height)
@@ -782,7 +786,6 @@ namespace worlds
         // Depth Pre-Pass
         cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
 
-        cb.BindPipeline(depthPrePipeline.Get());
         VK::RenderPass depthPass;
         depthPass.DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
             .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
@@ -791,10 +794,14 @@ namespace worlds
 
         depthPass.Begin(cb);
 
-        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
-        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
         cb.SetViewport(VK::Viewport::Simple((float)rttPass->width, (float)rttPass->height));
         cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
+        if (rttPass->getSettings().outputToXR)
+            hiddenMeshRenderer->Execute(cb);
+
+        cb.BindPipeline(depthPrePipeline.Get());
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
         cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
         cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
 

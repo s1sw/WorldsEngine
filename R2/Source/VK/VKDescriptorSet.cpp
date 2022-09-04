@@ -48,6 +48,10 @@ namespace R2::VK
         : handles(handles)
     {}
 
+    DescriptorSetLayoutBuilder::DescriptorSetLayoutBuilder(Core* core)
+        : handles(core->GetHandles())
+    {}
+
     DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::Binding(uint32_t binding, DescriptorType type, uint32_t count, ShaderStage stage)
     {
         DescriptorBinding db{};
@@ -141,6 +145,11 @@ namespace R2::VK
 
     DescriptorSetUpdater::DescriptorSetUpdater(const Handles* handles, DescriptorSet* ds)
         : handles(handles)
+        , ds(ds)
+    {}
+
+    DescriptorSetUpdater::DescriptorSetUpdater(Core* core, DescriptorSet* ds)
+        : handles(core->GetHandles())
         , ds(ds)
     {}
 

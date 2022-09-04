@@ -16,6 +16,7 @@ namespace worlds
     public:
         static void setDevice(R2::VK::Core* core);
         static R2::VK::ShaderModule& getModule(AssetID id);
+        static R2::VK::ShaderModule& getModule(const char* path);
         static void clear();
 
     private:

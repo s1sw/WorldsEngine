@@ -53,6 +53,11 @@ namespace worlds
         return *it->second;
     }
 
+    VK::ShaderModule& ShaderCache::getModule(const char* path)
+    {
+        return getModule(AssetDB::pathToId(path));
+    }
+
     void ShaderCache::clear()
     {
         for (auto& p : modules)

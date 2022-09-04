@@ -106,7 +106,7 @@ namespace R2::VK
 		void BeginFrame();
 		CommandBuffer GetFrameCommandBuffer();
 		VkSemaphore GetFrameCompletionSemaphore();
-		void QueueBufferUpload(Buffer* buffer, void* data, uint64_t dataSize, uint64_t dataOffset);
+		void QueueBufferUpload(Buffer* buffer, const void* data, uint64_t dataSize, uint64_t dataOffset);
 		void QueueBufferToTextureCopy(Buffer* buffer, Texture* texture, uint64_t bufferOffset = 0);
 		void QueueTextureUpload(Texture* texture, void* data, uint64_t dataSize, int numMips = -1);
 		uint32_t GetFrameIndex() const;
