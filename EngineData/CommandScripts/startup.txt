@@ -1,3 +1,2 @@
-r_depthPrepass 1
-scene Scenes/test_halls.wscn
+scene Scenes/platforming.wscn
 #scene w.escn
