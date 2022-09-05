@@ -19,10 +19,9 @@ namespace worlds
         uint32_t SkinInfoOffset;
     };
 
-    ComputeSkinner::ComputeSkinner(VKRenderer* renderer)
-        : renderer(renderer)
+    ComputeSkinner::ComputeSkinner(VKRenderer* renderer) : renderer(renderer)
     {
-        VK::BufferCreateInfo bci{ VK::BufferUsage::Storage, sizeof(glm::mat4) * 512, true };
+        VK::BufferCreateInfo bci{VK::BufferUsage::Storage, sizeof(glm::mat4) * 512, true};
         poseBuffer = renderer->getCore()->CreateBuffer(bci);
 
         cs = new SimpleCompute(renderer->getCore(), AssetDB::pathToId("Shaders/skinning.comp.spv"));
@@ -48,7 +47,6 @@ namespace worlds
         return transform;
     }
 
-
     void ComputeSkinner::Execute(R2::VK::CommandBuffer& cb, entt::registry& reg)
     {
         cb.BeginDebugLabel("Compute Skinning", 0.561f, 0.192f, 0.004f);
@@ -58,25 +56,30 @@ namespace worlds
         uint32_t matrixOffset = 0;
         glm::mat4* mappedPoses = (glm::mat4*)poseBuffer->Map();
 
-        reg.view<SkinnedWorldObject, Transform>().each([&](SkinnedWorldObject& swo, Transform& t) {
-            const LoadedMesh& lm = MeshManager::loadOrGet(swo.mesh);
-            const RenderMeshInfo& rmi = renderer->getMeshManager()->loadOrGet(swo.mesh);
-
-            for (int i = 0; i < lm.bones.size(); i++)
+        reg.view<SkinnedWorldObject, Transform>().each(
+            [&](SkinnedWorldObject& swo, Transform& t)
             {
-                mappedPoses[matrixOffset + i] = getBoneTransform(lm, swo.currentPose, i) * lm.bones[i].inverseBindPose;
+                const LoadedMesh& lm = MeshManager::loadOrGet(swo.mesh);
+                const RenderMeshInfo& rmi = renderer->getMeshManager()->loadOrGet(swo.mesh);
+
+                for (int i = 0; i < lm.bones.size(); i++)
+                {
+                    mappedPoses[matrixOffset + i] =
+                        getBoneTransform(lm, swo.currentPose, i) * lm.bones[i].inverseBindPose;
+                }
+
+                ComputeSkinnerPushConstants pcs{};
+                pcs.NumVertices = rmi.numVertices;
+                pcs.PoseOffset = matrixOffset;
+                pcs.InputOffset = rmi.vertsOffset / sizeof(Vertex);
+                pcs.OutputOffset =
+                    swo.skinnedVertexOffset + (renderer->getMeshManager()->getSkinnedVertsOffset() / sizeof(Vertex));
+                pcs.SkinInfoOffset = rmi.skinInfoOffset / sizeof(VertexSkinInfo);
+                cs->Dispatch(cb, pcs, (rmi.numVertices + 255) / 256, 1, 1);
+
+                matrixOffset += lm.bones.size();
             }
-
-            ComputeSkinnerPushConstants pcs{};
-            pcs.NumVertices = rmi.numVertices;
-            pcs.PoseOffset = matrixOffset;
-            pcs.InputOffset = rmi.vertsOffset / sizeof(Vertex);
-            pcs.OutputOffset = swo.skinnedVertexOffset + (renderer->getMeshManager()->getSkinnedVertsOffset() / sizeof(Vertex));
-            pcs.SkinInfoOffset = rmi.skinInfoOffset / sizeof(VertexSkinInfo);
-            cs->Dispatch(cb, pcs, (rmi.numVertices + 255) / 256, 1, 1);
-
-            matrixOffset += lm.bones.size();
-        });
+        );
 
         poseBuffer->Unmap();
         rmm->getVertexBuffer()->Acquire(cb, VK::AccessFlags::VertexAttributeRead, VK::PipelineStageFlags::VertexInput);
