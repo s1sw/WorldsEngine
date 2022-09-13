@@ -42,6 +42,7 @@ namespace worlds
             {
                 materials[i] = material;
                 presentMaterials[i] = false;
+                drawSubmeshes[i] = true;
             }
             presentMaterials[0] = true;
         }
@@ -53,6 +54,7 @@ namespace worlds
         glm::vec4 texScaleOffset;
         UVOverride uvOverride;
         bool castShadows = true;
+        slib::Bitset<NUM_SUBMESH_MATS> drawSubmeshes;
     };
 
     class Pose

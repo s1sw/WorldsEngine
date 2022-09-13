@@ -552,6 +552,8 @@ namespace worlds
 
                 for (int i = 0; i < rmi.numSubmeshes; i++)
                 {
+                    if (!wo.drawSubmeshes[i]) continue;
+
                     const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
 
                     AssetID material = wo.materials[rsi.materialIndex];

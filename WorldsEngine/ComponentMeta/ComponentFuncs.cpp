@@ -330,6 +330,19 @@ namespace worlds
 
                         ImGui::TreePop();
                     }
+
+                    if (ImGui::TreeNode("Drawn Submeshes"))
+                    {
+                        const LoadedMesh& lm = MeshManager::loadOrGet(worldObject.mesh);
+                        for (int i = 0; i < lm.numSubmeshes; i++)
+                        {
+                            bool drawn = worldObject.drawSubmeshes[i];
+                            if (ImGui::Checkbox(std::to_string(i).c_str(), &drawn))
+                                worldObject.drawSubmeshes[i] = drawn;
+                        }
+
+                        ImGui::TreePop();
+                    }
                 }
 
                 ImGui::Separator();
@@ -349,10 +362,20 @@ namespace worlds
                 matArray.push_back(AssetDB::idToPath(wo.materials[i]));
             }
 
+            nlohmann::json drawnSubmeshArray;
+
+            const LoadedMesh& lm = MeshManager::loadOrGet(wo.mesh);
+
+            for (int i = 0; i < lm.numSubmeshes; i++)
+            {
+                drawnSubmeshArray.push_back((bool)wo.drawSubmeshes[i]);
+            }
+
             j = {{"mesh", AssetDB::idToPath(wo.mesh)},
                  {"texScaleOffset", wo.texScaleOffset},
                  {"uvOverride", wo.uvOverride},
                  {"materials", matArray},
+                 {"drawnSubmeshes", drawnSubmeshArray},
                  {"staticFlags", wo.staticFlags}};
         }
 
@@ -379,6 +402,14 @@ namespace worlds
                     wo.materials[matIdx] = AssetDB::pathToId(path);
                 }
                 matIdx++;
+            }
+
+            if (j.contains("drawnSubmeshes"))
+            {
+                for (size_t i = 0; i < j["drawnSubmeshes"].size(); i++)
+                {
+                    wo.drawSubmeshes[i] = j["drawnSubmeshes"][i].get<bool>();
+                }
             }
         }
     };

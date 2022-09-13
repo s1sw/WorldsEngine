@@ -12,6 +12,7 @@ using namespace R2;
 namespace worlds
 {
     const int SHADOWMAP_RES = 1024;
+    const int MAX_SHADOWS = 4;
     ShadowmapManager::ShadowmapManager(VKRenderer* renderer) : renderer(renderer)
     {
         VK::PipelineLayoutBuilder plb{renderer->getCore()->GetHandles()};
@@ -39,7 +40,7 @@ namespace worlds
 
         pipeline = pb.Build();
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < MAX_SHADOWS; i++)
         {
             VK::TextureCreateInfo tci =
                 VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, SHADOWMAP_RES, SHADOWMAP_RES);
@@ -54,8 +55,11 @@ namespace worlds
     {
         uint32_t count = 0;
         registry.view<WorldLight>().each([&](WorldLight& worldLight) {
-            if (!worldLight.enableShadows || worldLight.type != LightType::Spot || count == 4)
+            if (!worldLight.enableShadows || worldLight.type != LightType::Spot || count == MAX_SHADOWS)
+            {
+                worldLight.shadowmapIdx = ~0u;
                 return;
+            }
 
             worldLight.shadowmapIdx = count++;
         });
@@ -107,6 +111,7 @@ namespace worlds
 
                 for (int i = 0; i < rmi.numSubmeshes; i++)
                 {
+                    if (!wo.drawSubmeshes[i]) continue;
                     const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
                     cb.DrawIndexed(
                         rsi.indexCount,
