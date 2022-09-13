@@ -221,13 +221,19 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                     float avgBlockDist = 0.0;
                     int blockCount = 0;
 
+                    const bool jitterSamples = false;
                     int sampleCount = 12;
                     float2 rotationComponents = getRotationComponents((random(fragCoord + time) * 2.0 - 1.0) * 1.5);
+                    float penumbraSize = distance(worldPos, light.pack2.xyz);
 
                     [[loop]]
                     for (int t = 0; t < sampleCount; t++)
                     {
-                        float2 offset = rotateSample(PoissonKernel[t] * (1.0 / 512.0), rotationComponents);
+                        float2 offset = PoissonKernel[t] * (1.0 / 512.0) * penumbraSize;
+                        if (jitterSamples)
+                        {
+                            offset = rotateSample(offset, rotationComponents);
+                        }
                         float2 offsetCoord = coord + offset;
                         float4 depths = Textures[shadowTexIdx].Gather(offsetCoord);
 
