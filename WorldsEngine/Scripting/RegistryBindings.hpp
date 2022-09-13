@@ -18,7 +18,15 @@ extern "C"
     EXPORT void registry_setTransform(entt::registry* registry, uint32_t entity, Transform* output)
     {
         entt::entity enttEntity = (entt::entity)entity;
-        registry->get<Transform>(enttEntity) = *output;
+        if (registry->has<ChildComponent>(enttEntity))
+        {
+            ChildComponent& cc = registry->get<ChildComponent>(enttEntity);
+            cc.offset = output->transformByInverse(registry->get<Transform>(cc.parent));
+        }
+        else
+        {
+            registry->get<Transform>(enttEntity) = *output;
+        }
     }
 
     EXPORT void registry_eachTransform(entt::registry* registry, void (*callback)(uint32_t))
