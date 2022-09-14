@@ -23,6 +23,7 @@ namespace WorldsEngine.Editor.EditorWindows
                 }
                 else
                 {
+                    ImGui.Text($"ID {Editor.CurrentlySelected.ID}");
                     MetadataManager.EditEntity(Editor.CurrentlySelected);
 
                     if (ImGui.Button("Add Component"))
