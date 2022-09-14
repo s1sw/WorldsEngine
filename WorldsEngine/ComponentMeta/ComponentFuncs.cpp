@@ -188,7 +188,7 @@ namespace worlds
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const nlohmann::json& j) override
         {
             ZoneScoped;
-            auto& t = reg.emplace<Transform>(ent);
+            auto& t = reg.emplace_or_replace<Transform>(ent);
             t.position = j["position"].get<glm::vec3>();
             t.rotation = j["rotation"].get<glm::quat>();
             t.scale = j["scale"].get<glm::vec3>();

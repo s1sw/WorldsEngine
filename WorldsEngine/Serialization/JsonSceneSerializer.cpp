@@ -314,11 +314,11 @@ namespace worlds
             ComponentMetadataManager::byName["Transform"]->fromJson(newEnt, reg, idRemap, p.value()["Transform"]);
         }
 
-        // 2. Load prefabs
+        // 2. Create patched KVs for entities
+        std::vector<std::pair<entt::entity, nlohmann::json>> entityComponentData;
         for (const auto& p : j.items())
         {
             entt::entity newEnt = idRemap[(entt::entity)std::stoul(p.key())];
-
             if (p.value().contains("prefabPath"))
             {
                 std::string prefabPath = p.value()["prefabPath"].get<std::string>();
@@ -338,81 +338,35 @@ namespace worlds
                 {
                     components["Transform"] = p.value()["Transform"];
                 }
-
-                deserializeEntityComponents(components, reg, newEnt);
-
-                reg.emplace<PrefabInstanceComponent>(newEnt).prefab = prefabId;
+                entityComponentData.push_back({ newEnt, components });
+            }
+            else
+            {
+                entityComponentData.push_back({ newEnt, p.value() });
             }
         }
 
-        struct PrioritisedEntity
+        // 3. Deserialize in component order
+        for (ComponentMetadata* cm : ComponentMetadataManager::sorted)
         {
-            entt::entity ent;
-            int maxComponentSort;
-        };
-
-        slib::StaticAllocList<PrioritisedEntity> prioritisedEntities(j.size());
-
-        // 3. Determine max sort ID of each component
-        for (const auto& p : j.items())
-        {
-            entt::entity newEnt = (entt::entity)std::stoul(p.key());
-            if (p.value().contains("prefabPath"))
-                continue;
-
-            int maxSort = 0;
-            for (const auto& c : p.value().items())
+            for (auto& pair : entityComponentData)
             {
-                if (ComponentMetadataManager::byName.count(c.key()) == 0)
-                    continue;
-                ComponentMetadata* meta = ComponentMetadataManager::byName[c.key()];
-
-                maxSort = std::max(maxSort, meta->getSortID());
-            }
-
-            prioritisedEntities.add({newEnt, maxSort});
-        }
-
-        {
-            ZoneScopedN("Sort prioritised entities");
-            // 4. Sort by max sort ID
-            // This way entities with a component with a high sort ID will be deserialized
-            // after those with a low sort ID
-            std::sort(
-                prioritisedEntities.begin(), prioritisedEntities.end(),
-                [](PrioritisedEntity& a, PrioritisedEntity& b) { return a.maxComponentSort < b.maxComponentSort; });
-        }
-
-        {
-            ZoneScopedN("component deserialization");
-            for (worlds::ComponentMetadata* meta : ComponentMetadataManager::sorted)
-            {
-                for (PrioritisedEntity& pe : prioritisedEntities)
+                if (pair.second.contains(cm->getName()))
                 {
-                    entt::entity newEnt = pe.ent;
-                    const auto& entityJson = j[std::to_string((uint32_t)newEnt)];
-
-                    if (entityJson.contains(meta->getName()))
-                    {
-                        ZoneScopedN("meta->fromJson");
-                        meta->fromJson(idRemap[newEnt], reg, idRemap, entityJson[meta->getName()]);
-                    }
+                    cm->fromJson(pair.first, reg, idRemap, pair.second[cm->getName()]);
                 }
             }
         }
 
-        // 5. Deserialize each managed component
-        // This is super inefficient, but it preserves initialisation order
-        for (PrioritisedEntity& pe : prioritisedEntities)
+        // 4. Deserialize managed components
+        for (auto& pair : entityComponentData)
         {
-            entt::entity newEnt = pe.ent;
-            const auto& entityJson = j[std::to_string((uint32_t)newEnt)];
-
-            for (const auto& v : entityJson.items())
+            for (auto& componentPair : pair.second.items())
             {
-                if (ComponentMetadataManager::byName.count(v.key()) == 0)
+                if (ComponentMetadataManager::byName.count(componentPair.key()) == 0)
                 {
-                    scriptEngine->deserializeManagedComponent(v.key().c_str(), v.value(), idRemap[newEnt]);
+                    auto& componentJson = componentPair.value();
+                    scriptEngine->deserializeManagedComponent(componentPair.key().c_str(), componentJson, pair.first);
                 }
             }
         }
