@@ -8,8 +8,7 @@
 
 namespace worlds
 {
-    VKUITextureManager::VKUITextureManager(VKTextureManager* texMan)
-        : texMan(texMan)
+    VKUITextureManager::VKUITextureManager(VKTextureManager* texMan) : texMan(texMan)
     {
     }
 
@@ -28,6 +27,17 @@ namespace worlds
     {
         missingTextureID = loadAndGet(AssetDB::pathToId("Textures/missing.wtex"));
         missingTexture = textureManager->GetTextureAt(missingTextureID);
+        AssetDB::registerAssetChangeCallback(
+            [&](AssetID asset) {
+                if (!textureIds.contains(asset)) return;
+                auto& texInfo = textureIds.at(asset);
+                if (texInfo.tex != missingTexture)
+                {
+                    delete texInfo.tex;
+                }
+                load(asset, texInfo.bindlessId);
+            }
+        );
     }
 
     VKTextureManager::~VKTextureManager()
@@ -92,7 +102,8 @@ namespace worlds
         TexInfo& info = textureIds.at(id);
         info.refCount--;
 
-        if (info.refCount <= 0) unload(id);
+        if (info.refCount <= 0)
+            unload(id);
     }
 
     uint32_t VKTextureManager::load(AssetID id, uint32_t handle)
