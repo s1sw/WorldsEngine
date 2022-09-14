@@ -61,13 +61,17 @@ namespace worlds
 
     class TransformEditor : public virtual BasicComponentUtil<Transform>
     {
-      private:
+    private:
         glm::vec3 getEulerAngles(glm::quat rotation)
         {
-            float roll = atan2f(2.0f * rotation.y * rotation.w - 2.0f * rotation.x * rotation.z,
-                                1.0f - 2.0f * rotation.y * rotation.y - 2.0f * rotation.z * rotation.z);
-            float pitch = atan2f(2.0f * rotation.x * rotation.w - 2.0f * rotation.y * rotation.z,
-                                 1.0f - 2.0f * rotation.x * rotation.x - 2.0f * rotation.z * rotation.z);
+            float roll = atan2f(
+                2.0f * rotation.y * rotation.w - 2.0f * rotation.x * rotation.z,
+                1.0f - 2.0f * rotation.y * rotation.y - 2.0f * rotation.z * rotation.z
+            );
+            float pitch = atan2f(
+                2.0f * rotation.x * rotation.w - 2.0f * rotation.y * rotation.z,
+                1.0f - 2.0f * rotation.x * rotation.x - 2.0f * rotation.z * rotation.z
+            );
             float yaw = glm::asin(2.0f * rotation.x * rotation.y + 2.0f * rotation.z * rotation.w);
 
             return glm::vec3(pitch, roll, yaw);
@@ -131,7 +135,7 @@ namespace worlds
             }
         }
 
-      public:
+    public:
         int getSortID() override
         {
             return -1;
@@ -198,7 +202,7 @@ namespace worlds
 
     class WorldObjectEditor : public BasicComponentUtil<WorldObject>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "World Object";
@@ -371,12 +375,13 @@ namespace worlds
                 drawnSubmeshArray.push_back((bool)wo.drawSubmeshes[i]);
             }
 
-            j = {{"mesh", AssetDB::idToPath(wo.mesh)},
-                 {"texScaleOffset", wo.texScaleOffset},
-                 {"uvOverride", wo.uvOverride},
-                 {"materials", matArray},
-                 {"drawnSubmeshes", drawnSubmeshArray},
-                 {"staticFlags", wo.staticFlags}};
+            j = {
+                {"mesh", AssetDB::idToPath(wo.mesh)},
+                {"texScaleOffset", wo.texScaleOffset},
+                {"uvOverride", wo.uvOverride},
+                {"materials", matArray},
+                {"drawnSubmeshes", drawnSubmeshArray},
+                {"staticFlags", wo.staticFlags}};
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
@@ -416,7 +421,7 @@ namespace worlds
 
     class SkinnedWorldObjectEditor : public BasicComponentUtil<SkinnedWorldObject>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "Skinned World Object";
@@ -530,11 +535,12 @@ namespace worlds
                 matArray.push_back(AssetDB::idToPath(wo.materials[i]));
             }
 
-            j = {{"mesh", AssetDB::idToPath(wo.mesh)},
-                 {"texScaleOffset", wo.texScaleOffset},
-                 {"uvOverride", wo.uvOverride},
-                 {"materials", matArray},
-                 {"staticFlags", wo.staticFlags}};
+            j = {
+                {"mesh", AssetDB::idToPath(wo.mesh)},
+                {"texScaleOffset", wo.texScaleOffset},
+                {"uvOverride", wo.uvOverride},
+                {"materials", matArray},
+                {"staticFlags", wo.staticFlags}};
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
@@ -565,21 +571,23 @@ namespace worlds
         }
     };
 
-    const std::unordered_map<LightType, const char*> lightTypeNames = {{LightType::Directional, "Directional"},
-                                                                       {LightType::Point, "Point"},
-                                                                       {LightType::Spot, "Spot"},
-                                                                       {LightType::Sphere, "Sphere"},
-                                                                       {LightType::Tube, "Tube"}};
+    const std::unordered_map<LightType, const char*> lightTypeNames{
+        {LightType::Directional, "Directional"},
+        {LightType::Point, "Point"},
+        {LightType::Spot, "Spot"},
+        {LightType::Sphere, "Sphere"},
+        {LightType::Tube, "Tube"}};
 
     class WorldLightEditor : public BasicComponentUtil<WorldLight>
     {
-      private:
+    private:
         void showTypeSpecificControls(WorldLight& worldLight)
         {
             // Show options specific to certain types of light
             switch (worldLight.type)
             {
-            case LightType::Spot: {
+            case LightType::Spot:
+            {
                 float cutoff = glm::degrees(worldLight.spotCutoff);
                 ImGui::DragFloat("Spot Cutoff", &cutoff, 1.0f, 0.0f, 90.0f);
                 worldLight.spotCutoff = glm::radians(cutoff);
@@ -597,11 +605,13 @@ namespace worlds
                 }
             }
             break;
-            case LightType::Sphere: {
+            case LightType::Sphere:
+            {
                 ImGui::DragFloat("Sphere Radius", &worldLight.spotCutoff, 1.0f, 0.0f, FLT_MAX);
             }
             break;
-            case LightType::Tube: {
+            case LightType::Tube:
+            {
                 ImGui::DragFloat("Tube Length", &worldLight.tubeLength, 0.1f, 0.0f, FLT_MAX);
                 ImGui::DragFloat("Tube Radius", &worldLight.tubeRadius, 0.1f, 0.0f, FLT_MAX);
             }
@@ -611,7 +621,7 @@ namespace worlds
             }
         }
 
-      public:
+    public:
         const char* getName() override
         {
             return "World Light";
@@ -633,10 +643,16 @@ namespace worlds
 
                     ImGui::Checkbox("Enabled", &worldLight.enabled);
                     ImGui::ColorEdit3("Color", &worldLight.color.x, ImGuiColorEditFlags_Float);
-                    ImGui::DragFloat("Intensity", &worldLight.intensity, 0.1f, 0.000001f, FLT_MAX, "%.3f",
-                                     ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::DragFloat(
+                        "Intensity",
+                        &worldLight.intensity,
+                        0.1f,
+                        0.000001f,
+                        FLT_MAX,
+                        "%.3f",
+                        ImGuiSliderFlags_AlwaysClamp
+                    );
                     tooltipHover("Controls brightness of the light in the scene.");
-
 
                     if (ImGui::BeginCombo("Light Type", lightTypeNames.at(worldLight.type)))
                     {
@@ -667,24 +683,53 @@ namespace worlds
                     tooltipHover("Controls the maximum distance at which a light still affects objects.");
 
                     showTypeSpecificControls(worldLight);
-
-                    if (worldLight.type == LightType::Spot)
-                    {
-                        glm::vec3 lightForward = transform.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
-                        float radiusAtCutoff = glm::tan(worldLight.spotCutoff) * worldLight.maxDistance * 0.5f;
-                        drawCircle(transform.position + lightForward * worldLight.maxDistance * 0.5f, radiusAtCutoff,
-                                   transform.rotation * glm::angleAxis(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)),
-                                   glm::vec4(1.0f));
-                        drawLine(transform.position, transform.position + transform.rotation * glm::vec3(radiusAtCutoff, 0.0f, 0.0f) + lightForward * worldLight.maxDistance * 0.5f, glm::vec4(1.0f));
-                        drawLine(transform.position, transform.position + transform.rotation * glm::vec3(-radiusAtCutoff, 0.0f, 0.0f) + lightForward * worldLight.maxDistance * 0.5f, glm::vec4(1.0f));
-                        drawLine(transform.position, transform.position + transform.rotation * glm::vec3(0.0f, 0.0f, radiusAtCutoff) + lightForward * worldLight.maxDistance * 0.5f, glm::vec4(1.0f));
-                        drawLine(transform.position, transform.position + transform.rotation * glm::vec3(0.0f, 0.0f, -radiusAtCutoff) + lightForward * worldLight.maxDistance * 0.5f, glm::vec4(1.0f));
-                    }
-                    else
-                    {
-                        drawSphere(transform.position, transform.rotation, worldLight.maxDistance);
-                    }
                 }
+            }
+        }
+
+        void drawGizmos(entt::entity ent, entt::registry& reg, Editor* ed) override
+        {
+            WorldLight& worldLight = reg.get<WorldLight>(ent);
+            Transform& transform = reg.get<Transform>(ent);
+
+            if (worldLight.type == LightType::Spot)
+            {
+                glm::vec3 lightForward = transform.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+                float radiusAtCutoff = glm::tan(worldLight.spotCutoff) * worldLight.maxDistance * 0.5f;
+                drawCircle(
+                    transform.position + lightForward * worldLight.maxDistance * 0.5f,
+                    radiusAtCutoff,
+                    transform.rotation * glm::angleAxis(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)),
+                    glm::vec4(1.0f)
+                );
+                drawLine(
+                    transform.position,
+                    transform.position + transform.rotation * glm::vec3(radiusAtCutoff, 0.0f, 0.0f) +
+                        lightForward * worldLight.maxDistance * 0.5f,
+                    glm::vec4(1.0f)
+                );
+                drawLine(
+                    transform.position,
+                    transform.position + transform.rotation * glm::vec3(-radiusAtCutoff, 0.0f, 0.0f) +
+                        lightForward * worldLight.maxDistance * 0.5f,
+                    glm::vec4(1.0f)
+                );
+                drawLine(
+                    transform.position,
+                    transform.position + transform.rotation * glm::vec3(0.0f, 0.0f, radiusAtCutoff) +
+                        lightForward * worldLight.maxDistance * 0.5f,
+                    glm::vec4(1.0f)
+                );
+                drawLine(
+                    transform.position,
+                    transform.position + transform.rotation * glm::vec3(0.0f, 0.0f, -radiusAtCutoff) +
+                        lightForward * worldLight.maxDistance * 0.5f,
+                    glm::vec4(1.0f)
+                );
+            }
+            else
+            {
+                drawSphere(transform.position, transform.rotation, worldLight.maxDistance);
             }
         }
 #endif
@@ -693,18 +738,19 @@ namespace worlds
         {
             auto& wl = reg.get<WorldLight>(ent);
 
-            j = {{"type", wl.type},
-                 {"color", wl.color},
-                 {"spotCutoff", wl.spotCutoff},
-                 {"spotOuterCutoff", wl.spotOuterCutoff},
-                 {"intensity", wl.intensity},
-                 {"tubeLength", wl.tubeLength},
-                 {"tubeRadius", wl.tubeRadius},
-                 {"enableShadows", wl.enableShadows},
-                 {"enabled", wl.enabled},
-                 {"maxDistance", wl.maxDistance},
-                 {"shadowNear", wl.shadowNear},
-                 {"shadowFar", wl.shadowFar}};
+            j = {
+                {"type", wl.type},
+                {"color", wl.color},
+                {"spotCutoff", wl.spotCutoff},
+                {"spotOuterCutoff", wl.spotOuterCutoff},
+                {"intensity", wl.intensity},
+                {"tubeLength", wl.tubeLength},
+                {"tubeRadius", wl.tubeRadius},
+                {"enableShadows", wl.enableShadows},
+                {"enabled", wl.enabled},
+                {"maxDistance", wl.maxDistance},
+                {"shadowNear", wl.shadowNear},
+                {"shadowFar", wl.shadowFar}};
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
@@ -793,8 +839,9 @@ namespace worlds
     {
         Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
         shapeTransform = shapeTransform.transformBy(actorTransform);
-        drawBox(shapeTransform.position, shapeTransform.rotation, ps.box.halfExtents * actorTransform.scale,
-                physShapeColor);
+        drawBox(
+            shapeTransform.position, shapeTransform.rotation, ps.box.halfExtents * actorTransform.scale, physShapeColor
+        );
     }
 
     void drawPhysicsSphere(const Transform& actorTransform, const PhysicsShape& ps)
@@ -808,9 +855,13 @@ namespace worlds
     {
         Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
         shapeTransform = shapeTransform.transformBy(actorTransform);
-        drawCapsule(shapeTransform.position,
-                    shapeTransform.rotation * glm::quat{glm::vec3{0.0f, 0.0f, glm::half_pi<float>()}},
-                    ps.capsule.height * 0.5f, ps.capsule.radius, physShapeColor);
+        drawCapsule(
+            shapeTransform.position,
+            shapeTransform.rotation * glm::quat{glm::vec3{0.0f, 0.0f, glm::half_pi<float>()}},
+            ps.capsule.height * 0.5f,
+            ps.capsule.radius,
+            physShapeColor
+        );
     }
 
     void drawPhysicsMesh(const Transform& actorTransform, const PhysicsShape& ps)
@@ -868,8 +919,13 @@ namespace worlds
 
         const char* extension = ".json";
         openFileModalOffset(
-            "Collider JSON", [&](const char* p) { actor.physicsShapes = loadColliderJson(p); }, "SourceData/",
-            &extension, 1, "ColliderJsons");
+            "Collider JSON",
+            [&](const char* p) { actor.physicsShapes = loadColliderJson(p); },
+            "SourceData/",
+            &extension,
+            1,
+            "ColliderJsons"
+        );
 
         ImGui::Text("Shapes: %zu", actor.physicsShapes.size());
 
@@ -914,7 +970,6 @@ namespace worlds
                 ImGui::EndCombo();
             }
 
-            drawPhysicsShape(actorTransform, *it);
 
             if (ImGui::Button("Remove Shape"))
             {
@@ -986,7 +1041,7 @@ namespace worlds
 
     class PhysicsActorEditor : public BasicComponentUtil<PhysicsActor>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "Physics Actor";
@@ -1039,6 +1094,17 @@ namespace worlds
                 }
 
                 ImGui::Separator();
+            }
+        }
+
+        void drawGizmos(entt::entity ent, entt::registry& reg, Editor* ed) override
+        {
+            Transform& t = reg.get<Transform>(ent);
+            PhysicsActor& pa = reg.get<PhysicsActor>(ent);
+
+            for (const PhysicsShape& ps : pa.physicsShapes)
+            {
+                drawPhysicsShape(t, ps);
             }
         }
 #endif
@@ -1132,7 +1198,7 @@ namespace worlds
 
     class RigidBodyEditor : public BasicComponentUtil<RigidBody>
     {
-      public:
+    public:
         int getSortID() override
         {
             return 1;
@@ -1182,9 +1248,9 @@ namespace worlds
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             auto& pa = reg.get<RigidBody>(ent);
-            if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" Dynamic Physics Actor"))
+            if (ImGui::CollapsingHeader(ICON_FA_SHAPES u8" RigidBody"))
             {
-                if (ImGui::Button("Remove##DPA"))
+                if (ImGui::Button("Remove##RB"))
                 {
                     reg.remove<RigidBody>(ent);
                 }
@@ -1229,6 +1295,17 @@ namespace worlds
                 }
 
                 ImGui::Separator();
+            }
+        }
+
+        void drawGizmos(entt::entity ent, entt::registry& reg, Editor* ed) override
+        {
+            Transform& t = reg.get<Transform>(ent);
+            RigidBody& pa = reg.get<RigidBody>(ent);
+
+            for (const PhysicsShape& ps : pa.physicsShapes)
+            {
+                drawPhysicsShape(t, ps);
             }
         }
 #endif
@@ -1342,7 +1419,7 @@ namespace worlds
 
     class NameComponentEditor : public BasicComponentUtil<NameComponent>
     {
-      public:
+    public:
         int getSortID() override
         {
             return -2;
@@ -1383,7 +1460,7 @@ namespace worlds
 
     class AudioSourceEditor : public BasicComponentUtil<OldAudioSource>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "Audio Source";
@@ -1427,8 +1504,13 @@ namespace worlds
         {
             auto& as = reg.get<OldAudioSource>(ent);
 
-            j = {{"clipPath", AssetDB::idToPath(as.clipId)}, {"channel", as.channel},       {"loop", as.loop},
-                 {"playOnSceneOpen", as.playOnSceneOpen},    {"spatialise", as.spatialise}, {"volume", as.volume}};
+            j = {
+                {"clipPath", AssetDB::idToPath(as.clipId)},
+                {"channel", as.channel},
+                {"loop", as.loop},
+                {"playOnSceneOpen", as.playOnSceneOpen},
+                {"spatialise", as.spatialise},
+                {"volume", as.volume}};
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
@@ -1448,7 +1530,7 @@ namespace worlds
 
     class FMODAudioSourceEditor : public BasicComponentUtil<AudioSource>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "FMOD Audio Source";
@@ -1529,7 +1611,7 @@ namespace worlds
 
     class WorldCubemapEditor : public BasicComponentUtil<WorldCubemap>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "World Cubemap";
@@ -1547,8 +1629,9 @@ namespace worlds
         void edit(entt::entity ent, entt::registry& reg, Editor* ed) override
         {
             auto& wc = reg.get<WorldCubemap>(ent);
-            wc.cubemapId = AssetDB::pathToId("LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" +
-                                             reg.get<NameComponent>(ent).name + ".json");
+            wc.cubemapId = AssetDB::pathToId(
+                "LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" + reg.get<NameComponent>(ent).name + ".json"
+            );
 
             if (ImGui::CollapsingHeader(ICON_FA_CIRCLE u8" Cubemap"))
             {
@@ -1565,8 +1648,12 @@ namespace worlds
                 boundsTransform.position = reg.get<Transform>(ent).position;
                 boundsTransform.scale = wc.extent;
                 drawBox(boundsTransform.position, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, wc.extent);
-                drawSphere(boundsTransform.position + wc.captureOffset, glm::quat{1.0f, 0.0f, 0.0f, 0.0f}, 0.25f,
-                           glm::vec4(1.0f));
+                drawSphere(
+                    boundsTransform.position + wc.captureOffset,
+                    glm::quat{1.0f, 0.0f, 0.0f, 0.0f},
+                    0.25f,
+                    glm::vec4(1.0f)
+                );
 
                 ImGui::Separator();
             }
@@ -1577,11 +1664,12 @@ namespace worlds
         {
             auto& wc = reg.get<WorldCubemap>(ent);
 
-            j = {{"useCubeParallax", wc.cubeParallax},
-                 {"extent", wc.extent},
-                 {"priority", wc.priority},
-                 {"resolution", wc.resolution},
-                 {"captureOffset", wc.captureOffset}};
+            j = {
+                {"useCubeParallax", wc.cubeParallax},
+                {"extent", wc.extent},
+                {"priority", wc.priority},
+                {"resolution", wc.resolution},
+                {"captureOffset", wc.captureOffset}};
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
@@ -1589,8 +1677,9 @@ namespace worlds
             ZoneScoped;
             auto& wc = reg.emplace<WorldCubemap>(ent);
 
-            wc.cubemapId = AssetDB::pathToId("LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" +
-                                             reg.get<NameComponent>(ent).name + ".json");
+            wc.cubemapId = AssetDB::pathToId(
+                "LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" + reg.get<NameComponent>(ent).name + ".json"
+            );
             wc.extent = j["extent"];
             wc.cubeParallax = j["useCubeParallax"];
             wc.priority = j.value("priority", 0);
@@ -1601,7 +1690,7 @@ namespace worlds
 
     class ReverbProbeBoxEditor : public BasicComponentUtil<ReverbProbeBox>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "Reverb Probe Box";
@@ -1631,7 +1720,7 @@ namespace worlds
 
     class AudioTriggerEditor : public BasicComponentUtil<AudioTrigger>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "Audio Trigger";
@@ -1674,7 +1763,7 @@ namespace worlds
 
     class ProxyAOEditor : public BasicComponentUtil<ProxyAOComponent>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "AO Proxy";
@@ -1716,7 +1805,7 @@ namespace worlds
 
     class WorldTextComponentEditor : public BasicComponentUtil<WorldTextComponent>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "World Text Component";
@@ -1774,7 +1863,7 @@ namespace worlds
 
     class PrefabInstanceEditor : public BasicComponentUtil<PrefabInstanceComponent>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "Prefab Instance";
@@ -1824,7 +1913,7 @@ namespace worlds
 
     class SphereAOProxyEditor : public BasicComponentUtil<SphereAOProxy>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "Sphere AO Proxy";
@@ -1866,7 +1955,7 @@ namespace worlds
 
     class EditorLabelEditor : public BasicComponentUtil<EditorLabel>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "Editor Label";
@@ -1908,7 +1997,7 @@ namespace worlds
 
     class AudioListenerOverrideEditor : public BasicComponentUtil<AudioListenerOverride>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "AudioListenerOverride";
@@ -1942,7 +2031,7 @@ namespace worlds
 
     class ChildComponentEditor : public BasicComponentUtil<ChildComponent>
     {
-      public:
+    public:
         const char* getName() override
         {
             return "ChildComponent";
@@ -2000,10 +2089,11 @@ namespace worlds
         {
             ChildComponent& c = reg.get<ChildComponent>(ent);
 
-            j = {{"parent", (uint32_t)c.parent},
-                 {"position", c.offset.position},
-                 {"rotation", c.offset.rotation},
-                 {"scale", c.offset.scale}};
+            j = {
+                {"parent", (uint32_t)c.parent},
+                {"position", c.offset.position},
+                {"rotation", c.offset.rotation},
+                {"scale", c.offset.scale}};
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& idMap, const json& j) override

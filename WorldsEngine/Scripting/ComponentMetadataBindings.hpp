@@ -17,17 +17,16 @@ extern "C"
     }
 
 #ifdef BUILD_EDITOR
-    EXPORT void componentmeta_editIfNecessary(entt::registry* reg, entt::entity entity, int index)
+    EXPORT void componentmeta_edit(entt::registry* reg, entt::entity entity, int index)
     {
         ComponentMetadata* meta = ComponentMetadataManager::sorted[index];
+        meta->edit(entity, *reg, csharpEditor);
+    }
 
-        ENTT_ID_TYPE t[] = {meta->getComponentID()};
-        auto rtView = reg->runtime_view(std::cbegin(t), std::cend(t));
-
-        if (rtView.contains(entity))
-        {
-            meta->edit(entity, *reg, csharpEditor);
-        }
+    EXPORT void componentmeta_drawGizmos(entt::registry* reg, entt::entity entity, int index)
+    {
+        ComponentMetadata* meta = ComponentMetadataManager::sorted[index];
+        meta->drawGizmos(entity, *reg, csharpEditor);
     }
 #endif
 

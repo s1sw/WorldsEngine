@@ -33,6 +33,7 @@ namespace worlds
         virtual void clone(entt::entity from, entt::entity to, entt::registry& reg) = 0;
 #ifdef BUILD_EDITOR
         virtual void edit(entt::entity ent, entt::registry& reg, Editor* ed) = 0;
+        virtual void drawGizmos(entt::entity ent, entt::registry& reg, Editor* ed) {}
 #endif
         virtual void toJson(entt::entity ent, entt::registry& reg, nlohmann::json& j) = 0;
         virtual void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& entityRemap,

@@ -19,7 +19,10 @@ namespace WorldsEngine.ComponentMeta
         internal static extern IntPtr componentmeta_getName(int index);
 
         [DllImport(Engine.NativeModule)]
-        internal static extern void componentmeta_editIfNecessary(IntPtr registry, uint entity, int index);
+        internal static extern void componentmeta_edit(IntPtr registry, uint entity, int index);
+
+        [DllImport(Engine.NativeModule)]
+        internal static extern void componentmeta_drawGizmos(IntPtr registry, uint entity, int index);
 
         [DllImport(Engine.NativeModule)]
         internal static extern void componentmeta_create(IntPtr registry, uint entity, int index);
@@ -48,7 +51,8 @@ namespace WorldsEngine.ComponentMeta
         public abstract void Create(Entity entity);
         public abstract void Destroy(Entity entity);
         public abstract void Copy(Entity from, Entity to);
-        public abstract void EditIfExists(Entity entity);
+        public abstract void Edit(Entity entity);
+        public abstract void DrawGizmos(Entity entity);
         public abstract bool ExistsOn(Entity entity);
     }
 
@@ -75,9 +79,14 @@ namespace WorldsEngine.ComponentMeta
             NativeMetadataAPI.componentmeta_clone(Registry.NativePtr, from.ID, to.ID, Index);
         }
 
-        public override void EditIfExists(Entity entity)
+        public override void Edit(Entity entity)
         {
-            NativeMetadataAPI.componentmeta_editIfNecessary(Registry.NativePtr, entity.ID, Index);
+            NativeMetadataAPI.componentmeta_edit(Registry.NativePtr, entity.ID, Index);
+        }
+
+        public override void DrawGizmos(Entity entity)
+        {
+            NativeMetadataAPI.componentmeta_drawGizmos(Registry.NativePtr, entity.ID, Index);
         }
 
         public override bool ExistsOn(Entity entity)
@@ -132,7 +141,7 @@ namespace WorldsEngine.ComponentMeta
         
         private static Dictionary<Type, IComponentEditor> _componentEditorCache = new();
 
-        public override void EditIfExists(Entity entity)
+        public override void Edit(Entity entity)
         {
             if (!Registry.HasComponent(entity, type)) return;
 
@@ -171,6 +180,11 @@ namespace WorldsEngine.ComponentMeta
             {
                 ImGui.PopStyleVar();
             }
+        }
+
+        public override void DrawGizmos(Entity entity)
+        {
+            // TODO
         }
 
         public override bool ExistsOn(Entity entity)
@@ -240,7 +254,17 @@ namespace WorldsEngine.ComponentMeta
         {
             foreach (ComponentMetadata metadata in metadata)
             {
-                metadata.EditIfExists(entity);
+                if (!metadata.ExistsOn(entity)) continue;
+                metadata.Edit(entity);
+            }
+        }
+
+        public static void DrawGizmosFor(Entity entity)
+        {
+            foreach (ComponentMetadata metadata in metadata)
+            {
+                if (!metadata.ExistsOn(entity)) continue;
+                metadata.DrawGizmos(entity);
             }
         }
     }

@@ -7,6 +7,7 @@ using ImGuiNET;
 using System.Text;
 using System.Threading.Tasks;
 using WorldsEngine.Hotloading;
+using WorldsEngine.ComponentMeta;
 using System.IO;
 
 namespace WorldsEngine.Editor
@@ -217,6 +218,11 @@ namespace WorldsEngine.Editor
                 {
                     GizmoRenderer.DrawGizmo(e, ga.GizmoPath);
                 }
+            }
+
+            if (Registry.Valid(CurrentlySelected))
+            {
+                MetadataManager.DrawGizmosFor(CurrentlySelected);
             }
         }
 

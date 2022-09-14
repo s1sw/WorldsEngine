@@ -145,6 +145,13 @@ namespace worlds
                     Transform goal = t2.transformBy(reg.get<Transform>(target)).transformByInverse(t1);
 
                     drawSphere(goal.position, goal.rotation, 0.1f);
+
+                    if (ImGui::Button("Move to target"))
+                    {
+                        Transform& thisTransform = reg.get<Transform>(ent);
+                        thisTransform.position = goal.position;
+                        thisTransform.rotation = goal.rotation;
+                    }
                 }
                 else
                 {
