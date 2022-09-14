@@ -167,15 +167,6 @@ namespace worlds
 
     class RenderMeshManager
     {
-        robin_hood::unordered_map<AssetID, RenderMeshInfo> meshes;
-        R2::SubAllocatedBuffer* vertexBuffer;
-        R2::SubAllocatedBuffer* indexBuffer;
-        R2::SubAllocatedBuffer* skinInfoBuffer;
-        R2::VK::Core* core;
-
-        R2::SubAllocationHandle skinnedVertsAllocation;
-        uint64_t skinnedVertsOffset;
-
     public:
         RenderMeshManager(R2::VK::Core* core);
         ~RenderMeshManager();
@@ -186,6 +177,18 @@ namespace worlds
 
         RenderMeshInfo& loadOrGet(AssetID id);
         uint64_t getSkinnedVertsOffset() const;
+
+    private:
+        robin_hood::unordered_map<AssetID, RenderMeshInfo> meshes;
+        R2::SubAllocatedBuffer* vertexBuffer;
+        R2::SubAllocatedBuffer* indexBuffer;
+        R2::SubAllocatedBuffer* skinInfoBuffer;
+        R2::VK::Core* core;
+
+        R2::SubAllocationHandle skinnedVertsAllocation;
+        uint64_t skinnedVertsOffset;
+
+        void loadToRMI(AssetID asset, RenderMeshInfo& meshInfo);
     };
 
     class VKTextureManager

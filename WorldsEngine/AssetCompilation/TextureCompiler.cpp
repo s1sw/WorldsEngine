@@ -245,7 +245,7 @@ namespace worlds
         }
 
         nlohmann::json j = nlohmann::json::parse(jsonContents.value);
-        compileOp->outputId = AssetDB::pathToId(outputPath);
+        compileOp->outputId = getOutputAsset(inputPath);
         TexCompileThreadInfo* tcti = new TexCompileThreadInfo;
         tcti->assetSettings = TextureAssetSettings::fromJson(j);
         tcti->inputPath = inputPath;

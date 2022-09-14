@@ -56,6 +56,8 @@ namespace worlds
                                 AssetDB::idToPath(assetFileCompileIterator->sourceAssetId).c_str());
                     else
                         assetFileCompileIterator->needsCompile = false;
+                    
+                    AssetDB::notifyAssetChange(currentCompileOp->outputId);
 
                     delete currentCompileOp;
                     assetFileCompileIterator++;

@@ -28,6 +28,25 @@ namespace worlds
         loadOrGet(missingModel);
 
         skinnedVertsOffset = vertexBuffer->Allocate(1 * 1000 * 1000 * sizeof(Vertex), skinnedVertsAllocation);
+        AssetDB::registerAssetChangeCallback(
+            [&](AssetID id) {
+                if (meshes.contains(id))
+                {
+                    RenderMeshInfo& rmi = meshes[id];
+
+                    if (rmi.vertexAllocationHandle != meshes[missingModel].vertexAllocationHandle)
+                    {
+                        vertexBuffer->Free(rmi.vertexAllocationHandle);
+                        indexBuffer->Free(rmi.indexAllocationHandle);
+
+                        if (rmi.skinInfoAllocationHandle != nullptr)
+                            skinInfoBuffer->Free(rmi.skinInfoAllocationHandle);
+                    }
+
+                    loadToRMI(id, rmi);
+                }
+            }
+        );
     }
 
     RenderMeshManager::~RenderMeshManager()
@@ -71,12 +90,28 @@ namespace worlds
             return meshes.at(asset);
         }
 
+        RenderMeshInfo meshInfo{};
+
+        loadToRMI(asset, meshInfo);
+
+        meshes.insert({asset, std::move(meshInfo)});
+
+        return meshes.at(asset);
+    }
+
+    uint64_t RenderMeshManager::getSkinnedVertsOffset() const
+    {
+        return skinnedVertsOffset;
+    }
+
+    void RenderMeshManager::loadToRMI(AssetID asset, RenderMeshInfo& meshInfo)
+    {
         LoadedMeshData lmd{};
         loadWorldsModel(asset, lmd);
 
         if (lmd.vertices.size() == 0)
         {
-            return meshes.at(missingModel);
+            meshInfo = meshes.at(missingModel);
         }
 
         // We don't support 16 bit indices anymore so we can bind the index buffer just once.
@@ -92,7 +127,6 @@ namespace worlds
         size_t indicesSize = lmd.indexType == IndexType::Uint16 ? lmd.indices16.size() * sizeof(uint32_t)
                                                                 : lmd.indices32.size() * sizeof(uint32_t);
 
-        RenderMeshInfo meshInfo{};
         meshInfo.indexOffset = indexBuffer->Allocate(indicesSize, meshInfo.indexAllocationHandle);
         meshInfo.vertsOffset =
             vertexBuffer->Allocate(lmd.vertices.size() * sizeof(Vertex), meshInfo.vertexAllocationHandle);
@@ -110,7 +144,8 @@ namespace worlds
         core->QueueBufferUpload(indexBuffer->GetBuffer(), lmd.indices32.data(), indicesSize, meshInfo.indexOffset);
 
         core->QueueBufferUpload(
-            vertexBuffer->GetBuffer(), lmd.vertices.data(), lmd.vertices.size() * sizeof(Vertex), meshInfo.vertsOffset);
+            vertexBuffer->GetBuffer(), lmd.vertices.data(), lmd.vertices.size() * sizeof(Vertex), meshInfo.vertsOffset
+        );
 
         meshInfo.aabbMax = glm::vec3(std::numeric_limits<float>::lowest());
         meshInfo.aabbMin = glm::vec3(std::numeric_limits<float>::max());
@@ -126,22 +161,15 @@ namespace worlds
         if (lmd.isSkinned)
         {
             meshInfo.skinInfoOffset = skinInfoBuffer->Allocate(
-                lmd.skinningInfos.size() * sizeof(VertexSkinInfo), meshInfo.skinInfoAllocationHandle);
+                lmd.skinningInfos.size() * sizeof(VertexSkinInfo), meshInfo.skinInfoAllocationHandle
+            );
 
             core->QueueBufferUpload(
                 skinInfoBuffer->GetBuffer(),
                 lmd.skinningInfos.data(),
                 lmd.skinningInfos.size() * sizeof(VertexSkinInfo),
-                meshInfo.skinInfoOffset);
+                meshInfo.skinInfoOffset
+            );
         }
-
-        meshes.insert({asset, std::move(meshInfo)});
-
-        return meshes.at(asset);
-    }
-
-    uint64_t RenderMeshManager::getSkinnedVertsOffset() const
-    {
-        return skinnedVertsOffset;
     }
 }

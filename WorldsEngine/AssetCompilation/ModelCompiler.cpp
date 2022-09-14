@@ -1053,7 +1053,7 @@ namespace worlds
             return compileOp;
         }
 
-        compileOp->outputId = AssetDB::pathToId(outputPath);
+        compileOp->outputId = getOutputAsset(AssetDB::idToPath(src));
 
         std::filesystem::path fullPath = projectRoot;
         fullPath /= outputPath;

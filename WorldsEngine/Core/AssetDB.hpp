@@ -3,6 +3,7 @@
 #include <physfs.h>
 #include <string>
 #include <string_view>
+#include <functional>
 
 namespace worlds
 {
@@ -11,7 +12,7 @@ namespace worlds
 
     class AssetDB
     {
-      public:
+    public:
         static void load();
         static void save();
         static PHYSFS_File* openAssetFileRead(AssetID id);
@@ -23,7 +24,10 @@ namespace worlds
         static AssetID pathToId(std::string_view path);
         static bool exists(AssetID id);
 
-      private:
+        static void notifyAssetChange(AssetID id);
+        static void registerAssetChangeCallback(std::function<void(AssetID)> callback);
+
+    private:
         static AssetID addAsset(std::string_view path);
         friend class AssetDBExplorer;
     };

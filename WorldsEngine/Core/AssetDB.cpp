@@ -15,10 +15,11 @@ namespace worlds
 {
     class ADBStorage
     {
-      public:
+    public:
         std::mutex mutex;
         robin_hood::unordered_map<AssetID, std::string> paths;
         robin_hood::unordered_map<AssetID, std::string> extensions;
+        std::vector<std::function<void(AssetID)>> changeCallbacks;
     };
 
     const char* ASSET_DB_PATH = "assetDB.wdb";
@@ -163,5 +164,18 @@ namespace worlds
     bool AssetDB::exists(AssetID id)
     {
         return storage.paths.contains(id) && PHYSFS_exists(storage.paths.at(id).c_str());
+    }
+
+    void AssetDB::notifyAssetChange(AssetID id)
+    {
+        for (auto& callback : storage.changeCallbacks)
+        {
+            callback(id);
+        }
+    }
+
+    void AssetDB::registerAssetChangeCallback(std::function<void(AssetID)> callback)
+    {
+        storage.changeCallbacks.emplace_back(callback);
     }
 }
