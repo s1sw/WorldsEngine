@@ -303,13 +303,15 @@ namespace worlds
         logMsg("scene has %lu entities", j.size());
         idRemap.clear();
 
-        // 1. Create all the scene's entities
+        // 1. Create all the scene's entities and deserialize transforms
         for (const auto& p : j.items())
         {
             entt::entity id = (entt::entity)std::stoul(p.key());
             entt::entity newEnt = reg.create(id);
 
             idRemap.insert({id, newEnt});
+            // Even though the ID map isn't complete, it's fine to pass it in here since transforms don't need it
+            ComponentMetadataManager::byName["Transform"]->fromJson(newEnt, reg, idRemap, p.value()["Transform"]);
         }
 
         // 2. Load prefabs

@@ -1,4 +1,5 @@
 #include "HierarchyUtil.hpp"
+#include <Core/Log.hpp>
 #include <Core/WorldComponents.hpp>
 #include <assert.h>
 #include <entt/entity/registry.hpp>
@@ -35,11 +36,17 @@ namespace worlds
             removeEntityParent(reg, object);
         }
 
-        if (parent == entt::null)
+        if (!reg.valid(parent))
+        {
+            if (parent != entt::null)
+                logWarn("setEntityParent called with invalid parent");
             return;
+        }
+
+        Transform parentTransform = reg.get<Transform>(parent);
 
         auto& childComponent = reg.emplace<ChildComponent>(object);
-        childComponent.offset = reg.get<Transform>(object).transformByInverse(reg.get<Transform>(parent));
+        childComponent.offset = reg.get<Transform>(object).transformByInverse(parentTransform);
         childComponent.offset.scale = reg.get<Transform>(object).scale;
         childComponent.parent = parent;
 

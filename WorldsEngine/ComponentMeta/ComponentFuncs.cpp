@@ -2101,7 +2101,16 @@ namespace worlds
             ZoneScoped;
             if (!j.is_object())
                 return;
-            HierarchyUtil::setEntityParent(reg, ent, (entt::entity)idMap[j["parent"]]);
+            
+            entt::entity realParent = (entt::entity)idMap[j["parent"]];
+
+            if (!reg.valid(realParent))
+            {
+                logWarn("Entity %u had invalid parent %u", ent, realParent);
+                return;
+            }
+
+            HierarchyUtil::setEntityParent(reg, ent, realParent);
 
             auto& c = reg.get<ChildComponent>(ent);
             c.offset.position = j.value("position", glm::vec3(0.0f));
