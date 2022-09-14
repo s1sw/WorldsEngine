@@ -40,9 +40,9 @@ namespace worlds
 #define WRITE_FIELD(file, field) PHYSFS_writeBytes(file, &field, sizeof(field))
 #define READ_FIELD(file, field) PHYSFS_readBytes(file, &field, sizeof(field))
 
-    ComponentEditorLink* ComponentEditor::first = nullptr;
+    ComponentEditorLink* ComponentMetadata::first = nullptr;
 
-    ComponentEditor::ComponentEditor()
+    ComponentMetadata::ComponentMetadata()
     {
         if (!first)
         {

@@ -2,8 +2,8 @@
 
 namespace worlds
 {
-    std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::metadata;
-    std::vector<ComponentEditor*> ComponentMetadataManager::sorted;
-    std::unordered_map<ENTT_ID_TYPE, ComponentEditor*> ComponentMetadataManager::bySerializedID;
-    std::unordered_map<std::string, ComponentEditor*> ComponentMetadataManager::byName;
+    std::unordered_map<ENTT_ID_TYPE, ComponentMetadata*> ComponentMetadataManager::metadata;
+    std::vector<ComponentMetadata*> ComponentMetadataManager::sorted;
+    std::unordered_map<ENTT_ID_TYPE, ComponentMetadata*> ComponentMetadataManager::bySerializedID;
+    std::unordered_map<std::string, ComponentMetadata*> ComponentMetadataManager::byName;
 }

@@ -11,11 +11,11 @@ namespace worlds
     struct EngineInterfaces;
 
     typedef robin_hood::unordered_flat_map<entt::entity, entt::entity> EntityIDMap;
-    class ComponentEditor
+    class ComponentMetadata
     {
       public:
         static ComponentEditorLink* first;
-        ComponentEditor();
+        ComponentMetadata();
         void setInterfaces(EngineInterfaces* interfaces)
         {
             this->interfaces = interfaces;
@@ -37,7 +37,7 @@ namespace worlds
         virtual void toJson(entt::entity ent, entt::registry& reg, nlohmann::json& j) = 0;
         virtual void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& entityRemap,
                               const nlohmann::json& j) = 0;
-        virtual ~ComponentEditor()
+        virtual ~ComponentMetadata()
         {
         }
 
@@ -50,7 +50,7 @@ namespace worlds
         ComponentEditorLink() : editor(nullptr), next(nullptr)
         {
         }
-        ComponentEditor* editor;
+        ComponentMetadata* editor;
         ComponentEditorLink* next;
     };
 }

@@ -363,7 +363,7 @@ namespace worlds
             {
                 if (ComponentMetadataManager::byName.count(c.key()) == 0)
                     continue;
-                ComponentEditor* meta = ComponentMetadataManager::byName[c.key()];
+                ComponentMetadata* meta = ComponentMetadataManager::byName[c.key()];
 
                 maxSort = std::max(maxSort, meta->getSortID());
             }
@@ -383,7 +383,7 @@ namespace worlds
 
         {
             ZoneScopedN("component deserialization");
-            for (worlds::ComponentEditor* meta : ComponentMetadataManager::sorted)
+            for (worlds::ComponentMetadata* meta : ComponentMetadataManager::sorted)
             {
                 for (PrioritisedEntity& pe : prioritisedEntities)
                 {

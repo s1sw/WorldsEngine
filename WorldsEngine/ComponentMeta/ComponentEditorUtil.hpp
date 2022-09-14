@@ -5,7 +5,7 @@
 
 namespace worlds
 {
-    template <typename T> class BasicComponentUtil : public ComponentEditor
+    template <typename T> class BasicComponentUtil : public ComponentMetadata
     {
       private:
         template <typename = typename std::is_default_constructible<T>::type>
