@@ -28,6 +28,7 @@
 
 #include <deque>
 #include <new>
+#include "PoissonDisk.hpp"
 
 using namespace R2;
 
@@ -61,18 +62,8 @@ namespace worlds
     struct SceneGlobals
     {
         float time;
-        glm::vec2 poissonDisk[24];
+        glm::vec2 poissonDisk[64];
     };
-
-    static glm::vec2 poissonDisk[24] = {
-        glm::vec2(0.511749, 0.547686),  glm::vec2(0.58929, 0.257224),    glm::vec2(0.165018, 0.57663),
-        glm::vec2(0.407692, 0.742285),  glm::vec2(0.707012, 0.646523),   glm::vec2(0.31463, 0.466825),
-        glm::vec2(0.801257, 0.485186),  glm::vec2(0.418136, 0.146517),   glm::vec2(0.579889, 0.0368284),
-        glm::vec2(0.79801, 0.140114),   glm::vec2(-0.0413185, 0.371455), glm::vec2(-0.0529108, 0.627352),
-        glm::vec2(0.0821375, 0.882071), glm::vec2(0.17308, 0.301207),    glm::vec2(-0.120452, 0.867216),
-        glm::vec2(0.371096, 0.916454),  glm::vec2(-0.178381, 0.146101),  glm::vec2(-0.276489, 0.550525),
-        glm::vec2(0.12542, 0.126643),   glm::vec2(-0.296654, 0.286879),  glm::vec2(0.261744, -0.00604975),
-        glm::vec2(-0.213417, 0.715776), glm::vec2(0.425684, -0.153211),  glm::vec2(-0.480054, 0.321357)};
 
     robin_hood::unordered_flat_map<AssetID, int> materialRefCount;
     std::deque<AssetID> convoluteQueue;
@@ -185,7 +176,7 @@ namespace worlds
         VK::BufferCreateInfo globalsBCI{VK::BufferUsage::Uniform, sizeof(SceneGlobals), true};
         sceneGlobals = core->CreateBuffer(globalsBCI);
         core->QueueBufferUpload(
-            sceneGlobals.Get(), poissonDisk, sizeof(poissonDisk), offsetof(SceneGlobals, poissonDisk));
+            sceneGlobals.Get(), poissonDisk, sizeof(glm::vec2) * 64, offsetof(SceneGlobals, poissonDisk));
 
         VK::BufferCreateInfo drawCmdsBCI{
             VK::BufferUsage::Indirect, sizeof(VK::DrawIndexedIndirectCommand) * MAX_DRAWS, true};

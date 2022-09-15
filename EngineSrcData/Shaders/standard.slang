@@ -87,6 +87,8 @@ struct DrawInfo
 {
     uint MaterialOffset;
     uint ModelMatrixID;
+    float2 TextureOffset;
+    float2 TextureScale;
 }
 
 ConstantBuffer<MultiVP> VPBuffer;
@@ -99,7 +101,7 @@ StructuredBuffer<DrawInfo> DrawInfos;
 cbuffer SceneGlobals 
 {
     float time;
-    float2 PoissonKernel[24];
+    float2 PoissonKernel[64];
 };
 
 [vk::binding(0, 1)]
@@ -123,7 +125,7 @@ VertexOutput VertexShader(VertexInput input, uint viewIndex : SV_ViewID, uint dr
     output.WorldPosition = mul(model, float4(input.Position, 1.0)).xyz;
     output.Normal = normalize(mul(adjoint(model), input.Normal));
     output.TangentWithSign = float4(mul(adjoint(model), input.Tangent).xyz, input.BitangentSign);
-    output.UV = input.UV;
+    output.UV = (input.UV * di.TextureScale) + di.TextureOffset;
     output.Position.y = -output.Position.y;
     output.DrawID = drawIndex;
 
@@ -221,10 +223,10 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                     float avgBlockDist = 0.0;
                     int blockCount = 0;
 
-                    const bool jitterSamples = false;
-                    int sampleCount = 12;
-                    float2 rotationComponents = getRotationComponents((random(fragCoord + time) * 2.0 - 1.0) * 1.5);
-                    float penumbraSize = distance(worldPos, light.pack2.xyz);
+                    const bool jitterSamples = true;
+                    int sampleCount = 64; 
+                    float2 rotationComponents = getRotationComponents((random(fragCoord) * 2.0 - 1.0) * 1.5);
+                    float penumbraSize = 2.0;
 
                     [[loop]]
                     for (int t = 0; t < sampleCount; t++)
@@ -240,9 +242,10 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                         for (int i = 0; i < 4; i++)
                         {
                             float d = depths[i];
+                            //float d = Textures[shadowTexIdx].SampleLevel(offsetCoord, 0).x;
                             float dist = (d - shadowPos.z);
 
-                            float bias = 0.00005;
+                            float bias = 0.0003;
                             float occluded = step(dist, bias);
                             occlusionAmount += occluded;
 
