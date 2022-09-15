@@ -98,13 +98,13 @@ namespace worlds
 
         if (j.contains("normalMapPath"))
         {
-            mai.normalID = AssetDB::pathToId(j["normalMapPath"]);
+            mai.normalID = AssetDB::pathToId(j["normalMapPath"].get<std::string>());
             material.normalTexture = tm->loadAndGet(mai.normalID);
         }
 
         if (j.contains("pbrMapPath"))
         {
-            mai.mraID = AssetDB::pathToId(j["pbrMapPath"]);
+            mai.mraID = AssetDB::pathToId(j["pbrMapPath"].get<std::string>());
             material.mraTexture = tm->loadAndGet(mai.mraID);
         }
 

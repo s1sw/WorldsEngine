@@ -8,8 +8,8 @@ VK_DEFINE_HANDLE(VkCommandBuffer)
 VK_DEFINE_HANDLE(VmaAllocation)
 #undef VK_DEFINE_HANDLE
 
-enum VkImageLayout;
-enum VkFormat;
+enum VkImageLayout : int;
+enum VkFormat : int;
 typedef uint32_t VkFlags;
 typedef VkFlags VkImageAspectFlags;
 

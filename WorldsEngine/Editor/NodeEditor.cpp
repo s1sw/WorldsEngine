@@ -1,6 +1,7 @@
 #include "NodeEditor.hpp"
 #include <Editor/GuiUtil.hpp>
 #include <imgui/imgui.h>
+#include <math.h>
 
 namespace worlds::nodes
 {

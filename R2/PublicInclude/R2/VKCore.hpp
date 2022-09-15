@@ -26,8 +26,8 @@ typedef uint32_t VkFlags;
 typedef struct VkAllocationCallbacks VkAllocationCallbacks;
 typedef VkFlags VkDebugUtilsMessageTypeFlagsEXT;
 
-enum VkResult;
-enum VkDebugUtilsMessageSeverityFlagBitsEXT;
+enum VkResult : int;
+enum VkDebugUtilsMessageSeverityFlagBitsEXT : int;
 
 namespace R2::VK
 {

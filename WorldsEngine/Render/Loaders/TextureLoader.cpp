@@ -180,7 +180,7 @@ namespace worlds
         enki::TaskSet loadTask{6, [&](enki::TaskSetPartition range, uint32_t) {
             for (int i = range.start; i < range.end; i++)
             {
-                faces[i] = loadTexData(AssetDB::pathToId(j[i]));
+                faces[i] = loadTexData(AssetDB::pathToId(j[i].get<std::string>()));
             }
         }};
 

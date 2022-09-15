@@ -5,6 +5,7 @@
 #include <R2/VK.hpp>
 #include <Render/ShaderReflector.hpp>
 #include <Render/ShaderCache.hpp>
+#include <math.h>
 
 using namespace R2;
 

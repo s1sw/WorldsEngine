@@ -1,5 +1,6 @@
 #pragma once
 #include <Util/UniquePtr.hpp>
+#include <stddef.h>
 
 namespace R2::VK
 {

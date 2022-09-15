@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 #include <unordered_map>
 
 namespace R2::VK

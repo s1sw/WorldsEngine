@@ -140,5 +140,5 @@ if(WIN32)
 endif()
 
 target_link_libraries(${PROJECT_NAME} R2 SDL2::SDL2 physfs TracyClient slib Recast Detour enkiTS)
-target_include_directories(${PROJECT_NAME} PUBLIC . ../External/Include ../TextureFormat ../ModelFormat)
+target_include_directories(${PROJECT_NAME} PUBLIC . ../External/Include ../External/Include/physx ../TextureFormat ../ModelFormat)
 target_include_directories(${PROJECT_NAME} PUBLIC "${FMOD_DIR}/core/inc" "${FMOD_DIR}/studio/inc")
