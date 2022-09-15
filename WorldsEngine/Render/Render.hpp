@@ -12,7 +12,7 @@ typedef void* ImTextureID;
 
 namespace worlds
 {
-    const int NUM_SHADOW_LIGHTS = 4;
+    const int NUM_SHADOW_LIGHTS = 16;
 #pragma pack(push, 1)
     struct Vertex
     {

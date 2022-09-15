@@ -54,6 +54,8 @@ namespace worlds
     {
         uint32_t materialOffset;
         uint32_t modelMatrixID;
+        glm::vec2 textureOffset;
+        glm::vec2 textureScale;
     };
 
     struct SceneGlobals
@@ -569,6 +571,8 @@ namespace worlds
                     GPUDrawInfo di{};
                     di.materialOffset = RenderMaterialManager::GetMaterial(material);
                     di.modelMatrixID = modelMatrixIdx;
+                    di.textureScale = glm::vec2(wo.texScaleOffset);
+                    di.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
 
                     VK::DrawIndexedIndirectCommand drawCmd{};
                     drawCmd.indexCount = rsi.indexCount;
@@ -669,6 +673,8 @@ namespace worlds
                     GPUDrawInfo di{};
                     di.materialOffset = RenderMaterialManager::GetMaterial(material);
                     di.modelMatrixID = modelMatrixIdx;
+                    di.textureScale = glm::vec2(wo.texScaleOffset);
+                    di.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
 
                     VK::DrawIndexedIndirectCommand drawCmd{};
                     drawCmd.indexCount = rsi.indexCount;

@@ -95,7 +95,7 @@ namespace worlds
         uint32_t aoBoxCount;
         uint32_t aoSphereCount;
         uint32_t cubemapCount;
-        uint32_t shadowmapIds[4];
+        uint32_t shadowmapIds[NUM_SHADOW_LIGHTS];
         glm::mat4 cascadeMatrices[4];
         PackedLight lights[256];
         AOBox box[128];
