@@ -147,6 +147,7 @@ namespace worlds
         FMOD::Studio::Bank* masterBank;
         FMOD::Studio::Bank* stringsBank;
         FMOD::Studio::VCA* masterVCA;
+        FMOD::Studio::VCA* musicVCA;
 
         uint32_t phononPluginHandle;
         IPLContext phononContext;

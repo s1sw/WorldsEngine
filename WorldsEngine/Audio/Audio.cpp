@@ -567,6 +567,26 @@ namespace worlds
             "a_setMasterVolume", "Sets the master audio volume.");
 
         g_console->registerCommand(
+            [&](const char* arg) {
+                if (!available)
+                {
+                    logErr(WELogCategoryAudio, "Audio subsystem is unavailable");
+                    return;
+                }
+
+                float vol = std::atof(arg);
+                if (!musicVCA->isValid())
+                {
+                    logErr(WELogCategoryAudio, "Music VCA handle was invalid");
+                }
+                else
+                {
+                    musicVCA->setVolume(vol);
+                }
+            },
+            "a_setMusicVolume", "Sets the music audio volume.");
+
+        g_console->registerCommand(
             [&](const char*) {
                 if (!available)
                 {
@@ -613,6 +633,7 @@ namespace worlds
         if (!masterBank)
             return;
         FMCHECK(studioSystem->getVCA("vca:/Master", &masterVCA));
+        FMCHECK(studioSystem->getVCA("vca:/Music", &musicVCA));
     }
 
     FMOD_VECTOR convVec(glm::vec3 v3)
