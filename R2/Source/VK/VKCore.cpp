@@ -316,8 +316,7 @@ namespace R2::VK
 
 		uint32_t blocksX = (width + blockInfo.BlockWidth - 1) / blockInfo.BlockWidth;
 		uint32_t blocksY = (height + blockInfo.BlockHeight - 1) / blockInfo.BlockHeight;
-		//return blockInfo.BytesPerBlock * blocksX * blocksY;
-		return ((blockInfo.BytesPerBlock + 3) & ~3) * ((width / blockInfo.BlockWidth) * (height / blockInfo.BlockHeight));
+		return ((blockInfo.BytesPerBlock + 3) & ~ 3) * blocksX * blocksY;
 	}
 
 	void Core::QueueTextureUpload(Texture* texture, void* data, uint64_t dataSize, int numMips)
@@ -355,10 +354,10 @@ namespace R2::VK
 			texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite, PipelineStageFlags::Transfer);
 
 			uint64_t offset = 0;
-			int currWidth = texture->GetWidth();
-			int currHeight = texture->GetHeight();
 			for (int i = 0; i < mipsToUpload; i++)
 			{
+				int currWidth = mipScale(texture->GetWidth(), i);
+				int currHeight = mipScale(texture->GetWidth(), i);
 				VkBufferImageCopy vbic{};
 				vbic.imageSubresource.layerCount = texture->GetLayers();
 				vbic.imageSubresource.mipLevel = i;
@@ -374,8 +373,6 @@ namespace R2::VK
 
 				offset += calculateTextureByteSize(texture->GetFormat(), currWidth, currHeight);
 				
-				currWidth /= 2;
-				currHeight /= 2;
 			}
 
 			texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead, PipelineStageFlags::FragmentShader | PipelineStageFlags::ComputeShader);
