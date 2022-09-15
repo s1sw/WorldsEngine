@@ -223,9 +223,8 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                     float avgBlockDist = 0.0;
                     int blockCount = 0;
 
-                    const bool jitterSamples = true;
-                    int sampleCount = 24; 
-                    float2 rotationComponents = getRotationComponents((random(fragCoord) * 2.0 - 1.0) * 1.5);
+                    const bool jitterSamples = false;
+                    int sampleCount = 8; 
                     float penumbraSize = 0.5;
 
                     [[loop]]
@@ -234,10 +233,12 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                         float2 offset = ((PoissonKernel[t] * 2.0) - 1.0) * (1.0 / 512.0) * penumbraSize;
                         if (jitterSamples)
                         {
+                            float2 rotationComponents = getRotationComponents((random(fragCoord) * 2.0 - 1.0) * 1.5);
                             offset = rotateSample(offset, rotationComponents);
                         }
                         float2 offsetCoord = coord + offset;
                         float4 depths = Textures[shadowTexIdx].Gather(offsetCoord);
+                        float4 occlusions = float4(0.0);
 
                         for (int i = 0; i < 4; i++)
                         {
@@ -246,24 +247,35 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                             float dist = (d - shadowPos.z);
 
                             float bias = 0.000025;
-                            float occluded = step(dist, bias);
-                            occlusionAmount += occluded;
+                            occlusions[i] = step(dist, bias);
 
-                            avgBlockDist += dist * occluded;
+                            avgBlockDist += dist * occlusions[i];
                             blockCount += (dist >= bias ? 1 : 0);
                         }
+
+                        // bilinearly interpolate the occlusions
+                        float2 fr = frac((offsetCoord * 2048.0) - 0.5);
+                        float tr = lerp(occlusions.x, occlusions.y, fr.x);
+                        float br = lerp(occlusions.w, occlusions.z, fr.x);
+                        float final = lerp(br, tr, fr.y);
+                        occlusionAmount += final;
                     }
 
-                    if (blockCount > 0)
+                    const bool fancy = true;
+                    if (fancy && blockCount > 0)
                     {
                         avgBlockDist /= float(blockCount);
-                        occlusionAmount /= float(4 * sampleCount);
+                        occlusionAmount /= float(sampleCount);
                         float recv = shadowPos.z;
                         float block = avgBlockDist;
                         float nofmn = (0.05 / 100.0) - 0.05;
 
                         float blendAmount = saturate(avgBlockDist / recv);//saturate((nofmn + block) / (nofmn + recv) - 1.0);
                         contribution *= float3(saturate(lerp(hardenedKernel(occlusionAmount), occlusionAmount, blendAmount)));
+                    }
+                    else
+                    {
+                        contribution *= occlusionAmount / float(sampleCount);
                     }
                 }
             }

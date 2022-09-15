@@ -11,7 +11,7 @@ using namespace R2;
 
 namespace worlds
 {
-    const int SHADOWMAP_RES = 1024;
+    const int SHADOWMAP_RES = 2048;
     ShadowmapManager::ShadowmapManager(VKRenderer* renderer) : renderer(renderer)
     {
         VK::PipelineLayoutBuilder plb{renderer->getCore()->GetHandles()};
