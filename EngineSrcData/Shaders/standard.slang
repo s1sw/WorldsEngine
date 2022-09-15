@@ -224,14 +224,14 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                     int blockCount = 0;
 
                     const bool jitterSamples = true;
-                    int sampleCount = 64; 
+                    int sampleCount = 24; 
                     float2 rotationComponents = getRotationComponents((random(fragCoord) * 2.0 - 1.0) * 1.5);
-                    float penumbraSize = 2.0;
+                    float penumbraSize = 0.5;
 
                     [[loop]]
                     for (int t = 0; t < sampleCount; t++)
                     {
-                        float2 offset = PoissonKernel[t] * (1.0 / 512.0) * penumbraSize;
+                        float2 offset = ((PoissonKernel[t] * 2.0) - 1.0) * (1.0 / 512.0) * penumbraSize;
                         if (jitterSamples)
                         {
                             offset = rotateSample(offset, rotationComponents);
@@ -245,7 +245,7 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                             //float d = Textures[shadowTexIdx].SampleLevel(offsetCoord, 0).x;
                             float dist = (d - shadowPos.z);
 
-                            float bias = 0.0003;
+                            float bias = 0.000025;
                             float occluded = step(dist, bias);
                             occlusionAmount += occluded;
 
@@ -262,9 +262,8 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                         float block = avgBlockDist;
                         float nofmn = (0.05 / 100.0) - 0.05;
 
-                        float blendAmount = saturate((nofmn + block) / (nofmn + recv) - 1.0);
-                        //contribution *= occlusionAmount;
-                        contribution *= float3(lerp(hardenedKernel(occlusionAmount), occlusionAmount, blendAmount));
+                        float blendAmount = saturate(avgBlockDist / recv);//saturate((nofmn + block) / (nofmn + recv) - 1.0);
+                        contribution *= float3(saturate(lerp(hardenedKernel(occlusionAmount), occlusionAmount, blendAmount)));
                     }
                 }
             }
