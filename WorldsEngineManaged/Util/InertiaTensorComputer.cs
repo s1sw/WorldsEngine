@@ -149,7 +149,7 @@ namespace WorldsEngine.Util
             _mass *= densityScale;
         }
 
-        private void SetDiagonal(float mass, Vector3 diag)
+        public void SetDiagonal(float mass, Vector3 diag)
         {
             _mass = mass;
             _inertiaMatrix = new Mat3x3(
