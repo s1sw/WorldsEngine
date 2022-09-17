@@ -15,4 +15,9 @@ struct AMDReversibleTonemapper
     {
         return color * rcp(1.0 - gmax3(color.r, color.g, color.b));
     }
+
+    float3 TonemapWithWeight(float3 color, float w)
+    {
+        return color * (w * rcp(gmax3(color.r, color.g, color.b) + 1.0));
+    }
 }

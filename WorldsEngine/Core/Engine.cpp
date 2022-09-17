@@ -1418,6 +1418,12 @@ namespace worlds
 
     void WorldsEngine::loadScene(AssetID scene)
     {
+        if (!AssetDB::exists(scene))
+        {
+            logErr("Tried to load scene that doesn't exist!");
+            return;
+        }
+
         sceneLoadQueued = true;
         queuedSceneID = scene;
     }
