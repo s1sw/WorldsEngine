@@ -426,7 +426,7 @@ namespace worlds
         FMCHECK(studioSystem->getCoreSystem(&system));
         FMCHECK(system->setSoftwareFormat(0, FMOD_SPEAKERMODE_STEREO, 0));
 
-        FMOD_STUDIO_INITFLAGS studioInitFlags = FMOD_STUDIO_INIT_NORMAL;
+        FMOD_STUDIO_INITFLAGS studioInitFlags = FMOD_STUDIO_INIT_NORMAL | FMOD_STUDIO_INIT_SYNCHRONOUS_UPDATE;
 
         bool useLiveUpdate = EngineArguments::hasArgument("editor") || EngineArguments::hasArgument("fmod-live-update");
 
@@ -760,6 +760,7 @@ namespace worlds
                 std::unique_lock lock{simThread->commitMutex};
                 needsSimCommit = true; 
                 this->sourcesToAdd.push(as.phononSource);
+                return;
             }
 
             IPLSimulationInputs inputs{};
@@ -885,6 +886,8 @@ namespace worlds
             }
         }
 
+        FMCHECK(studioSystem->update());
+
         {
             std::unique_lock lock{simThread->commitMutex};
             attachedOneshots.erase(std::remove_if(attachedOneshots.begin(), attachedOneshots.end(),
@@ -904,8 +907,6 @@ namespace worlds
                 }),
                 attachedOneshots.end());
         }
-
-        FMCHECK(studioSystem->update());
 
         if (a_showDebugInfo.getInt())
         {
