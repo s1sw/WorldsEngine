@@ -461,7 +461,7 @@ namespace ImGuiNET
         [DllImport(WorldsEngine.Engine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igPlotHistogramFloatPtr(byte* label, float* values, int values_count, int values_offset, byte* overlay_text, float scale_min, float scale_max, Vector2 graph_size, int stride);
         [DllImport(WorldsEngine.Engine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void igPlotLinesFloatPtr(byte* label, float* values, int values_count, int values_offset, byte* overlay_text, float scale_min, float scale_max, Vector2 graph_size, int stride);
+        public static extern void igPlotLines_FloatPtr(byte* label, float* values, int values_count, int values_offset, byte* overlay_text, float scale_min, float scale_max, Vector2 graph_size, int stride);
         [DllImport(WorldsEngine.Engine.NativeModule, CallingConvention = CallingConvention.Cdecl)]
         public static extern void igPopAllowKeyboardFocus();
         [DllImport(WorldsEngine.Engine.NativeModule, CallingConvention = CallingConvention.Cdecl)]

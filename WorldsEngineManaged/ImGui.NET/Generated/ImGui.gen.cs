@@ -9716,7 +9716,7 @@ namespace ImGuiNET
             int stride = sizeof(float);
             fixed (float* native_values = &values)
             {
-                ImGuiNative.igPlotLinesFloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
+                ImGuiNative.igPlotLines_FloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
                 if (label_byteCount > Util.StackAllocationSizeLimit)
                 {
                     Util.Free(native_label);
@@ -9750,7 +9750,7 @@ namespace ImGuiNET
             int stride = sizeof(float);
             fixed (float* native_values = &values)
             {
-                ImGuiNative.igPlotLinesFloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
+                ImGuiNative.igPlotLines_FloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
                 if (label_byteCount > Util.StackAllocationSizeLimit)
                 {
                     Util.Free(native_label);
@@ -9801,7 +9801,7 @@ namespace ImGuiNET
             int stride = sizeof(float);
             fixed (float* native_values = &values)
             {
-                ImGuiNative.igPlotLinesFloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
+                ImGuiNative.igPlotLines_FloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
                 if (label_byteCount > Util.StackAllocationSizeLimit)
                 {
                     Util.Free(native_label);
@@ -9855,7 +9855,7 @@ namespace ImGuiNET
             int stride = sizeof(float);
             fixed (float* native_values = &values)
             {
-                ImGuiNative.igPlotLinesFloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
+                ImGuiNative.igPlotLines_FloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
                 if (label_byteCount > Util.StackAllocationSizeLimit)
                 {
                     Util.Free(native_label);
@@ -9908,7 +9908,7 @@ namespace ImGuiNET
             int stride = sizeof(float);
             fixed (float* native_values = &values)
             {
-                ImGuiNative.igPlotLinesFloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
+                ImGuiNative.igPlotLines_FloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
                 if (label_byteCount > Util.StackAllocationSizeLimit)
                 {
                     Util.Free(native_label);
@@ -9960,7 +9960,7 @@ namespace ImGuiNET
             int stride = sizeof(float);
             fixed (float* native_values = &values)
             {
-                ImGuiNative.igPlotLinesFloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
+                ImGuiNative.igPlotLines_FloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
                 if (label_byteCount > Util.StackAllocationSizeLimit)
                 {
                     Util.Free(native_label);
@@ -10011,7 +10011,7 @@ namespace ImGuiNET
             else { native_overlay_text = null; }
             fixed (float* native_values = &values)
             {
-                ImGuiNative.igPlotLinesFloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
+                ImGuiNative.igPlotLines_FloatPtr(native_label, native_values, values_count, values_offset, native_overlay_text, scale_min, scale_max, graph_size, stride);
                 if (label_byteCount > Util.StackAllocationSizeLimit)
                 {
                     Util.Free(native_label);
