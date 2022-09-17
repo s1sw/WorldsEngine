@@ -41,6 +41,7 @@ namespace WorldsEngine
         public float BounceThreshold;
         public float Stiffness;
         public float Damping;
+
         public float ContactDistance;
         public float Value;
 
@@ -62,6 +63,7 @@ namespace WorldsEngine
         public float Stiffness;
         public float Damping;
         public float ContactDistance;
+
         public float UpperLimit;
         public float LowerLimit;
 
@@ -75,6 +77,55 @@ namespace WorldsEngine
             LowerLimit = lowerLimit;
             UpperLimit = upperLimit;
         }
+    }
+
+    public struct JointAngularLimitPair
+    {
+        public float Restitution;
+        public float BounceThreshold;
+        public float Stiffness;
+        public float Damping;
+        public float ContactDistance;
+
+        public float UpperLimit;
+        public float LowerLimit;
+
+        public JointAngularLimitPair(float lowerLimit, float upperLimit)
+        {
+            Restitution = 0.0f;
+            BounceThreshold = 0.0f;
+            Stiffness = 0.0f;
+            Damping = 0.0f;
+            ContactDistance = 0.01f;
+            LowerLimit = lowerLimit;
+            UpperLimit = upperLimit;
+        }
+    }
+
+    public struct JointLimitPyramid
+    {
+        public float Restitution;
+        public float BounceThreshold;
+        public float Stiffness;
+        public float Damping;
+        public float ContactDistance;
+
+        public float YAngleMin;
+        public float YAngleMax;
+        public float ZAngleMin;
+        public float ZAngleMax;
+    }
+
+    public struct JointLimitCone
+    {
+        public float Restitution;
+        public float BounceThreshold;
+        public float Stiffness;
+        public float Damping;
+        public float ContactDistance;
+
+        public float YAngle;
+        public float ZAngle;
     }
 
     [Flags]
@@ -118,6 +169,15 @@ namespace WorldsEngine
 
         [DllImport(Engine.NativeModule)]
         private static extern void d6joint_setLinearLimit(IntPtr regPtr, uint d6ent, D6Axis axis, ref JointLinearLimitPair limit);
+
+        [DllImport(Engine.NativeModule)]
+        private static extern void d6joint_setTwistLimit(IntPtr regPtr, uint d6ent, ref JointAngularLimitPair limit);
+
+        [DllImport(Engine.NativeModule)]
+        private static extern void d6joint_setPyramidSwingLimit(IntPtr regPtr, uint d6ent, ref JointLimitPyramid limit);
+
+        [DllImport(Engine.NativeModule)]
+        private static extern void d6joint_setSwingLimit(IntPtr regPtr, uint d6ent, ref JointLimitCone limit);
 
         [DllImport(Engine.NativeModule)]
         private static extern void d6joint_setDrive(IntPtr regPtr, uint d6ent, D6Drive drive, ref D6JointDrive jointDrive);
@@ -231,6 +291,21 @@ namespace WorldsEngine
         public void SetLinearLimit(D6Axis axis, JointLinearLimitPair limit)
         {
             d6joint_setLinearLimit(regPtr, entityId, axis, ref limit);
+        }
+
+        public void SetTwistLimit(JointAngularLimitPair limit)
+        {
+            d6joint_setTwistLimit(regPtr, entityId, ref limit);
+        }
+
+        public void SetPyramidSwingLimit(JointLimitPyramid limit)
+        {
+            d6joint_setPyramidSwingLimit(regPtr, entityId, ref limit);
+        }
+
+        public void SetSwingLimit(JointLimitCone limit)
+        {
+            d6joint_setSwingLimit(regPtr, entityId, ref limit);
         }
 
         public void SetDrive(D6Drive axis, D6JointDrive drive)

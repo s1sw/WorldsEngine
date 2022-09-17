@@ -143,6 +143,21 @@ extern "C"
         reg->get<D6Joint>(entity).pxJoint->setLinearLimit(axis, *limit);
     }
 
+    EXPORT void d6joint_setTwistLimit(entt::registry* reg, entt::entity entity, physx::PxJointAngularLimitPair& limit)
+    {
+        reg->get<D6Joint>(entity).pxJoint->setTwistLimit(limit);
+    }
+
+    EXPORT void d6joint_setPyramidSwingLimit(entt::registry* reg, entt::entity entity, physx::PxJointLimitPyramid& limit)
+    {
+        reg->get<D6Joint>(entity).pxJoint->setPyramidSwingLimit(limit);
+    }
+
+    EXPORT void d6joint_setSwingLimit(entt::registry* reg, entt::entity entity, physx::PxJointLimitCone& limit)
+    {
+        reg->get<D6Joint>(entity).pxJoint->setSwingLimit(limit);
+    }
+
     EXPORT void d6joint_setDrive(entt::registry* reg, entt::entity entity, physx::PxD6Drive::Enum axis,
                                  physx::PxD6JointDrive* drive)
     {
