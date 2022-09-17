@@ -123,6 +123,15 @@ namespace WorldsEngine.Math
             return (this / Length) * MathF.Min(MathF.Max(-maxMagnitude, Length), maxMagnitude);
         }
 
+        public Vector3 ClampComponents(float maxMagnitude)
+        {
+            return new Vector3(
+                MathFX.Clamp(x, -maxMagnitude, maxMagnitude),
+                MathFX.Clamp(y, -maxMagnitude, maxMagnitude),
+                MathFX.Clamp(z, -maxMagnitude, maxMagnitude)
+            );
+        }
+
         public void Normalize()
         {
             float len = Length;
