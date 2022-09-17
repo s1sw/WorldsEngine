@@ -49,6 +49,7 @@ struct PBRMaterial
     float DefaultRoughness;
     float DefaultMetallic;
     float3 EmissiveColor;
+    uint Flags;
 
     float3 GetNormal(float2 uv, float3x3 tbn)
     {
@@ -474,6 +475,11 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position, uint v
 
     float3 lo = ComputeIncomingLight(shadeInfo, fragCoord, input.WorldPosition.xyz, viewIndex);
     float3 ambient = ComputeAmbient(shadeInfo, fragCoord, input.WorldPosition.xyz, viewIndex);
+
+    if ((material.Flags & 1) == 1)
+    {
+        material.EmissiveColor *= shadeInfo.albedoColor;
+    }
 
     return float4(ambient * shadeInfo.ao + lo + material.EmissiveColor, 1.0);
     //return float4(GetHeatmapColor(GetLightTileCount(fragCoord), fragCoord), 1.0);

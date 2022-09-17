@@ -35,6 +35,7 @@ namespace worlds
         float defaultRoughness;
         float defaultMetallic;
         glm::vec3 emissiveColor;
+        uint32_t flags;
     };
 
     bool RenderMaterialManager::IsInitialized()
@@ -114,6 +115,11 @@ namespace worlds
             material.emissiveColor = j["emissiveColor"].get<glm::vec3>();
         else
             material.emissiveColor = glm::vec3(0.0f);
+
+        if (j.value("multiplyEmissiveByAlbedo", false))
+        {
+            material.flags = 1;
+        }
 
         renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), mai.offset);
         allocedMaterials[id] = mai;
