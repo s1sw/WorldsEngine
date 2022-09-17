@@ -27,6 +27,11 @@ namespace worlds
 
     void CubemapConvoluter::Convolute(R2::VK::CommandBuffer cb, R2::VK::Texture* tex)
     {
+        if (tex->GetFormat() != VK::TextureFormat::R32G32B32A32_SFLOAT && tex->GetFormat() != VK::TextureFormat::R8G8B8A8_SRGB)
+        {
+            return;
+        }
+
         tex->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderRead | VK::AccessFlags::ShaderWrite, VK::PipelineStageFlags::ComputeShader);
 
         bool isSRGB = tex->GetFormat() == VK::TextureFormat::R8G8B8A8_SRGB;
