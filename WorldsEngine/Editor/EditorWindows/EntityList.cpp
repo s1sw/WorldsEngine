@@ -98,7 +98,22 @@ namespace worlds
             }
 
             bool openEntityContextMenu = false;
+            bool navDown = false;
+            bool navUp = false;
 
+            if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
+            {
+                navDown = ImGui::IsKeyPressed(SDL_SCANCODE_DOWN);
+                navUp = ImGui::IsKeyPressed(SDL_SCANCODE_UP);
+            }
+            else
+            {
+                navDown = false;
+                navUp = false;
+            }
+
+            bool selectNext = false;
+            entt::entity lastEntity = entt::null;
             std::function<void(entt::entity)> forEachEnt = [&](entt::entity ent) {
                 ImGui::PushID((int)ent);
                 auto nc = reg.try_get<NameComponent>(ent);
@@ -109,13 +124,34 @@ namespace worlds
                 float windowWidth = ImGui::GetWindowWidth();
                 ImVec2 windowPos = ImGui::GetWindowPos();
 
+                if (selectNext)
+                {
+                    editor->select(ent);
+                    selectNext = false;
+                }
+
                 if (editor->isEntitySelected(ent))
                 {
                     drawList->AddRectFilled(
                         ImVec2(0.0f + windowPos.x, cursorPos.y + windowPos.y - ImGui::GetScrollY()),
                         ImVec2(windowWidth + windowPos.x, cursorPos.y + lineHeight + windowPos.y - ImGui::GetScrollY()),
                         ImColor(0, 75, 150));
+                    
+                    if (navDown)
+                    {
+                        selectNext = true;
+                        navDown = false;
+                    }
+
+                    if (navUp)
+                    {
+                        if (lastEntity != entt::null)
+                            editor->select(lastEntity);
+                        navUp = false;
+                    }
                 }
+
+                lastEntity = ent;
 
                 if (currentlyRenaming != ent)
                 {
