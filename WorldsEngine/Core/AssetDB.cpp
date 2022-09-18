@@ -174,8 +174,14 @@ namespace worlds
         }
     }
 
-    void AssetDB::registerAssetChangeCallback(std::function<void(AssetID)> callback)
+    int AssetDB::registerAssetChangeCallback(std::function<void(AssetID)> callback)
     {
         storage.changeCallbacks.emplace_back(callback);
+        return (int)storage.changeCallbacks.size();
+    }
+
+    void AssetDB::unregisterAssetChangeCallback(int idx)
+    {
+        storage.changeCallbacks[idx] = [](AssetID){};
     }
 }

@@ -25,7 +25,8 @@ namespace worlds
         static bool exists(AssetID id);
 
         static void notifyAssetChange(AssetID id);
-        static void registerAssetChangeCallback(std::function<void(AssetID)> callback);
+        static int registerAssetChangeCallback(std::function<void(AssetID)> callback);
+        static void unregisterAssetChangeCallback(int id);
 
     private:
         static AssetID addAsset(std::string_view path);
