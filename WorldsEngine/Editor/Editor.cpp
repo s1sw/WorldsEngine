@@ -1317,7 +1317,14 @@ namespace worlds
         EditorActions::reenable();
 
         if (project)
+        {
+            if (project->assets().recompileFlag)
+            {
+                project->assetCompiler().startCompiling();
+                project->assets().recompileFlag = false;
+            }
             project->assetCompiler().updateCompilation();
+        }
 
         entityEyedropperActive = false;
         handleOverrideEntity = entt::null;

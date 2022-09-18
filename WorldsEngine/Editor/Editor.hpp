@@ -13,6 +13,7 @@
 #include <memory>
 #include <slib/List.hpp>
 #include <string>
+#include <thread>
 
 namespace worlds
 {
@@ -97,17 +98,22 @@ namespace worlds
 
     class ProjectAssets
     {
-      public:
+    public:
         ProjectAssets(const GameProject& project);
+        ~ProjectAssets();
+        void startWatcherThread();
         std::vector<AssetFile> assetFiles;
         void checkForAssetChanges();
         void checkForAssetChange(AssetFile& file);
         void enumerateAssets();
         slib::List<AssetID> searchForAssets(slib::String pattern);
+        bool recompileFlag = false;
 
-      private:
+    private:
         void enumerateForAssets(const char* path);
+        volatile bool threadActive;
         const GameProject& project;
+        std::thread watcherThread;
     };
 
     class GameProject

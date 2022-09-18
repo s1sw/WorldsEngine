@@ -9,8 +9,33 @@
 
 namespace worlds
 {
-    ProjectAssets::ProjectAssets(const GameProject& project) : project(project)
+    ProjectAssets::ProjectAssets(const GameProject& project) : project(project), threadActive(true)
     {
+        startWatcherThread();
+    }
+
+    ProjectAssets::~ProjectAssets()
+    {
+        threadActive = false;
+        watcherThread.join();
+    }
+
+    void ProjectAssets::startWatcherThread()
+    {
+        enumerateAssets();
+        watcherThread = std::thread([&]{
+            while (threadActive)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(750));
+                size_t lastAssetsSize = assetFiles.size();
+
+                for (AssetFile& af : assetFiles)
+                {
+                    checkForAssetChange(af);
+                    if (lastAssetsSize != assetFiles.size()) break;
+                }
+            }
+        });
     }
 
     void ProjectAssets::checkForAssetChanges()
@@ -23,20 +48,8 @@ namespace worlds
 
     void ProjectAssets::checkForAssetChange(AssetFile& file)
     {
-        if (!PHYSFS_exists(file.compiledPath.c_str()))
-        {
-            file.needsCompile = true;
-            return;
-        }
-
         if (!file.isCompiled)
             return;
-
-        PHYSFS_Stat compiledStat;
-        PHYSFS_stat(file.compiledPath.c_str(), &compiledStat);
-
-        if (compiledStat.modtime < file.lastModified)
-            file.needsCompile = true;
 
         IAssetCompiler* compiler = AssetCompilers::getCompilerFor(file.sourceAssetId);
         std::vector<std::string> dependencies;
@@ -48,14 +61,36 @@ namespace worlds
             if (!PHYSFS_exists(dependency.c_str()))
             {
                 file.dependenciesExist = false;
-                continue;
+                return;
             }
+        }
 
+        if (!PHYSFS_exists(file.compiledPath.c_str()))
+        {
+            file.needsCompile = true;
+            recompileFlag = true;
+            return;
+        }
+
+        PHYSFS_Stat compiledStat;
+        PHYSFS_stat(file.compiledPath.c_str(), &compiledStat);
+
+        if (compiledStat.modtime < file.lastModified)
+        {
+            file.needsCompile = true;
+            recompileFlag = true;
+        }
+
+        for (auto& dependency : dependencies)
+        {
             PHYSFS_Stat dependencyStat;
             PHYSFS_stat(dependency.c_str(), &dependencyStat);
 
             if (dependencyStat.modtime > compiledStat.modtime)
+            {
                 file.needsCompile = true;
+                recompileFlag = true;
+            }
         }
     }
 
