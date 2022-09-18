@@ -214,6 +214,23 @@ namespace R2::VK
         );
     }
 
+    void CommandBuffer::TextureCopyToBuffer(Texture* source, Buffer* destination)
+    {
+        source->Acquire(cb, ImageLayout::TransferSrcOptimal, AccessFlags::TransferRead, PipelineStageFlags::Transfer);
+        VkBufferImageCopy bic{};
+        bic.imageSubresource.layerCount = 1;
+        bic.imageSubresource.aspectMask = source->getAspectFlags();
+        bic.imageExtent = VkExtent3D { (uint32_t)source->GetWidth(), (uint32_t)source->GetHeight(), 1 };
+
+        vkCmdCopyImageToBuffer(
+            cb,
+            source->GetNativeHandle(),
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            destination->GetNativeHandle(),
+            1, &bic
+        );
+    }
+
     VkCommandBuffer CommandBuffer::GetNativeHandle()
     {
         return cb;

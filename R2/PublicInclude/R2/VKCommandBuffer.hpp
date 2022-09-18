@@ -134,6 +134,7 @@ namespace R2::VK
         void TextureBarrier(Texture* tex, PipelineStageFlags srcStage, PipelineStageFlags dstStage, AccessFlags srcAccess, AccessFlags dstAccess);
         void TextureBlit(Texture* source, Texture* destination, TextureBlit blitInfo);
         void TextureCopy(Texture* source, Texture* destination, TextureCopy copyInfo);
+        void TextureCopyToBuffer(Texture* source, Buffer* destination);
 
         VkCommandBuffer GetNativeHandle();
     private:

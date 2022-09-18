@@ -165,6 +165,12 @@ namespace worlds
                 VK::AccessFlags::ShaderRead,
                 VK::PipelineStageFlags::FragmentShader);
 
+            if (pass->hdrDataRequested)
+            {
+                pass->hdrDataRequested = false;
+                pass->downloadHDROutput(cb);
+            }
+
             if (pass->settings.outputToXR)
             {
                 xrPresentManager->copyFromLayered(cb, pass->getFinalTarget());

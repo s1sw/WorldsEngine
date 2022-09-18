@@ -78,5 +78,6 @@ namespace worlds
         void onResize(int width, int height) override;
         void draw(entt::registry& reg, R2::VK::CommandBuffer& cb) override;
         void setView(int viewIndex, glm::mat4 viewMatrix, glm::mat4 projectionMatrix);
+        R2::VK::Texture* getHDRTexture() override;
     };
 }

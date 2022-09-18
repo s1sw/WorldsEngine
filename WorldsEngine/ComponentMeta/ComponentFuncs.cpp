@@ -1621,7 +1621,9 @@ namespace worlds
         {
             auto& wc = reg.emplace<WorldCubemap>(ent);
 
-            wc.cubemapId = AssetDB::pathToId("envmap_miramar/miramar.json");
+            wc.cubemapId = AssetDB::pathToId(
+                "LevelData/Cubemaps/" + reg.ctx<SceneInfo>().name + "/" + reg.get<NameComponent>(ent).name + ".json"
+            );
             wc.extent = glm::vec3{1.0f};
         }
 

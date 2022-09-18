@@ -144,7 +144,8 @@ namespace worlds
         virtual void setView(int viewIndex, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) = 0;
 
         //! Get a float array of the HDR pass result.
-        virtual float* getHDRData() = 0;
+        virtual void requestHDRData() = 0;
+        virtual bool getHDRData(float*& out) = 0;
         virtual void resize(int newWidth, int newHeight) = 0;
         virtual ImTextureID getUITextureID() = 0;
 

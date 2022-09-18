@@ -23,6 +23,7 @@
 #include <entt/entity/registry.hpp>
 #include <Util/AABB.hpp>
 #include <Util/AtomicBufferWrapper.hpp>
+#include <Util/EnumUtil.hpp>
 #include <Util/JsonUtil.hpp>
 #include <Tracy.hpp>
 
@@ -66,6 +67,7 @@ namespace worlds
     };
 
     robin_hood::unordered_flat_map<AssetID, int> materialRefCount;
+    robin_hood::unordered_set<AssetID> allCubemaps;
     std::deque<AssetID> convoluteQueue;
 
     const VK::TextureFormat colorBufferFormat = VK::TextureFormat::B10G11R11_UFLOAT_PACK32;
@@ -313,10 +315,10 @@ namespace worlds
             for (auto it = begin; it != end; it++)
             {
                 WorldCubemap& wc = registry.get<WorldCubemap>(*it);
-                if (!wc.isLoaded)
+                if (wc.loadedId != wc.cubemapId)
                 {
                     lightUB->cubemaps[wc.renderIdx].texture = textureManager->loadAndGet(wc.cubemapId);
-                    wc.isLoaded = true;
+                    wc.loadedId = wc.cubemapId;
                 }
                 else
                 {
@@ -400,6 +402,7 @@ namespace worlds
             if (!textureManager->isLoaded(skybox))
             {
                 convoluteQueue.push_back(skybox);
+                allCubemaps.insert(skybox);
                 textureManager->loadAndGet(skybox);
             }
 
@@ -414,6 +417,7 @@ namespace worlds
                 if (!textureManager->isLoaded(wc.cubemapId))
                 {
                     convoluteQueue.push_back(wc.cubemapId);
+                    allCubemaps.insert(wc.cubemapId);
                 }
                 lightUB->cubemaps[cubemapIdx] = gc;
                 wc.renderIdx = cubemapIdx;
@@ -517,6 +521,7 @@ namespace worlds
         GPUDrawInfo* gpuDrawInfos;
         VK::DrawIndexedIndirectCommand* drawCmds;
         std::atomic<uint32_t> drawIdCounter = 0;
+        bool onlyStatics = false;
 
         FillDrawBufferTask(VKRenderer* renderer, entt::registry& reg) : renderer(renderer), reg(reg)
         {
@@ -534,6 +539,10 @@ namespace worlds
             for (auto it = begin; it != end; it++)
             {
                 WorldObject& wo = reg.get<WorldObject>(*it);
+
+                if (onlyStatics && !enumHasFlag(wo.staticFlags, StaticFlags::Rendering))
+                    continue;
+
                 const Transform& t = reg.get<Transform>(*it);
                 const RenderMeshInfo& rmi = renderer->getMeshManager()->loadOrGet(wo.mesh);
 
@@ -620,6 +629,7 @@ namespace worlds
         GPUDrawInfo* gpuDrawInfos;
         VK::DrawIndexedIndirectCommand* drawCmds;
         std::atomic<uint32_t>& drawIdCounter;
+        bool onlyStatics = false;
 
         FillDrawBufferSkinnedTask(VKRenderer* renderer, entt::registry& reg, std::atomic<uint32_t>& drawIdCounter)
             : renderer(renderer), reg(reg), drawIdCounter(drawIdCounter)
@@ -638,6 +648,10 @@ namespace worlds
             for (auto it = begin; it != end; it++)
             {
                 SkinnedWorldObject& wo = reg.get<SkinnedWorldObject>(*it);
+
+                if (onlyStatics && !enumHasFlag(wo.staticFlags, StaticFlags::Rendering))
+                    continue;
+
                 const Transform& t = reg.get<Transform>(*it);
                 const RenderMeshInfo& rmi = renderer->getMeshManager()->loadOrGet(wo.mesh);
 
@@ -800,6 +814,7 @@ namespace worlds
         fdbTask.modelMatrices = &matrixWrapper;
         fdbTask.gpuDrawInfos = drawInfosMapped;
         fdbTask.drawCmds = drawCmdsMapped;
+        fdbTask.onlyStatics = rttPass->getSettings().staticsOnly;
 
         fdbTask.m_SetSize = reg.view<WorldObject>().size();
 
@@ -809,6 +824,7 @@ namespace worlds
         fdbsTask.modelMatrices = &matrixWrapper;
         fdbsTask.gpuDrawInfos = drawInfosMapped;
         fdbsTask.drawCmds = drawCmdsMapped;
+        fdbsTask.onlyStatics = rttPass->getSettings().staticsOnly;
 
         fdbsTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
 
@@ -900,5 +916,10 @@ namespace worlds
     {
         overrideViews[viewIndex] = viewMatrix;
         overrideProjs[viewIndex] = projectionMatrix;
+    }
+
+    VK::Texture* StandardPipeline::getHDRTexture()
+    {
+        return colorBuffer.Get();
     }
 }

@@ -127,7 +127,7 @@ namespace worlds
         glm::vec3 captureOffset{0.0f};
         AssetID cubemapId = ~0u;
         uint32_t renderIdx = 0u;
-        bool isLoaded = false;
+        AssetID loadedId = ~0u;
     };
 
     struct ProxyAOComponent

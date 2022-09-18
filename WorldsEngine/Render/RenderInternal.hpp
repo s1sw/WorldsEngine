@@ -244,11 +244,17 @@ namespace worlds
         Camera* cam;
         IRenderPipeline* pipeline;
         RTTPassSettings settings;
+        bool hdrDataRequested = false;
+        bool hdrDataReady = false;
+        R2::VK::Buffer* hdrDataBuffer;
+
+        void downloadHDROutput(R2::VK::CommandBuffer& cb);
 
     public:
         void setView(int viewIndex, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) override;
 
-        float* getHDRData() override;
+        void requestHDRData() override;
+        bool getHDRData(float*& out) override;
         void resize(int newWidth, int newHeight) override;
         ImTextureID getUITextureID() override;
         const RTTPassSettings& getSettings();

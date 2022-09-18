@@ -16,6 +16,7 @@
 #include <Recast.h>
 #include <filesystem>
 #include <stb_image_write.h>
+#include <deque>
 
 namespace worlds
 {
@@ -24,189 +25,160 @@ namespace worlds
         PHYSFS_writeBytes((PHYSFS_File*)ctx, data, bytes);
     }
 
-    // void bakeCubemap(Editor* ed, glm::vec3 pos, worlds::VKRenderer* renderer,
-    //    std::string name, entt::registry& world, int resolution, int iterations = 1) {
-    //    // create RTT pass
-    //    RTTPassSettings rtci;
-    //    Camera cam;
-    //    rtci.cam = &cam;
-    //    rtci.enableShadows = true;
-    //    rtci.width = resolution;
-    //    rtci.height = resolution;
-    //    rtci.isVr = false;
-    //    rtci.outputToScreen = false;
-    //    rtci.useForPicking = false;
-    //    rtci.msaaLevel = 1;
-    //    rtci.renderDebugShapes = false;
-    //    rtci.staticsOnly = true;
-    //    cam.verticalFOV = glm::radians(90.0f);
-    //    cam.position = pos;
+    class CubemapBaker
+    {
+        struct CubemapBakeOp
+        {
+            std::string name;
+            glm::vec3 pos;
+            int faceIdx = 0;
+            bool waitingForResult = false;
 
-    //    VKRTTPass* rttPass = renderer->createRTTPass(rtci);
+            std::vector<std::string> outputPaths;
+        };
 
-    //    const glm::vec3 directions[6] = {
-    //        glm::vec3(1.0f, 0.0f, 0.0f),
-    //        glm::vec3(-1.0f, 0.0f, 0.0f),
-    //        glm::vec3(0.0f, -1.0f, 0.0f),
-    //        glm::vec3(0.0f, 1.0f, 0.0f),
-    //        glm::vec3(0.0f, 0.0f, -1.0f),
-    //        glm::vec3(0.0f, 0.0f, 1.0f)
-    //    };
+        std::deque<CubemapBakeOp> cubemapBakeOps;
 
-    //    const glm::vec3 upDirs[6] = {
-    //        glm::vec3(0.0f, 1.0f, 0.0f),
-    //        glm::vec3(0.0f, 1.0f, 0.0f),
-    //        glm::vec3(0.0f, 0.0f, -1.0f),
-    //        glm::vec3(0.0f, 0.0f, 1.0f),
-    //        glm::vec3(0.0f, 1.0f, 0.0f),
-    //        glm::vec3(0.0f, 1.0f, 0.0f)
-    //    };
+        const std::string outputNames[6] = {
+            "px",
+            "nx",
+            "py",
+            "ny",
+            "pz",
+            "nz"
+        };
 
-    //    const std::string outputNames[6] = {
-    //        "px",
-    //        "nx",
-    //        "py",
-    //        "ny",
-    //        "pz",
-    //        "nz"
-    //    };
+        const glm::vec3 directions[6] = {
+            glm::vec3(1.0f, 0.0f, 0.0f),
+            glm::vec3(-1.0f, 0.0f, 0.0f),
+            glm::vec3(0.0f, -1.0f, 0.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f),
+            glm::vec3(0.0f, 0.0f, -1.0f),
+            glm::vec3(0.0f, 0.0f, 1.0f)
+        };
 
-    //    std::vector<std::string> outputPaths;
-    //    logMsg("baking cubemap %s", name.c_str());
+        const glm::vec3 upDirs[6] = {
+            glm::vec3(0.0f, 1.0f, 0.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f),
+            glm::vec3(0.0f, 0.0f, -1.0f),
+            glm::vec3(0.0f, 0.0f, 1.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f)
+        };
+    public:
+        RTTPass* rttPass;
+        Camera cam;
+        Renderer* renderer;
+        entt::registry& world;
 
-    //    std::string levelCubemapPath = "LevelData/Cubemaps/" + world.ctx<SceneInfo>().name + "/";
-    //    auto jsonPath = levelCubemapPath + name + ".json";
-    //    std::filesystem::create_directories(std::string(ed->currentProject().builtData()) + "/" + levelCubemapPath);
-    //    AssetID cubemapId = AssetDB::pathToId(jsonPath);
-    //    auto resources = renderer->getResources();
+        CubemapBaker(Renderer* renderer, entt::registry& world)
+            : renderer(renderer)
+            , world(world)
+        {
+            // create RTT pass
+            RTTPassSettings rtci;
+            rtci.cam = &cam;
+            rtci.enableShadows = true;
+            rtci.width = 128;
+            rtci.height = 128;
+            rtci.useForPicking = false;
+            rtci.msaaLevel = 1;
+            rtci.renderDebugShapes = false;
+            rtci.staticsOnly = true;
+            cam.verticalFOV = glm::radians(90.0f);
 
-    //    uint32_t missingSlot = resources.cubemaps.get(AssetDB::pathToId("Cubemaps/missing.json"));
-    //    uint32_t cubemapSlot = resources.cubemaps.get(cubemapId);
-    //    bool isMissing = cubemapSlot != missingSlot;
-    //    bool isCubemapLoaded = resources.cubemaps.isLoaded(cubemapId) && !isMissing;
+            rttPass = renderer->createRTTPass(rtci);
+        }
 
-    //    VulkanHandles* vkHandles = renderer->getHandles();
-    //    VkQueue queue;
-    //    vkGetDeviceQueue(vkHandles->device, vkHandles->graphicsQueueFamilyIdx, 0, &queue);
+        void addToQueue(std::string name, glm::vec3 pos)
+        {
+            cubemapBakeOps.emplace_back(name, pos);
+        }
 
-    //    if (isCubemapLoaded) {
-    //        auto idx = resources.cubemaps.get(cubemapId);
-    //        vku::TextureImageCube& loadedCube = resources.cubemaps[idx];
+        void update()
+        {
+            if (cubemapBakeOps.empty())
+            {
+                rttPass->active = false;
+                return;
+            }
 
-    //        vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](VkCommandBuffer cmdBuf) {
-    //            loadedCube.setLayout(cmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT,
-    //                VK_PIPELINE_STAGE_TRANSFER_BIT);
-    //            });
-    //    }
+            rttPass->active = true;
 
-    //    renderer->startRdocCapture();
-    //    for (int iteration = 0; iteration < iterations; iteration++) {
-    //        // for every face:
-    //        // 1. setup camera
-    //        // 2. run RTT pass
-    //        // 3. get HDR data
-    //        // 4. save to file
-    //        for (int i = 0; i < 6; i++) {
-    //            logMsg("baking face %i...", i);
-    //            cam.rotation = glm::quatLookAt(directions[i], upDirs[i]);
-    //            rttPass->drawNow(world);
+            CubemapBakeOp& currentOp = cubemapBakeOps.front();
 
-    //            if (isCubemapLoaded) {
-    //                // If the cubemap's loaded, we want to blit the image directly to the in-memory cubemap
-    //                // so we don't have to load it off the disk again.
-    //                auto idx = resources.cubemaps.get(cubemapId);
-    //                vku::TextureImageCube& loadedCube = resources.cubemaps[idx];
+            if (currentOp.waitingForResult)
+            {
+                float* data;
+                if (rttPass->getHDRData(data))
+                {
+                    std::string levelCubemapPath = "LevelData/Cubemaps/" + world.ctx<SceneInfo>().name + "/";
+                    auto outPath = levelCubemapPath + currentOp.name + outputNames[currentOp.faceIdx] + ".hdr";
+                    PHYSFS_File* fHandle = PHYSFS_openWrite(("Data/" + outPath).c_str());
+                    if (fHandle == nullptr) {
+                        logErr("Failed to open cubemap file as write");
+                        addNotification("Failed to bake cubemap (couldn't open file)", NotificationType::Error);
+                        free(data);
+                        return;
+                    }
 
-    //                VkImageBlit ib;
-    //                ib.dstSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)i, 1 };
-    //                ib.dstOffsets[0] = VkOffset3D{ 0, 0, 0 };
-    //                ib.dstOffsets[1] = VkOffset3D{ (int)loadedCube.extent().width, (int)loadedCube.extent().height, 1
-    //                }; ib.srcSubresource = VkImageSubresourceLayers{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-    //                ib.srcOffsets[0] = VkOffset3D{ 0, 0, 0 };
-    //                ib.srcOffsets[1] = VkOffset3D{ (int)rttPass->width, (int)rttPass->height, 1 };
+                    int retVal = stbi_write_hdr_to_func(
+                        stbiWriteFunc,
+                        (void*)fHandle,
+                        rttPass->width, rttPass->height, 4, data);
 
-    //                vku::executeImmediately(vkHandles->device, vkHandles->commandPool, queue, [&](VkCommandBuffer cb)
-    //                {
-    //                    vku::GenericImage& srcImg = rttPass->hdrTarget->image();
+                    if (retVal == 0) {
+                        logErr(("Failed to write cubemap " + outPath).c_str());
+                        addNotification("Failed to bake cubemap (couldn't encode)", NotificationType::Error);
+                    }
 
-    //                    loadedCube.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    //                        VK_PIPELINE_STAGE_TRANSFER_BIT,
-    //                        VK_ACCESS_TRANSFER_WRITE_BIT);
+                    PHYSFS_close(fHandle);
 
-    //                    srcImg.setLayout(cb, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-    //                        VK_PIPELINE_STAGE_TRANSFER_BIT,
-    //                        VK_ACCESS_TRANSFER_READ_BIT);
+                    currentOp.outputPaths.push_back(outPath);
+                    free(data);
+                    currentOp.waitingForResult = false;
 
-    //                    vkCmdBlitImage(cb, srcImg.image(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, loadedCube.image(),
-    //                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &ib, VK_FILTER_LINEAR);
+                    if (currentOp.faceIdx == 5)
+                    {
+                        // we're done baking!!
+                        auto jsonPath = levelCubemapPath + currentOp.name + ".json";
+                        auto file = PHYSFS_openWrite(("Data/" + jsonPath).c_str());
 
-    //                    srcImg.setLayout(cb,
-    //                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-    //                        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-    //                    loadedCube.setLayout(cb, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-    //                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-    //                        VK_ACCESS_SHADER_READ_BIT);
-    //                    });
-    //            }
+                        std::string j = "[\n";
+                        for (int i = 0; i < 6; i++) {
+                            j += "    \"" + currentOp.outputPaths[i] + "\"";
+                            if (i != 5) j += ",";
+                            j += "\n";
+                        }
+                        j += "]";
 
-    //            // Don't save unless this is the final iteration
-    //            if (iteration == iterations - 1) {
-    //                float* data = rttPass->getHDRData();
-    //                auto outPath = levelCubemapPath + name + outputNames[i] + ".hdr";
-    //                PHYSFS_File* fHandle = PHYSFS_openWrite(("Data/" + outPath).c_str());
-    //                if (fHandle == nullptr) {
-    //                    logErr("Failed to open cubemap file as write");
-    //                    addNotification("Failed to bake cubemap (couldn't open file)", NotificationType::Error);
-    //                    free(data);
-    //                    renderer->destroyRTTPass(rttPass);
-    //                    return;
-    //                }
+                        PHYSFS_writeBytes(file, j.c_str(), j.size());
+                        PHYSFS_close(file);
 
-    //                int retVal = stbi_write_hdr_to_func(
-    //                    stbiWriteFunc,
-    //                    (void*)fHandle,
-    //                    rtci.width, rtci.height, 4, data);
+                        AssetDB::notifyAssetChange(AssetDB::pathToId(jsonPath));
+                        
+                        cubemapBakeOps.pop_front();
+                    }
+                    else
+                    {
+                        currentOp.faceIdx++;
+                    }
+                }
+            }
+            else
+            {
+               cam.position = currentOp.pos;
+               cam.rotation = glm::quatLookAt(directions[currentOp.faceIdx], upDirs[currentOp.faceIdx]);
+               rttPass->requestHDRData();
+               currentOp.waitingForResult = true;
+            }
+        }
 
-    //                if (retVal == 0) {
-    //                    logErr(("Failed to write cubemap " + outPath).c_str());
-    //                    addNotification("Failed to bake cubemap (couldn't encode)", NotificationType::Error);
-    //                }
-
-    //                PHYSFS_close(fHandle);
-
-    //                outputPaths.push_back(outPath);
-    //                free(data);
-    //            }
-    //        }
-
-    //        if (isCubemapLoaded) {
-    //            // Reconvolute - we only replaced the lowest mip
-    //            auto idx = resources.cubemaps.get(cubemapId);
-    //            vku::TextureImageCube& loadedCube = resources.cubemaps[idx];
-    //            resources.cubemaps.convoluter()->convolute(loadedCube);
-    //        }
-    //    }
-
-    //    renderer->endRdocCapture();
-    //    auto file = PHYSFS_openWrite(("Data/" + jsonPath).c_str());
-
-    //    std::string j = "[\n";
-    //    for (int i = 0; i < 6; i++) {
-    //        j += "    \"" + outputPaths[i] + "\"";
-    //        if (i != 5) j += ",";
-    //        j += "\n";
-    //    }
-    //    j += "]";
-
-    //    PHYSFS_writeBytes(file, j.c_str(), j.size());
-    //    PHYSFS_close(file);
-
-    //    renderer->destroyRTTPass(rttPass);
-
-    //    if (isMissing) {
-    //        resources.cubemaps.unload(cubemapSlot);
-    //    }
-    //}
+        ~CubemapBaker()
+        {
+            renderer->destroyRTTPass(rttPass);
+        }
+    };
 
     void BakingWindow::draw(entt::registry& reg)
     {
@@ -245,6 +217,14 @@ namespace worlds
             {
                 static int numIterations = 1;
                 ImGui::DragInt("Iterations", &numIterations);
+                static CubemapBaker* cb = nullptr;
+
+                if (cb == nullptr)
+                {
+                    cb = new CubemapBaker(interfaces.renderer, reg);
+                }
+                cb->update();
+
                 reg.view<Transform, WorldCubemap, NameComponent>().each(
                     [&](Transform& t, WorldCubemap& wc, NameComponent& nc) {
                         ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(), t.position.x, t.position.y, t.position.z);
@@ -252,6 +232,7 @@ namespace worlds
                         ImGui::PushID(nc.name.c_str());
                         if (ImGui::Button("Bake"))
                         {
+                            cb->addToQueue(nc.name, t.position + wc.captureOffset);
                             // bakeCubemap(editor, t.position + wc.captureOffset,
                             // static_cast<worlds::VKRenderer*>(interfaces.renderer), nc.name, reg, wc.resolution,
                             // numIterations);

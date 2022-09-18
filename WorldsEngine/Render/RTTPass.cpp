@@ -1,6 +1,5 @@
 #include <R2/BindlessTextureManager.hpp>
-#include <R2/VKCore.hpp>
-#include <R2/VKTexture.hpp>
+#include <R2/VK.hpp>
 #include <Render/IRenderPipeline.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Tracy.hpp>
@@ -43,9 +42,55 @@ namespace worlds
         pipeline->setView(viewIndex, viewMatrix, projectionMatrix);
     }
 
-    float* VKRTTPass::getHDRData()
+    void VKRTTPass::downloadHDROutput(R2::VK::CommandBuffer& cb)
     {
-        return nullptr;
+        BufferCreateInfo bci { BufferUsage::Storage, sizeof(float) * 4 * width * height, true };
+        hdrDataBuffer = renderer->getCore()->CreateBuffer(bci);
+
+        Texture* hdrTex = pipeline->getHDRTexture();
+
+        TextureCreateInfo tci = TextureCreateInfo::Texture2D(TextureFormat::R32G32B32A32_SFLOAT, width, height);
+        tci.CanUseAsStorage = false;
+
+        Texture* blitTarget = renderer->getCore()->CreateTexture(tci);
+
+        TextureBlit blitInfo{};
+        blitInfo.Source.LayerCount = 1;
+        blitInfo.Destination.LayerCount = 1;
+        blitInfo.SourceOffsets[1] = blitInfo.DestinationOffsets[1] = BlitOffset{ (int)width, (int)height, 1 };
+
+        cb.TextureBlit(hdrTex, blitTarget, blitInfo);
+        cb.TextureCopyToBuffer(blitTarget, hdrDataBuffer);
+
+        hdrDataReady = true;
+        hdrDataRequested = false;
+
+        renderer->getCore()->DestroyTexture(blitTarget);
+    }
+
+    void VKRTTPass::requestHDRData()
+    {
+        if (settings.msaaLevel != 1) throw std::exception("Can't download HDR data from an MSAA RTTPass");
+        hdrDataRequested = true;
+    }
+
+    bool VKRTTPass::getHDRData(float*& out)
+    {
+        if (!hdrDataReady)
+            return false;
+        
+        hdrDataReady = false;
+        float* data = (float*)malloc(sizeof(float) * 4 * width * height);
+
+        float* src = (float*)hdrDataBuffer->Map();
+        memcpy(data, src, sizeof(float) * 4 * width * height);
+        hdrDataBuffer->Unmap();
+
+        renderer->getCore()->DestroyBuffer(hdrDataBuffer);
+
+        out = data;
+
+        return true;
     }
 
     void VKRTTPass::resize(int newWidth, int newHeight)
