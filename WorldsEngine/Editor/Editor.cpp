@@ -1265,6 +1265,17 @@ namespace worlds
                 ImGui::EndMenu();
             }
 
+            if (project->assetCompiler().isCompiling())
+            {
+                AssetCompileOperation* currentOp = project->assetCompiler().currentOperation();
+                if (currentOp)
+                {
+                    std::filesystem::path filename = std::filesystem::path(AssetDB::idToPath(currentOp->outputId)).filename();
+                    ImGui::Text("Compiling %s", filename.string().c_str());
+                    ImGui::ProgressBar(currentOp->progress, ImVec2(150.0f, 0.0f));
+                }
+            }
+
             menuButtonsExtent = (int)ImGui::GetCursorPosX();
 
             menubar.draw();
