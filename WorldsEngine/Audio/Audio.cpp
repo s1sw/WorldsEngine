@@ -759,6 +759,7 @@ namespace worlds
                 as.inPhononSim = true;
                 std::unique_lock lock{simThread->commitMutex};
                 needsSimCommit = true; 
+                iplSourceRetain(as.phononSource);
                 this->sourcesToAdd.push(as.phononSource);
                 return;
             }
@@ -870,7 +871,7 @@ namespace worlds
                 }
             }
 
-            if (ao->entity != entt::null)
+            if (worldState.valid(ao->entity))
             {
                 Transform& t = worldState.get<Transform>(ao->entity);
 
@@ -988,25 +989,48 @@ namespace worlds
         playOneShotAttachedEvent(eventPath, location, entt::null, volume);
     }
 
+    struct PhononEventInstanceCallbackData
+    {
+        IPLSource phononSource;
+        glm::vec3 location;
+    };
+
     FMOD_RESULT AudioSystem::phononEventInstanceCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
                                                          FMOD_STUDIO_EVENTINSTANCE* cevent, void* param)
     {
-        if (type != FMOD_STUDIO_EVENT_CALLBACK_CREATED)
+        if (type != FMOD_STUDIO_EVENT_CALLBACK_CREATED && type != FMOD_STUDIO_EVENT_CALLBACK_DESTROYED)
             return FMOD_OK;
 
         FMOD::Studio::EventInstance* event = (FMOD::Studio::EventInstance*)cevent;
 
-        AttachedOneshot* ao;
-        FMCHECK(event->getUserData((void**)&ao));
+        PhononEventInstanceCallbackData* data;
+        FMCHECK(event->getUserData((void**)&data));
 #ifdef ENABLE_STEAM_AUDIO
-        FMCHECK(findSteamAudioDSP(event, &ao->phononDsp));
+        FMOD::DSP* phononDsp;
+        FMCHECK(findSteamAudioDSP(event, &phononDsp));
 
         std::lock_guard lock{AudioSystem::instance->simThread->commitMutex};
         // The FMOD plugin says here that it wants the simulation outputs.
         // However, this is wrong. The code is actually looking for the IPLSource attached
         // to the Steam Audio source!
-        FMCHECK(ao->phononDsp->setParameterData(SpatializerEffect::SIMULATION_OUTPUTS, &ao->phononSource,
-                                                sizeof(IPLSource)));
+        if (type == FMOD_STUDIO_EVENT_CALLBACK_CREATED)
+        {
+            FMCHECK(phononDsp->setParameterData(
+                SpatializerEffect::SIMULATION_OUTPUTS, &data->phononSource,
+                sizeof(IPLSource))
+            );
+
+            FMOD_3D_ATTRIBUTES attr{};
+            attr.position = convVec(data->location);
+            attr.forward = convVec(glm::vec3(0.0f, 0.0f, 1.0f));
+            attr.up = convVec(glm::vec3(0.0f, 1.0f, 0.0f));
+            attr.velocity = convVec(glm::vec3(0.0f));
+        }
+        else
+        {
+            iplSourceRelease(&data->phononSource);
+            delete data;
+        }
 #endif
 
         return FMOD_OK;
@@ -1070,6 +1094,7 @@ namespace worlds
         FMCHECK(instance->setVolume(volume));
 
         FMCHECK(instance->start());
+        FMCHECK(instance->set3DAttributes(&attr));
 
         AttachedOneshot* attachedOneshot =
             new AttachedOneshot{.instance = instance, .entity = attachedEntity, .lastPosition = location};
@@ -1077,16 +1102,18 @@ namespace worlds
 #ifdef ENABLE_STEAM_AUDIO
         if (createPhononSource)
         {
-            attachedOneshot->phononDsp = nullptr;
-            instance->setUserData(attachedOneshot);
-            instance->setCallback(phononEventInstanceCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATED);
-
             IPLSourceSettings sourceSettings{
                 (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS | IPL_SIMULATIONFLAGS_DIRECT)};
 
             SACHECK(iplSourceCreate(simulator, &sourceSettings, &attachedOneshot->phononSource));
 
+            PhononEventInstanceCallbackData* data = new PhononEventInstanceCallbackData();
+            data->phononSource = attachedOneshot->phononSource;
+            instance->setUserData(data);
+            instance->setCallback(phononEventInstanceCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATED | FMOD_STUDIO_EVENT_CALLBACK_DESTROYED);
+
             std::unique_lock lock{simThread->commitMutex};
+            iplSourceRetain(attachedOneshot->phononSource);
             sourcesToAdd.push(attachedOneshot->phononSource);
             needsSimCommit = true;
         }
