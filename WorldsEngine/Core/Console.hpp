@@ -2,6 +2,7 @@
 #include <functional>
 #include <string>
 #include <unordered_map>
+#include <thread>
 
 #include <SDL_log.h>
 
@@ -10,11 +11,6 @@
 #include <Core/Log.hpp>
 
 struct ImGuiInputTextCallbackData;
-
-namespace std
-{
-    class thread;
-}
 
 namespace worlds
 {
