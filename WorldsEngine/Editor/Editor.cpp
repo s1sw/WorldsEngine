@@ -1035,7 +1035,67 @@ namespace worlds
             ImGui::Checkbox("Global object snap", &settings.objectSnapGlobal);
             tooltipHover("If this is checked, moving an object with Ctrl held will snap in increments relative to the "
                          "world rather than the object's original position.");
-            ImGui::Checkbox("Pause physics", &interfaces.engine->pauseSim);
+            
+            if (ImGui::CollapsingHeader("Physics Simulation"))
+            {
+                ImGui::Checkbox("Pause physics", &interfaces.engine->pauseSim);
+
+                if (ImGui::Button("Disable rigidbodies"))
+                {
+                    reg.view<RigidBody>().each([](RigidBody& rb) { rb.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true); });
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Enable rigidbodies"))
+                {
+                    reg.view<RigidBody>().each([](RigidBody& rb) { rb.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true); });
+                }
+
+                if (ImGui::Button("Enable Selected"))
+                {
+                    auto f = [&](entt::entity ent)
+                    {
+                        if (!reg.valid(ent)) return;
+
+                        RigidBody* rb = reg.try_get<RigidBody>(ent);
+                        if (rb)
+                        {
+                            rb->actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, false);
+                            rb->actor->wakeUp();
+                        }
+                    };
+
+                    f(getSelectedEntity());
+                    for (entt::entity ent : getSelectedEntities())
+                    {
+                        f(ent);
+                    }
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Disable Selected"))
+                {
+                    auto f = [&](entt::entity ent)
+                    {
+                        if (!reg.valid(ent)) return;
+
+                        RigidBody* rb = reg.try_get<RigidBody>(ent);
+                        if (rb)
+                        {
+                            rb->actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
+                        }
+                    };
+
+                    f(getSelectedEntity());
+                    for (entt::entity ent : getSelectedEntities())
+                    {
+                        f(ent);
+                    }
+                }
+            }
+
             ImGui::InputFloat("Snap increment", &settings.snapIncrement, 0.1f, 0.5f);
             ImGui::InputFloat("Angular snap increment", &settings.angularSnapIncrement, 0.5f, 1.0f);
             ImGui::InputFloat("Camera speed", &cameraSpeed, 0.1f);
