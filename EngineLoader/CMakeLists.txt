@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 file(GLOB lsrc ./**.cpp)
 
-add_executable(${PROJECT_NAME} ${lsrc})
-target_link_libraries(${PROJECT_NAME} PUBLIC EngineLibrary)
+add_executable(${PROJECT_NAME} WIN32 ${lsrc})
+target_link_libraries(${PROJECT_NAME} PUBLIC EngineLibrary SDL2::SDL2main)
 
 if (WIN32)
     target_sources(${PROJECT_NAME} PRIVATE WorldsEngine.rc)

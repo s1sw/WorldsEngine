@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <Core/Engine.hpp>
+#include <SDL_main.h>
 
 using namespace worlds;
 
