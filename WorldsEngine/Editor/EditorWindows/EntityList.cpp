@@ -348,7 +348,7 @@ namespace worlds
                     {
                         if (showUnnamed)
                         {
-                            reg.each(forEachEnt);
+                            reg.view<Transform>(entt::exclude_t<ChildComponent>{}).each([&](entt::entity ent, const Transform&) { forEachEnt(ent); });
                         }
                         else
                         {
