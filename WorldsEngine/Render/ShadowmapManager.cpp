@@ -121,6 +121,25 @@ namespace worlds
                 }
             });
 
+            registry.view<SkinnedWorldObject, Transform>().each([&](SkinnedWorldObject& wo, Transform& woT) {
+                const RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
+
+                glm::mat4 mvp = vp * woT.getMatrix();
+                cb.PushConstants(mvp, VK::ShaderStage::Vertex, pipelineLayout.Get());
+
+                for (int i = 0; i < rmi.numSubmeshes; i++)
+                {
+                    if (!wo.drawSubmeshes[i]) continue;
+                    const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
+                    cb.DrawIndexed(
+                        rsi.indexCount,
+                        1,
+                        rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t)),
+                        wo.skinnedVertexOffset + (meshManager->getSkinnedVertsOffset() / sizeof(Vertex)),
+                        0);
+                }
+            });
+
             rp.End(cb);
             shadowmapInfo[worldLight.shadowmapIdx].texture->Acquire(
                 cb,
