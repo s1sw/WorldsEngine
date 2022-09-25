@@ -16,9 +16,12 @@ namespace R2::VK
 
 namespace worlds
 {
+    class VKRenderer;
+    struct EngineInterfaces;
+
     class HiddenMeshRenderer
     {
-        R2::VK::Core* core;
+        const EngineInterfaces& interfaces;
         UniquePtr<R2::VK::Buffer> vertBuffer;
         UniquePtr<R2::VK::Pipeline> pipeline;
         UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
@@ -27,7 +30,7 @@ namespace worlds
         uint32_t totalVertexCount;
         uint32_t viewOffset;
     public:
-        HiddenMeshRenderer(R2::VK::Core* core, int sampleCount);
+        HiddenMeshRenderer(const EngineInterfaces& interfaces, int sampleCount);
         void Execute(R2::VK::CommandBuffer& cb);
     };
 }

@@ -37,6 +37,7 @@ namespace worlds
 
     VKRenderer::VKRenderer(const RendererInitInfo& initInfo, bool* success)
         : timeAccumulator(0.0)
+        , interfaces(initInfo.interfaces)
     {
         ZoneScoped;
         bool enableValidation = true;
@@ -253,7 +254,7 @@ namespace worlds
             ci.msaaLevel = 1;
         }
 
-        IRenderPipeline* renderPipeline = new StandardPipeline(this);
+        IRenderPipeline* renderPipeline = new StandardPipeline(interfaces);
 
         VKRTTPass* pass = new VKRTTPass(this, ci, renderPipeline);
         renderPipeline->setup(pass);
@@ -276,7 +277,7 @@ namespace worlds
         for (VKRTTPass* pass : rttPasses)
         {
             delete pass->pipeline;
-            pass->pipeline = new StandardPipeline(this);
+            pass->pipeline = new StandardPipeline(interfaces);
             pass->pipeline->setup(pass);
         }
     }

@@ -86,7 +86,8 @@ namespace worlds
         return mask;
     }
 
-    StandardPipeline::StandardPipeline(VKRenderer* renderer) : renderer(renderer)
+    StandardPipeline::StandardPipeline(const EngineInterfaces& engineInterfaces)
+        : engineInterfaces(engineInterfaces)
     {
     }
 
@@ -99,7 +100,7 @@ namespace worlds
         ZoneScoped;
 
         const RTTPassSettings& settings = rttPass->getSettings();
-        VK::Core* core = renderer->getCore();
+        VK::Core* core = ((VKRenderer*)engineInterfaces.renderer)->getCore();
         depthBuffer.Reset();
         colorBuffer.Reset();
 
@@ -149,7 +150,8 @@ namespace worlds
     {
         ZoneScoped;
         const RTTPassSettings& settings = rttPass->getSettings();
-        VK::Core* core = renderer->getCore();
+        VKRenderer* renderer = (VKRenderer*)engineInterfaces.renderer;
+        VK::Core* core = ((VKRenderer*)engineInterfaces.renderer)->getCore();
         this->rttPass = rttPass;
 
         if (rttPass->getSettings().numViews > 1)
@@ -271,7 +273,7 @@ namespace worlds
         createSizeDependants();
 
         if (settings.outputToXR)
-            hiddenMeshRenderer = new HiddenMeshRenderer(core, settings.msaaLevel);
+            hiddenMeshRenderer = new HiddenMeshRenderer(engineInterfaces, settings.msaaLevel);
         
         computeSkinner = new ComputeSkinner(renderer);
     }
@@ -709,6 +711,7 @@ namespace worlds
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
     {
         ZoneScoped;
+        VKRenderer* renderer = (VKRenderer*)engineInterfaces.renderer;
         VK::Core* core = renderer->getCore();
         RenderMeshManager* meshManager = renderer->getMeshManager();
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();

@@ -35,6 +35,7 @@ namespace worlds
     class SkyboxRenderer;
     class HiddenMeshRenderer;
     class ComputeSkinner;
+    struct EngineInterfaces;
 
     class StandardPipeline : public IRenderPipeline
     {
@@ -62,7 +63,7 @@ namespace worlds
         UniquePtr<HiddenMeshRenderer> hiddenMeshRenderer;
         UniquePtr<ComputeSkinner> computeSkinner;
 
-        VKRenderer* renderer;
+        const EngineInterfaces& engineInterfaces;
         VKRTTPass* rttPass;
 
         bool useViewOverrides = false;
@@ -71,7 +72,7 @@ namespace worlds
 
         void createSizeDependants();
     public:
-        StandardPipeline(VKRenderer* renderer);
+        StandardPipeline(const EngineInterfaces& engineInterfaces);
         ~StandardPipeline();
 
         void setup(VKRTTPass* rttPass) override;

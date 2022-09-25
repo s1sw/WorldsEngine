@@ -173,6 +173,22 @@ namespace worlds
                          mat.m[2][3], mat.m[3][3]);
     }
 
+    bool OpenVRInterface::getHiddenMeshData(Eye eye, HiddenMeshData& hmd)
+    {
+        vr::HiddenAreaMesh_t hiddenMesh = system->GetHiddenAreaMesh(convEye(eye));
+
+        if (hiddenMesh.pVertexData == nullptr || hiddenMesh.unTriangleCount == 0)
+        {
+            return false;
+        }
+
+        hmd.triangleCount = hiddenMesh.unTriangleCount;
+        hmd.verts.resize(hmd.triangleCount * 3);
+        memcpy(hmd.verts.data(), hiddenMesh.pVertexData, hmd.triangleCount * 3 * sizeof(glm::vec2));
+
+        return true;
+    }
+
     glm::mat4 OpenVRInterface::getEyeViewMatrix(Eye eye)
     {
         return toMat4(system->GetEyeToHeadTransform(convEye(eye)));

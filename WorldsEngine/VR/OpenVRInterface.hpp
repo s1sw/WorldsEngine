@@ -51,6 +51,7 @@ namespace worlds
         static glm::mat4 toMat4(vr::HmdMatrix34_t mat);
         static glm::mat4 toMat4(vr::HmdMatrix44_t mat);
 
+        bool getHiddenMeshData(Eye eye, HiddenMeshData& hmd) override;
         glm::mat4 getEyeViewMatrix(Eye eye) override;
         glm::mat4 getEyeProjectionMatrix(Eye eye, float near) override;
         glm::mat4 getEyeProjectionMatrix(Eye eye, float near, float far) override;

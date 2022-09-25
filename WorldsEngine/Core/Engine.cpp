@@ -433,14 +433,17 @@ namespace worlds
 
         if (!dedicatedServer)
         {
-            RendererInitInfo initInfo{
+            RendererInitInfo initInfo
+            {
                 window->getWrappedHandle(),
                 additionalInstanceExts,
                 additionalDeviceExts,
                 enableOpenVR,
                 activeApi,
                 vrInterface,
-                initOptions.gameName};
+                initOptions.gameName,
+                interfaces
+            };
 
             bool renderInitSuccess = false;
             renderer = new VKRenderer(initInfo, &renderInitSuccess);

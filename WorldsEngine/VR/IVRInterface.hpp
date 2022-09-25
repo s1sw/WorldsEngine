@@ -39,6 +39,12 @@ namespace worlds
 
     typedef uint64_t InputActionHandle;
 
+    struct HiddenMeshData
+    {
+        std::vector<glm::vec2> verts;
+        uint32_t triangleCount;
+    };
+
     class IVRInterface
     {
     public:
@@ -49,6 +55,7 @@ namespace worlds
 
         virtual Transform getHandBoneTransform(Hand hand, int boneIdx) = 0;
 
+        virtual bool getHiddenMeshData(Eye eye, HiddenMeshData& hmd) = 0;
         virtual glm::mat4 getEyeViewMatrix(Eye eye) = 0;
         virtual glm::mat4 getEyeProjectionMatrix(Eye eye, float near) = 0;
         virtual glm::mat4 getEyeProjectionMatrix(Eye eye, float near, float far) = 0;

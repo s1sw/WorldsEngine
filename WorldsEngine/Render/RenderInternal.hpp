@@ -300,6 +300,7 @@ namespace worlds
 
     class VKRenderer : public Renderer
     {
+        const EngineInterfaces& interfaces;
         R2::VK::Core* core;
         R2::VK::Swapchain* swapchain;
         R2::VK::Fence* frameFence;

@@ -1,28 +1,33 @@
 #include "HiddenMeshRenderer.hpp"
+#include <Core/Engine.hpp>
 #include <Core/Log.hpp>
+#include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
 #include <R2/VK.hpp>
-#include <openvr.h>
 
 using namespace R2;
 
 namespace worlds
 {
-    HiddenMeshRenderer::HiddenMeshRenderer(R2::VK::Core* core, int sampleCount)
-        : core(core)
+    HiddenMeshRenderer::HiddenMeshRenderer(const EngineInterfaces& interfaces, int sampleCount)
+        : interfaces(interfaces)
     {
-        vr::HiddenAreaMesh_t leftMesh = vr::VRSystem()->GetHiddenAreaMesh(vr::Eye_Left);
-        vr::HiddenAreaMesh_t rightMesh = vr::VRSystem()->GetHiddenAreaMesh(vr::Eye_Right);
+        VKRenderer* renderer = (VKRenderer*)interfaces.renderer;
+        VK::Core* core = renderer->getCore();
 
-        if (leftMesh.unTriangleCount == 0 || rightMesh.unTriangleCount == 0)
+        HiddenMeshData leftMesh{};
+        HiddenMeshData rightMesh{};
+
+        if (!interfaces.vrInterface->getHiddenMeshData(Eye::LeftEye, leftMesh) ||
+            !interfaces.vrInterface->getHiddenMeshData(Eye::RightEye, rightMesh))
         {
             logWarn(WELogCategoryRender, "VR hidden area mesh was empty");
             return;
         }
 
         uint64_t triangleSize = 2 * 3 * sizeof(float);
-        uint64_t leftSize = leftMesh.unTriangleCount * triangleSize;
-        uint64_t rightSize = rightMesh.unTriangleCount * triangleSize;
+        uint64_t leftSize = leftMesh.triangleCount * triangleSize;
+        uint64_t rightSize = rightMesh.triangleCount * triangleSize;
 
         if (leftSize != rightSize)
         {
@@ -30,15 +35,15 @@ namespace worlds
             return;
         }
 
-        totalVertexCount = (leftMesh.unTriangleCount + rightMesh.unTriangleCount) * 3;
-        viewOffset = leftMesh.unTriangleCount * 3;
+        totalVertexCount = (leftMesh.triangleCount + rightMesh.triangleCount) * 3;
+        viewOffset = leftMesh.triangleCount * 3;
 
         uint64_t totalSize = leftSize + rightSize;
         VK::BufferCreateInfo bci{ VK::BufferUsage::Storage, totalSize };
         vertBuffer = core->CreateBuffer(bci);
 
-        core->QueueBufferUpload(vertBuffer.Get(), leftMesh.pVertexData, leftSize, 0);
-        core->QueueBufferUpload(vertBuffer.Get(), rightMesh.pVertexData, rightSize, leftSize);
+        core->QueueBufferUpload(vertBuffer.Get(), leftMesh.verts.data(), leftSize, 0);
+        core->QueueBufferUpload(vertBuffer.Get(), rightMesh.verts.data(), rightSize, leftSize);
 
         VK::DescriptorSetLayoutBuilder dslb{core};
         dslb.Binding(0, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::Vertex);

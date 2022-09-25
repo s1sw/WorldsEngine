@@ -12,6 +12,7 @@ typedef void* ImTextureID;
 
 namespace worlds
 {
+    struct EngineInterfaces;
     const int NUM_SHADOW_LIGHTS = 16;
 #pragma pack(push, 1)
     struct Vertex
@@ -112,6 +113,7 @@ namespace worlds
         VrApi activeVrApi;
         IVRInterface* vrInterface;
         const char* applicationName = nullptr;
+        const EngineInterfaces& interfaces;
     };
 
     struct RTTPassSettings
