@@ -11,7 +11,7 @@ namespace worlds
         : core(core)
         , shaderId(shaderId)
     {
-        dslb = new VK::DescriptorSetLayoutBuilder(core->GetHandles());
+        dslb = new VK::DescriptorSetLayoutBuilder(core);
         pushConstantSize = SIZE_MAX;
     }
 
@@ -105,7 +105,7 @@ namespace worlds
 
     void SimpleCompute::UpdateDescriptors()
     {
-        VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet.Get()};
+        VK::DescriptorSetUpdater dsu{core, descriptorSet.Get()};
 
         for (const BoundDescriptor& bd : descriptorBindings)
         {

@@ -39,7 +39,7 @@ namespace worlds
         descriptorSetLayout = sr.createDescriptorSetLayout(core, 0);
         descriptorSet = core->CreateDescriptorSet(descriptorSetLayout);
 
-        VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSet};
+        VK::DescriptorSetUpdater dsu{core, descriptorSet};
         sr.bindBuffer(dsu, "VPBuffer_0", multiVPBuffer);
         sr.bindBuffer(dsu, "ModelMatrices_0", modelMatrixBuffer);
         dsu.Update();

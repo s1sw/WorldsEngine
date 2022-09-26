@@ -29,8 +29,8 @@ namespace R2::VK
         allocatedDescriptorSets--;
     }
 
-    DescriptorSetLayout::DescriptorSetLayout(const Handles* handles, VkDescriptorSetLayout layout)
-        : handles(handles)
+    DescriptorSetLayout::DescriptorSetLayout(Core* core, VkDescriptorSetLayout layout)
+        : core(core)
         , layout(layout)
     {}
 
@@ -41,15 +41,12 @@ namespace R2::VK
 
     DescriptorSetLayout::~DescriptorSetLayout()
     {
+        const Handles* handles = core->GetHandles();
         vkDestroyDescriptorSetLayout(handles->Device, layout, handles->AllocCallbacks);
     }
 
-    DescriptorSetLayoutBuilder::DescriptorSetLayoutBuilder(const Handles* handles)
-        : handles(handles)
-    {}
-
     DescriptorSetLayoutBuilder::DescriptorSetLayoutBuilder(Core* core)
-        : handles(core->GetHandles())
+        : core(core)
     {}
 
     DescriptorSetLayoutBuilder& DescriptorSetLayoutBuilder::Binding(uint32_t binding, DescriptorType type, uint32_t count, ShaderStage stage)
@@ -137,16 +134,13 @@ namespace R2::VK
 
         dslci.pNext = &bindFlagsCreateInfo;
 
+        const Handles* handles = core->GetHandles();
+
         VkDescriptorSetLayout dsl;
         VKCHECK(vkCreateDescriptorSetLayout(handles->Device, &dslci, handles->AllocCallbacks, &dsl));
 
-        return new DescriptorSetLayout(handles, dsl);
+        return new DescriptorSetLayout(core, dsl);
     }
-
-    DescriptorSetUpdater::DescriptorSetUpdater(const Handles* handles, DescriptorSet* ds)
-        : handles(handles)
-        , ds(ds)
-    {}
 
     DescriptorSetUpdater::DescriptorSetUpdater(Core* core, DescriptorSet* ds)
         : handles(core->GetHandles())

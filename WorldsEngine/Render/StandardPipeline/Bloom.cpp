@@ -45,7 +45,7 @@ namespace worlds
         sb.MagFilter(VK::Filter::Linear).MinFilter(VK::Filter::Linear).MipmapMode(VK::SamplerMipmapMode::Linear);
         sampler = sb.Build();
 
-        VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
+        VK::DescriptorSetLayoutBuilder dslb{core};
         dslb.Binding(0, VK::DescriptorType::CombinedImageSampler, 1, VK::ShaderStage::Compute);
         dslb.Binding(1, VK::DescriptorType::StorageImage, 1, VK::ShaderStage::Compute);
         dsl = dslb.Build();
@@ -65,7 +65,7 @@ namespace worlds
 
             mipOutputSets[i] = core->CreateDescriptorSet(dsl.Get());
 
-            VK::DescriptorSetUpdater dsu{core->GetHandles(), mipOutputSets[i].Get()};
+            VK::DescriptorSetUpdater dsu{core, mipOutputSets[i].Get()};
             dsu.AddTextureWithLayout(0, 0, VK::DescriptorType::CombinedImageSampler, mipChain.Get(), VK::ImageLayout::General, sampler.Get());
             dsu.AddTextureView(1, 0, VK::DescriptorType::StorageImage, mipOutputViews[i].Get());
             dsu.Update();
@@ -115,7 +115,7 @@ namespace worlds
 
         seedDS = core->CreateDescriptorSet(dsl.Get());
 
-        VK::DescriptorSetUpdater{core->GetHandles(), seedDS.Get()}
+        VK::DescriptorSetUpdater{core, seedDS.Get()}
             .AddTexture(0, 0, VK::DescriptorType::CombinedImageSampler, hdrSource, sampler.Get())
             .AddTexture(1, 0, VK::DescriptorType::StorageImage, mipChain.Get())
             .Update();

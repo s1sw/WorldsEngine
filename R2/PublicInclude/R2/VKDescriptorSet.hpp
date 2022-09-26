@@ -33,11 +33,11 @@ namespace R2::VK
     class DescriptorSetLayout
     {
     public:
-        DescriptorSetLayout(const Handles* handles, VkDescriptorSetLayout layout);
+        DescriptorSetLayout(Core* core, VkDescriptorSetLayout layout);
         ~DescriptorSetLayout();
         VkDescriptorSetLayout GetNativeHandle();
     private:
-        const Handles* handles;
+        Core* core;
         VkDescriptorSetLayout layout;
     };
 
@@ -61,7 +61,6 @@ namespace R2::VK
     class DescriptorSetLayoutBuilder
     {
     public:
-        DescriptorSetLayoutBuilder(const Handles* handles);
         DescriptorSetLayoutBuilder(Core* core);
         DescriptorSetLayoutBuilder& Binding(uint32_t binding, DescriptorType type, uint32_t count, ShaderStage stage);
         DescriptorSetLayoutBuilder& PartiallyBound();
@@ -81,13 +80,12 @@ namespace R2::VK
         };
 
         std::vector<DescriptorBinding> bindings;
-        const Handles* handles;
+        Core* core;
     };
 
     class DescriptorSetUpdater
     {
     public:
-        DescriptorSetUpdater(const Handles* handles, DescriptorSet* ds);
         DescriptorSetUpdater(Core* core, DescriptorSet* ds);
         DescriptorSetUpdater& AddTexture(uint32_t binding, uint32_t arrayElement, DescriptorType type, Texture* tex, Sampler* sampler = nullptr);
         DescriptorSetUpdater& AddTextureWithLayout(uint32_t binding, uint32_t arrayElement, DescriptorType type, Texture* tex, ImageLayout layout, Sampler* sampler = nullptr);

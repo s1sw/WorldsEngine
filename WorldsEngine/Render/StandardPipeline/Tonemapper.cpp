@@ -70,7 +70,7 @@ namespace worlds
 
             descriptorSets.push_back(core->CreateDescriptorSet(descriptorSetLayout.Get()));
 
-            VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSets[i].Get()};
+            VK::DescriptorSetUpdater dsu{core, descriptorSets[i].Get()};
             sr.bindSampledTexture(dsu, "hdrImage_0", colorBuffer, sampler.Get());
             sr.bindSampledTexture(dsu, "bloomImage_0", bloom, sampler.Get());
             dsu.AddTextureView(0, 0, VK::DescriptorType::StorageImage, outputViews[i].Get());

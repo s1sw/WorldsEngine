@@ -80,7 +80,7 @@ namespace worlds
 
         presentBindings.resize(maxBinding + 1);
 
-        R2::VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
+        R2::VK::DescriptorSetLayoutBuilder dslb{core};
 
         for (auto binding : reflectBindings)
         {

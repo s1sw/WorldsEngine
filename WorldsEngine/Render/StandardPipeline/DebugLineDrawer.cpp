@@ -17,12 +17,12 @@ namespace worlds
     DebugLineDrawer::DebugLineDrawer(VK::Core* core, VK::Buffer* vpBuffer, int msaaLevel, uint32_t viewMask)
         : core(core)
     {
-        VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
+        VK::DescriptorSetLayoutBuilder dslb{core};
         dslb.Binding(0, VK::DescriptorType::UniformBuffer, 1, VK::ShaderStage::AllRaster);
         dsl = dslb.Build();
         ds = core->CreateDescriptorSet(dsl.Get());
 
-        VK::DescriptorSetUpdater dsu{core->GetHandles(), ds.Get()};
+        VK::DescriptorSetUpdater dsu{core, ds.Get()};
         dsu.AddBuffer(0, 0, VK::DescriptorType::UniformBuffer, vpBuffer);
         dsu.Update();
 

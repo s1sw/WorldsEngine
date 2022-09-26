@@ -9,7 +9,7 @@ namespace R2
     BindlessTextureManager::BindlessTextureManager(VK::Core* core)
         : core(core)
     {
-        VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
+        VK::DescriptorSetLayoutBuilder dslb{core};
 
         dslb.Binding(0, VK::DescriptorType::CombinedImageSampler, NUM_TEXTURES, 
             VK::ShaderStage::Vertex | VK::ShaderStage::Fragment | VK::ShaderStage::Compute)
@@ -94,7 +94,7 @@ namespace R2
     {
         if (descriptorsNeedUpdate)
         {
-            VK::DescriptorSetUpdater dsu{core->GetHandles(), textureDescriptors};
+            VK::DescriptorSetUpdater dsu{core, textureDescriptors};
 
             for (int i = 0; i < NUM_TEXTURES; i++)
             {

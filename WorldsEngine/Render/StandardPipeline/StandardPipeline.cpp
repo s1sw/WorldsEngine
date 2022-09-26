@@ -131,7 +131,7 @@ namespace worlds
 
         for (int i = 0; i < 2; i++)
         {
-            VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSets[i].Get()};
+            VK::DescriptorSetUpdater dsu{core, descriptorSets[i].Get()};
             dsu.AddBuffer(4, 0, VK::DescriptorType::StorageBuffer, lightTileBuffer.Get());
             dsu.Update();
         }
@@ -190,7 +190,7 @@ namespace worlds
         AssetID fs = AssetDB::pathToId("Shaders/standard.frag.spv");
         AssetID depthFS = AssetDB::pathToId("Shaders/standard_empty.frag.spv");
 
-        VK::DescriptorSetLayoutBuilder dslb{core->GetHandles()};
+        VK::DescriptorSetLayoutBuilder dslb{core};
         dslb.Binding(0, VK::DescriptorType::UniformBuffer, 1, VK::ShaderStage::AllRaster);
         dslb.Binding(1, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
         dslb.Binding(2, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
@@ -205,7 +205,7 @@ namespace worlds
         {
             descriptorSets[i] = core->CreateDescriptorSet(descriptorSetLayout.Get());
 
-            VK::DescriptorSetUpdater dsu{core->GetHandles(), descriptorSets[i].Get()};
+            VK::DescriptorSetUpdater dsu{core, descriptorSets[i].Get()};
             dsu.AddBuffer(0, 0, VK::DescriptorType::UniformBuffer, multiVPBuffer.Get());
             dsu.AddBuffer(1, 0, VK::DescriptorType::StorageBuffer, modelMatrixBuffers->GetBuffer(i));
             dsu.AddBuffer(2, 0, VK::DescriptorType::StorageBuffer, RenderMaterialManager::GetBuffer());
