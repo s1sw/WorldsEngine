@@ -1290,6 +1290,9 @@ namespace worlds
                     EditorActions::findAction("editor.addStaticPhysics").function(this, reg);
                 }
 
+                if (ImGui::MenuItem("Pause Asset Watcher", nullptr, &project->assets().pauseWatcher, true))
+                {}
+
                 ImGui::EndMenu();
             }
 

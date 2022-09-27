@@ -108,6 +108,7 @@ namespace worlds
         void enumerateAssets();
         slib::List<AssetID> searchForAssets(slib::String pattern);
         bool recompileFlag = false;
+        bool pauseWatcher = false;
 
     private:
         void enumerateForAssets(const char* path);

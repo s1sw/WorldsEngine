@@ -26,13 +26,16 @@ namespace worlds
         watcherThread = std::thread([&]{
             while (threadActive)
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(750));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 size_t lastAssetsSize = assetFiles.size();
 
-                for (AssetFile& af : assetFiles)
+                if (!pauseWatcher)
                 {
-                    checkForAssetChange(af);
-                    if (lastAssetsSize != assetFiles.size()) break;
+                    for (AssetFile& af : assetFiles)
+                    {
+                        checkForAssetChange(af);
+                        if (lastAssetsSize != assetFiles.size()) break;
+                    }
                 }
             }
         });
