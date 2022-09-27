@@ -63,6 +63,7 @@ namespace worlds
     struct SceneGlobals
     {
         float time;
+        float shadowmapResolution;
         glm::vec2 poissonDisk[64];
     };
 
@@ -708,6 +709,8 @@ namespace worlds
         std::vector<enki::Dependency> dependencies;
     };
 
+    extern ConVar r_shadowmapRes;
+
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
     {
         ZoneScoped;
@@ -721,6 +724,7 @@ namespace worlds
 
         SceneGlobals* globals = (SceneGlobals*)sceneGlobals->Map();
         globals->time = renderer->getTime();
+        globals->shadowmapResolution = r_shadowmapRes.getInt();
         sceneGlobals->Unmap();
 
         // If there's anything in the convolution queue, convolute 1 cubemap

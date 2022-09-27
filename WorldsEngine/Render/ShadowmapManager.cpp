@@ -1,5 +1,6 @@
 #include <Render/RenderInternal.hpp>
 #include <Core/AssetDB.hpp>
+#include <Core/ConVar.hpp>
 #include <entt/entity/registry.hpp>
 #include <Render/CullMesh.hpp>
 #include <Render/Frustum.hpp>
@@ -11,7 +12,7 @@ using namespace R2;
 
 namespace worlds
 {
-    const int SHADOWMAP_RES = 2048;
+    ConVar r_shadowmapRes {"r_shadowmapRes", "2048"};
     ShadowmapManager::ShadowmapManager(VKRenderer* renderer) : renderer(renderer)
     {
         VK::PipelineLayoutBuilder plb{renderer->getCore()->GetHandles()};
@@ -41,8 +42,10 @@ namespace worlds
 
         for (int i = 0; i < NUM_SHADOW_LIGHTS; i++)
         {
-            VK::TextureCreateInfo tci =
-                VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, SHADOWMAP_RES, SHADOWMAP_RES);
+            VK::TextureCreateInfo tci = VK::TextureCreateInfo::RenderTarget2D(
+                VK::TextureFormat::D32_SFLOAT,
+                r_shadowmapRes.getInt(), r_shadowmapRes.getInt()
+            );
             ShadowmapInfo si{};
             si.texture = renderer->getCore()->CreateTexture(tci);
             si.bindlessID = renderer->getBindlessTextureManager()->AllocateTextureHandle(si.texture.Get());
@@ -69,10 +72,24 @@ namespace worlds
         RenderMeshManager* meshManager = renderer->getMeshManager();
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         cb.BeginDebugLabel("Shadows", 0.1f, 0.1f, 0.1f);
+        int shadowRes = r_shadowmapRes.getInt();
+
+        for (int i = 0; i < NUM_SHADOW_LIGHTS; i++)
+        {
+            ShadowmapInfo& info = shadowmapInfo[i];
+
+            if (info.texture->GetWidth() != shadowRes)
+            {
+                VK::TextureCreateInfo tci =
+                    VK::TextureCreateInfo::RenderTarget2D(VK::TextureFormat::D32_SFLOAT, shadowRes, shadowRes);
+                info.texture = renderer->getCore()->CreateTexture(tci);
+                btm->SetTextureAt(info.bindlessID, info.texture.Get());
+            }
+        }
 
         cb.BindPipeline(pipeline.Get());
-        cb.SetScissor(VK::ScissorRect::Simple(SHADOWMAP_RES, SHADOWMAP_RES));
-        cb.SetViewport(VK::Viewport::Simple(SHADOWMAP_RES, SHADOWMAP_RES));
+        cb.SetScissor(VK::ScissorRect::Simple(shadowRes, shadowRes));
+        cb.SetViewport(VK::Viewport::Simple(shadowRes, shadowRes));
         cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
         cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
 
@@ -92,7 +109,7 @@ namespace worlds
             f.fromVPMatrix(vp);
 
             VK::RenderPass rp{};
-            rp.RenderArea(SHADOWMAP_RES, SHADOWMAP_RES);
+            rp.RenderArea(shadowRes, shadowRes);
             rp.DepthAttachment(
                 shadowmapInfo[worldLight.shadowmapIdx].texture.Get(), VK::LoadOp::Clear, VK::StoreOp::Store);
             rp.DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f));

@@ -102,6 +102,7 @@ StructuredBuffer<DrawInfo> DrawInfos;
 cbuffer SceneGlobals 
 {
     float time;
+    float shadowmapResolution;
     float2 PoissonKernel[64];
 };
 
@@ -255,7 +256,7 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                         }
 
                         // bilinearly interpolate the occlusions
-                        float2 fr = frac((offsetCoord * 2048.0) - 0.5);
+                        float2 fr = frac((offsetCoord * shadowmapResolution) - 0.5);
                         float tr = lerp(occlusions.x, occlusions.y, fr.x);
                         float br = lerp(occlusions.w, occlusions.z, fr.x);
                         float final = lerp(br, tr, fr.y);
