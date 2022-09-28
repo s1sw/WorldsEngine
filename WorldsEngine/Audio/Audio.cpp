@@ -766,12 +766,16 @@ namespace worlds
 
             IPLSimulationInputs inputs{};
             inputs.flags = simFlags;
+            inputs.directFlags = (IPLDirectSimulationFlags)(IPL_DIRECTEFFECTFLAGS_APPLYOCCLUSION | IPL_DIRECTEFFECTFLAGS_APPLYDISTANCEATTENUATION);
             inputs.source.right = convVecSA(t.rotation * glm::vec3(1.0f, 0.0f, 0.0f));
             inputs.source.up = convVecSA(t.rotation * glm::vec3(0.0f, 1.0f, 0.0f));
             inputs.source.ahead = convVecSA(t.rotation * glm::vec3(0.0f, 0.0f, 1.0f));
             inputs.source.origin = convVecSA(t.position);
             inputs.distanceAttenuationModel.type = IPL_DISTANCEATTENUATIONTYPE_DEFAULT;
             inputs.airAbsorptionModel.type = IPL_AIRABSORPTIONTYPE_DEFAULT;
+            inputs.occlusionType = IPL_OCCLUSIONTYPE_RAYCAST;
+            inputs.numOcclusionSamples = 8;
+            inputs.occlusionRadius = 0.2f;
             inputs.reverbScale[0] = 1.0f;
             inputs.reverbScale[1] = 1.0f;
             inputs.reverbScale[2] = 1.0f;
@@ -780,6 +784,16 @@ namespace worlds
             inputs.baked = IPL_FALSE;
 
             iplSourceSetInputs(as.phononSource, simFlags, &inputs);
+
+            IPLSimulationOutputs outputs{};
+            iplSourceGetOutputs(as.phononSource, IPL_SIMULATIONFLAGS_DIRECT, &outputs);
+
+            FMOD::DSP* phononDsp;
+            FMCHECK(findSteamAudioDSP(as.eventInstance, &phononDsp));
+            if (phononDsp)
+            {
+                FMCHECK(phononDsp->setParameterFloat(SpatializerEffect::OCCLUSION, outputs.direct.occlusion));
+            }
         });
 
         IPLSimulationSharedInputs sharedInputs{};
