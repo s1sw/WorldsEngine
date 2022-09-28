@@ -56,8 +56,11 @@ namespace WorldsEngine.Math
         public bool HasNaNComponent => float.IsNaN(x) || float.IsNaN(y) || float.IsNaN(z) || float.IsNaN(w);
 
         public Vector3 Forward => this * Vector3.Forward;
+        public Vector3 Backward => this * Vector3.Backward;
+        public Vector3 Right => this * Vector3.Right;
         public Vector3 Left => this * Vector3.Left;
         public Vector3 Up => this * Vector3.Up;
+        public Vector3 Down => this * Vector3.Down;
 
         public bool Valid => Length > 0.9999f && Length < 1.00001f;
 
