@@ -221,13 +221,23 @@ namespace WorldsEngine
         static void EditorUpdate()
         {
             SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
-            AssemblyLoadManager.ReloadIfNecessary();
-            if (Editor.Editor.State != GameState.Playing)
-                Physics.ClearCollisionQueue();
+            try
+            {
+                AssemblyLoadManager.ReloadIfNecessary();
+                if (Editor.Editor.State != GameState.Playing)
+                    Physics.ClearCollisionQueue();
 
-            Editor.Editor.Update();
+                Editor.Editor.Update();
 
-            editorUpdateSyncContext.RunCallbacks();
+                editorUpdateSyncContext.RunCallbacks();
+            }
+            catch (Exception e)
+            {
+                // There should never be exceptions this far up in editor code.
+                // Catch and rethrow so we can redirect it to our logs.
+                Log.Error($"Caught exception {e}");
+                throw e;
+            }
             SceneRunning = false;
         }
     }
