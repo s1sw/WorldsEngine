@@ -165,8 +165,16 @@ namespace WorldsEngine.Hotloading
             return t.Assembly == oldAssembly;
         }
 
-        private void RewriteField(FieldInfo from, FieldInfo to, object? oldInstance, object? newInstance)
+        private void RewriteField(FieldInfo from, FieldInfo to, object? oldInstance, object? newInstance, int recursionCounter = 0)
         {
+            if (recursionCounter >= 250)
+            {
+                string msg = $"Likely infinite loop detected!!!! Processing field {from.DeclaringType!.FullName}.{from.Name}";
+                Log.Error(msg);
+                throw new Exception(msg);
+            }
+            if (from.DeclaringType == typeof(System.Reflection.Pointer)) return;
+
             object? val = from.GetValue(oldInstance);
 
             // Don't need to rewrite if it's null!
@@ -174,20 +182,24 @@ namespace WorldsEngine.Hotloading
 
             // Some special handling is required for events/delegates
 
-            object? newVal = RewriteObject(val);
+            object? newVal = RewriteObject(val, recursionCounter + 1);
             to.SetValue(newInstance, newVal);
         }
 
-        private void RewriteField(FieldInfo fieldInfo, object? instance)
+        private void RewriteField(FieldInfo fieldInfo, object? instance, int recusionCounter = 0)
         {
-            RewriteField(fieldInfo, fieldInfo, instance, instance);
+            RewriteField(fieldInfo, fieldInfo, instance, instance, recusionCounter);
         }
 
         const BindingFlags HotloadFieldBindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
-        private object? RewriteObject(object? oldObject)
+        private object? RewriteObject(object? oldObject, int recursionCounter = 0)
         {
             if (oldObject == null) return null;
+            if (recursionCounter >= 300)
+            {
+                throw new Exception($"Likely infinite loop detected!!!! Processing object of type {oldObject.GetType().FullName}");
+            }
 
             if (reserialized.ContainsKey(oldObject))
             {
@@ -216,7 +228,7 @@ namespace WorldsEngine.Hotloading
 
                 if (del.Target != null && del.Method != null)
                 {
-                    newDel = Delegate.CreateDelegate(newDelegateType, RewriteObject(del.Target)!, del.Method.Name, false);
+                    newDel = Delegate.CreateDelegate(newDelegateType, RewriteObject(del.Target, recursionCounter + 1)!, del.Method.Name, false);
                 }
                 else if (del.Method != null)
                 {
@@ -253,7 +265,7 @@ namespace WorldsEngine.Hotloading
 
                     if (arrayValue == null) continue;
 
-                    newArray.SetValue(RewriteObject(arrayValue), i);
+                    newArray.SetValue(RewriteObject(arrayValue, recursionCounter + 1), i);
                 }
 
                 // If the types are equal, there's no need to exchange the array
@@ -328,7 +340,7 @@ namespace WorldsEngine.Hotloading
                         continue;
                     }
 
-                    RewriteField(fieldInfo, newFieldInfo, oldObject, newObject);
+                    RewriteField(fieldInfo, newFieldInfo, oldObject, newObject, recursionCounter + 1);
                 }
 
                 Type? baseType = newType.BaseType;
@@ -347,7 +359,7 @@ namespace WorldsEngine.Hotloading
 
                         if (newBaseField == null) continue;
 
-                        RewriteField(baseField, newBaseField, oldObject, newObject);
+                        RewriteField(baseField, newBaseField, oldObject, newObject, recursionCounter + 1);
                     }
 
                     baseType = baseType.BaseType;
@@ -363,7 +375,7 @@ namespace WorldsEngine.Hotloading
 
                 foreach (FieldInfo fieldInfo in oldFields)
                 {
-                    RewriteField(fieldInfo, oldObject);
+                    RewriteField(fieldInfo, oldObject, recursionCounter + 1);
                 }
 
                 Type? baseType = oldType.BaseType;
@@ -377,7 +389,7 @@ namespace WorldsEngine.Hotloading
 
                         if (newBaseField == null) continue;
 
-                        RewriteField(baseField, newBaseField, oldObject, oldObject);
+                        RewriteField(baseField, newBaseField, oldObject, oldObject, recursionCounter + 1);
                     }
 
                     baseType = baseType.BaseType;
