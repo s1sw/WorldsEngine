@@ -197,6 +197,30 @@ namespace WorldsEngine.Math
             return mat;
         }
 
+        public Vector3 ToEulerAngles()
+        {
+            float tVal = x * y + z * w;
+
+            float yaw = MathF.Atan2(2f * y * w - 2 * x * z, 1 - 2 * y * y - 2 * z * z);
+            float pitch = MathF.Asin(2 * x * y + 2 * z * w);
+            float roll = MathF.Atan2(2 * x * w - 2 * y * z, 1 - 2 * x * x - 2 * z * z);
+
+            if (tVal > 0.5f - float.Epsilon)
+            {
+                yaw = 2 * MathF.Atan2(x, w);
+                pitch = MathF.PI / 2;
+                roll = 0f;
+            }
+            else if (tVal < -0.5f + float.Epsilon)
+            {
+                yaw = -2 * MathF.Atan2(x, w);
+                pitch = -MathF.PI / 2;
+                roll = 0f;
+            }
+
+            return new Vector3(roll, yaw, pitch);
+       }
+
         public static Quaternion SafeLookAt(Vector3 dir)
         {
             return SafeLookAt(dir, Vector3.Up, Vector3.Forward);
