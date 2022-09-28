@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using WorldsEngine.Hotloading;
 using WorldsEngine.ComponentMeta;
 using System.IO;
+using System.Collections;
 
 namespace WorldsEngine.Editor
 {
@@ -24,6 +25,27 @@ namespace WorldsEngine.Editor
         Editing,
         Playing,
         Paused
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct SlibList
+    {
+        public IntPtr Data;
+        public ulong NumElements;
+    }
+
+    public unsafe class NativeList<T> where T : unmanaged
+    {
+        private SlibList* nativeList;
+
+        public int Count => (int)nativeList->NumElements; 
+
+        public T this[int index] { get => ((T*)nativeList->Data)[index]; }
+
+        internal NativeList(IntPtr nativePtr)
+        {
+            nativeList = (SlibList*)nativePtr;
+        }
     }
 
     public static class Editor
@@ -43,10 +65,14 @@ namespace WorldsEngine.Editor
 
         [DllImport(Engine.NativeModule)]
         private static extern GameState editor_getCurrentState();
+
+        [DllImport(Engine.NativeModule)]
+        private static extern IntPtr editor_getSelectionList();
         #endregion
 
         public static Entity CurrentlySelected => new(editor_getCurrentlySelected());
         public static GameState State => editor_getCurrentState();
+        public static NativeList<Entity> SelectedEntities;
 
         private readonly static Dictionary<Type, EditorWindow> _singleInstanceWindows = new();
         private readonly static List<EditorWindow> _editorWindows = new();
@@ -57,6 +83,8 @@ namespace WorldsEngine.Editor
         {
             _editorWindowTypes = Assembly.GetExecutingAssembly().GetTypes()
                 .Where(t => t.IsSubclassOf(typeof(EditorWindow))).ToList();
+            
+            SelectedEntities = new NativeList<Entity>(editor_getSelectionList());
         }
 
         public static void Select(Entity entity)
@@ -223,6 +251,14 @@ namespace WorldsEngine.Editor
             if (Registry.Valid(CurrentlySelected))
             {
                 MetadataManager.DrawGizmosFor(CurrentlySelected);
+            }
+
+            for (int i = 0; i < SelectedEntities.Count; i++)
+            {
+                if (Registry.Valid(SelectedEntities[i]))
+                {
+                    MetadataManager.DrawGizmosFor(SelectedEntities[i]);
+                }
             }
         }
 

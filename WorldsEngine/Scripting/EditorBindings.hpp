@@ -31,4 +31,9 @@ extern "C"
     {
         return csharpEditor->getCurrentState();
     }
+
+    EXPORT const slib::List<entt::entity>* editor_getSelectionList()
+    {
+        return &csharpEditor->getSelectedEntities();
+    }
 }
