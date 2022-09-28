@@ -25,6 +25,7 @@ namespace worlds
       public:
         static void buildAndSave(entt::registry& registry, const char* path);
         static void updateNavMesh(entt::registry& registry);
+        static void drawNavMesh();
         static void findPath(glm::vec3 startPos, glm::vec3 endPos, NavigationPath& path);
         static bool getClosestPointOnMesh(glm::vec3 point, glm::vec3& outPoint,
                                           glm::vec3 searchExtent = glm::vec3{0.0f});

@@ -260,6 +260,7 @@ namespace worlds
                 });
                 ImGui::Text("World Bounds: (%.3f, %.3f, %.3f) to (%.3f, %.3f, %.3f)", bbMin.x, bbMin.y, bbMin.z,
                             bbMax.x, bbMax.y, bbMax.z);
+                NavigationSystem::drawNavMesh();
 
                 if (ImGui::Button("Bake"))
                 {

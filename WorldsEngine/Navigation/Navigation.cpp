@@ -11,6 +11,7 @@
 
 #include <Core/Log.hpp>
 #include <Core/MeshManager.hpp>
+#include <Render/DebugLines.hpp>
 #include <Util/EnumUtil.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <physfs.h>
@@ -18,26 +19,29 @@
 
 namespace worlds
 {
-    const float CellSize = 0.3f;
-    const float CellHeight = 0.2f;
+    const float CellSize = 0.2f;
+    const float CellHeight = 0.4f;
 
-    rcConfig recastConfig{.width = 0,
-                          .height = 0,
-                          .tileSize = 0,
-                          .borderSize = 0,
-                          .cs = CellSize,
-                          .ch = CellHeight,
-                          .walkableSlopeAngle = 45.0f,
-                          .walkableHeight = (int)ceilf(2.0f / CellHeight),
-                          .walkableClimb = (int)floorf(0.9f / CellHeight),
-                          .walkableRadius = (int)ceilf(0.6f / CellSize),
-                          .maxEdgeLen = 40,
-                          .maxSimplificationError = 1.3f,
-                          .minRegionArea = 64,
-                          .mergeRegionArea = 400,
-                          .maxVertsPerPoly = 6,
-                          .detailSampleDist = 1.8f,
-                          .detailSampleMaxError = 0.0f};
+    rcConfig recastConfig
+    {
+        .width = 0,
+        .height = 0,
+        .tileSize = 0,
+        .borderSize = 0,
+        .cs = CellSize,
+        .ch = CellHeight,
+        .walkableSlopeAngle = 45.0f,
+        .walkableHeight = (int)ceilf(2.0f / CellHeight),
+        .walkableClimb = (int)floorf(0.9f / CellHeight),
+        .walkableRadius = (int)ceilf(0.5f / CellSize),
+        .maxEdgeLen = 40,
+        .maxSimplificationError = 0.25f,
+        .minRegionArea = 64,
+        .mergeRegionArea = 400,
+        .maxVertsPerPoly = 6,
+        .detailSampleDist = 1.0f,
+        .detailSampleMaxError = 0.0f
+    };
 
     class CustomRCContext : public rcContext
     {
@@ -353,6 +357,46 @@ namespace worlds
         size_t navMeshDataSize;
         buildNavMesh(reg, navMeshData, navMeshDataSize);
         setupFromNavMeshData(navMeshData, navMeshDataSize);
+    }
+
+    void NavigationSystem::drawNavMesh()
+    {
+        if (navMesh == nullptr) return;
+
+        for (int i = 0; i < navMesh->getMaxTiles(); i++)
+        {
+            // bluh
+            // only the const version of getTile is public, but the private non-const version has
+            // the same name so we have to cast to const to get to it
+            const dtMeshTile* tile = ((const dtNavMesh*)navMesh)->getTile(i);
+            for (int j = 0; j < tile->header->polyCount; j++)
+            {
+                const dtPoly& poly = tile->polys[j];
+                const dtPolyDetail& polyDetail = tile->detailMeshes[j];
+                
+                for (int k = 0; k < polyDetail.triCount; k++)
+                {
+                    const unsigned char* packedTri = &tile->detailTris[(polyDetail.triBase+k)*4];
+
+                    glm::vec3 verts[3];
+
+                    for (int l = 0; l < 3; ++l)
+                    {
+                        if (packedTri[l] < poly.vertCount)
+                            verts[l] = glm::make_vec3(&tile->verts[poly.verts[packedTri[l]] * 3]);
+                        else
+                            verts[l] = glm::make_vec3(&tile->detailVerts[(polyDetail.vertBase + packedTri[l] - poly.vertCount) *3]);
+                    }
+
+                    glm::vec3 last = verts[0];
+                    for (int l = 1; l < 3; l++)
+                    {
+                        drawLine(last, verts[l], glm::vec4(1.0f, 0.0f, 1.0f, 1.0f));
+                        last = verts[l];
+                    }
+                }
+            }
+        }
     }
 
     void NavigationSystem::findPath(glm::vec3 startPos, glm::vec3 endPos, NavigationPath& path)
