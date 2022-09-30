@@ -1,6 +1,5 @@
 #include "Export.hpp"
 #include "VR/IVRInterface.hpp"
-#include "VR/OpenVRInterface.hpp"
 
 using namespace worlds;
 IVRInterface* csharpVrInterface;
@@ -65,6 +64,6 @@ extern "C"
 
     EXPORT bool vr_hasInputFocus()
     {
-        return static_cast<OpenVRInterface*>(csharpVrInterface)->hasFocus();
+        return csharpVrInterface->hasFocus();
     }
 }

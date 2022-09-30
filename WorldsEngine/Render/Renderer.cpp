@@ -77,7 +77,7 @@ namespace worlds
         if (initInfo.enableVR)
         {
             // 0 means the size is set automatically
-            xrPresentManager = new XRPresentManager(core, 0, 0);
+            xrPresentManager = new XRPresentManager(interfaces, 0, 0);
         }
 
         shadowmapManager = new ShadowmapManager(this);

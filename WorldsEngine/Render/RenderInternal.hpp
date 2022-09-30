@@ -268,11 +268,12 @@ namespace worlds
         UniquePtr<R2::VK::Texture> leftEye;
         UniquePtr<R2::VK::Texture> rightEye;
         int width, height;
+        const EngineInterfaces& interfaces;
         R2::VK::Core* core;
         void createTextures();
 
     public:
-        XRPresentManager(R2::VK::Core* core, int width, int height);
+        XRPresentManager(const EngineInterfaces& interfaces, int width, int height);
         void resize(int width, int height);
         void copyFromLayered(R2::VK::CommandBuffer cb, R2::VK::Texture* layeredTexture);
         void preSubmit();
