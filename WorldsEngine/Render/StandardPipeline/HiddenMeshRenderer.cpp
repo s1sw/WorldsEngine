@@ -11,6 +11,7 @@ namespace worlds
 {
     HiddenMeshRenderer::HiddenMeshRenderer(const EngineInterfaces& interfaces, int sampleCount)
         : interfaces(interfaces)
+        , totalVertexCount(0)
     {
         VKRenderer* renderer = (VKRenderer*)interfaces.renderer;
         VK::Core* core = renderer->getCore();
