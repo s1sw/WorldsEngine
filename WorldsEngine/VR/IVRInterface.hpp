@@ -21,7 +21,8 @@ namespace worlds
     {
         None,
         OpenXR,
-        OpenVR
+        OpenVR,
+        Fake
     };
 
     enum class TrackedObject

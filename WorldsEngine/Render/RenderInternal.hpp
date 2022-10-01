@@ -273,7 +273,7 @@ namespace worlds
         void createTextures();
 
     public:
-        XRPresentManager(const EngineInterfaces& interfaces, int width, int height);
+        XRPresentManager(VKRenderer* renderer, const EngineInterfaces& interfaces, int width, int height);
         void resize(int width, int height);
         void copyFromLayered(R2::VK::CommandBuffer cb, R2::VK::Texture* layeredTexture);
         void preSubmit();

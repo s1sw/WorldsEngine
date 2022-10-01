@@ -79,11 +79,11 @@ namespace worlds
     class WorldsEngine;
     struct EngineInterfaces
     {
+        WorldsEngine* engine;
         IVRInterface* vrInterface;
         Renderer* renderer;
         Camera* mainCamera;
         InputManager* inputManager;
-        WorldsEngine* engine;
         DotNetScriptEngine* scriptEngine;
         PhysicsSystem* physics;
         Editor* editor;
@@ -155,7 +155,7 @@ namespace worlds
         bool running;
         bool dedicatedServer;
         int workerThreadOverride;
-        bool enableOpenVR;
+        bool enableVR;
         entt::registry registry;
 
         IGameEventHandler* evtHandler;
@@ -178,7 +178,7 @@ namespace worlds
         UniquePtr<Editor> editor;
 #endif
         UniquePtr<DotNetScriptEngine> scriptEngine;
-        UniquePtr<OpenVRInterface> openvrInterface;
+        UniquePtr<IVRInterface> vrInterface;
         UniquePtr<PhysicsSystem> physicsSystem;
 
         std::vector<ISystem*> systems;

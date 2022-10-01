@@ -19,11 +19,11 @@ namespace worlds
         rightEye->SetDebugName("Left Eye Submit Texture");
     }
 
-    XRPresentManager::XRPresentManager(const EngineInterfaces& interfaces, int width, int height)
+    XRPresentManager::XRPresentManager(VKRenderer* renderer, const EngineInterfaces& interfaces, int width, int height)
         : width(width)
         , height(height)
         , interfaces(interfaces)
-        , core(((VKRenderer*)interfaces.renderer)->getCore())
+        , core(renderer->getCore())
     {
         if (width == 0 || height == 0)
         {

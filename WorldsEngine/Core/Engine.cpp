@@ -39,6 +39,7 @@
 #include <Util/CreateModelObject.hpp>
 #include <Util/TimingUtil.hpp>
 #include <VR/OpenVRInterface.hpp>
+#include <VR/FakeVRInterface.hpp>
 
 #ifdef BUILD_EDITOR
 #define EDITORONLY(expr) expr
@@ -282,14 +283,14 @@ namespace worlds
     }
 
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
-        : pauseSim{false}, running{true}, simAccumulator{0.0}
+        : pauseSim{false}, running{true}, simAccumulator{0.0}, interfaces{this}
     {
         ZoneScoped;
         PerfTimer startupTimer;
         workerThreadOverride = initOptions.workerThreadOverride;
         evtHandler = initOptions.eventHandler;
         runAsEditor = initOptions.runAsEditor;
-        enableOpenVR = initOptions.enableVR;
+        enableVR = initOptions.enableVR;
         dedicatedServer = initOptions.dedicatedServer;
 
 #ifndef BUILD_EDITOR
@@ -400,16 +401,19 @@ namespace worlds
         std::vector<std::string> additionalInstanceExts;
         std::vector<std::string> additionalDeviceExts;
 
-        if (enableOpenVR)
+        if (enableVR)
         {
-            openvrInterface = new OpenVRInterface();
-            openvrInterface->init();
+            //vrInterface = new OpenVRInterface();
+            //vrInterface->init();
+            vrInterface = new FakeVRInterface();
+            vrInterface->init();
+            interfaces.vrInterface = vrInterface.Get();
 
             if (!runAsEditor)
             {
                 uint32_t newW, newH;
 
-                openvrInterface->getRenderResolution(&newW, &newH);
+                vrInterface->getRenderResolution(&newW, &newH);
                 SDL_Rect rect;
                 SDL_GetDisplayUsableBounds(0, &rect);
 
@@ -421,12 +425,10 @@ namespace worlds
 
         VrApi activeApi = VrApi::None;
 
-        if (enableOpenVR)
+        if (enableVR)
         {
             activeApi = VrApi::OpenVR;
         }
-
-        IVRInterface* vrInterface = openvrInterface.Get();
 
         if (!dedicatedServer && runAsEditor)
             splashWindow->changeOverlay("initialising renderer");
@@ -438,15 +440,16 @@ namespace worlds
                 window->getWrappedHandle(),
                 additionalInstanceExts,
                 additionalDeviceExts,
-                enableOpenVR,
+                enableVR,
                 activeApi,
-                vrInterface,
+                vrInterface.Get(),
                 initOptions.gameName,
                 interfaces
             };
 
             bool renderInitSuccess = false;
             renderer = new VKRenderer(initInfo, &renderInitSuccess);
+            interfaces.renderer = renderer.Get();
 
             if (!renderInitSuccess)
             {
@@ -456,16 +459,11 @@ namespace worlds
         }
 
         cam.position = glm::vec3(0.0f, 0.0f, -1.0f);
+        interfaces.mainCamera = &cam;
 
         inputManager = new InputManager(window->getWrappedHandle());
         window->bindInputManager(inputManager.Get());
-
-        interfaces = EngineInterfaces{
-            .vrInterface = enableOpenVR ? openvrInterface.Get() : nullptr,
-            .renderer = renderer.Get(),
-            .mainCamera = &cam,
-            .inputManager = inputManager.Get(),
-            .engine = this};
+        interfaces.inputManager = inputManager.Get();
 
         scriptEngine = new DotNetScriptEngine(registry, interfaces);
         interfaces.scriptEngine = scriptEngine.Get();
@@ -537,7 +535,7 @@ namespace worlds
         if (!dedicatedServer)
         {
             console->registerCommand(
-                [&](const char*) { screenPassIsVR = (!screenRTTPass) && enableOpenVR; },
+                [&](const char*) { screenPassIsVR = (!screenRTTPass) && enableVR; },
                 "toggleVRRendering",
                 "Toggle whether the screen RTT pass has VR enabled."
             );
@@ -597,11 +595,6 @@ namespace worlds
             "Saves the current scene in MessagePack format."
         );
 
-        if (enableOpenVR)
-        {
-            lockSimToRefresh.setValue("1");
-        }
-
         if (runAsEditor)
         {
             createStartupScene();
@@ -645,9 +638,9 @@ namespace worlds
             uint32_t w = 1600;
             uint32_t h = 900;
 
-            if (enableOpenVR)
+            if (enableVR)
             {
-                openvrInterface->getRenderResolution(&w, &h);
+                vrInterface->getRenderResolution(&w, &h);
                 screenPassIsVR = true;
             }
 
@@ -777,15 +770,15 @@ namespace worlds
 
         inputManager->update();
 
-        if (openvrInterface)
-            openvrInterface->updateInput();
+        if (vrInterface)
+            vrInterface->updateInput();
 
         if (!dedicatedServer)
         {
             screenRTTPass->active = !runAsEditor;
         }
 
-        if (enableOpenVR)
+        if (enableVR)
         {
             static bool lastIsVR = true;
             uint32_t w = 1600;
@@ -793,7 +786,7 @@ namespace worlds
 
             if (screenPassIsVR)
             {
-                openvrInterface->getRenderResolution(&w, &h);
+                vrInterface->getRenderResolution(&w, &h);
             }
 
             if (w != screenRTTPass->width || h != screenRTTPass->height)
@@ -948,21 +941,19 @@ namespace worlds
                 renderer->setVsync(false);
             }
 
-            auto vrSys = vr::VRSystem();
-
-            float predictAmount = openvrInterface->getPredictAmount();
-            openvrInterface->waitGetPoses();
-            glm::mat4 ht = openvrInterface->getHeadTransform(predictAmount);
+            float predictAmount = vrInterface->getPredictAmount();
+            vrInterface->waitGetPoses();
+            glm::mat4 ht = vrInterface->getHeadTransform(predictAmount);
             renderer->setVRUsedPose(ht);
             screenRTTPass->setView(
                 0,
-                glm::inverse(ht * openvrInterface->getEyeViewMatrix(Eye::LeftEye)),
-                openvrInterface->getEyeProjectionMatrix(Eye::LeftEye, cam.near)
+                glm::inverse(ht * vrInterface->getEyeViewMatrix(Eye::LeftEye)),
+                vrInterface->getEyeProjectionMatrix(Eye::LeftEye, cam.near)
             );
             screenRTTPass->setView(
                 1,
-                glm::inverse(ht * openvrInterface->getEyeViewMatrix(Eye::RightEye)),
-                openvrInterface->getEyeProjectionMatrix(Eye::RightEye, cam.near)
+                glm::inverse(ht * vrInterface->getEyeViewMatrix(Eye::RightEye)),
+                vrInterface->getEyeProjectionMatrix(Eye::RightEye, cam.near)
             );
         }
 
@@ -985,10 +976,6 @@ namespace worlds
 
         if (sceneLoadQueued)
         {
-            if (enableOpenVR)
-            {
-                vr::VRCompositor()->FadeGrid(0.1f, true);
-            }
             sceneLoadQueued = false;
             SceneInfo& si = registry.ctx<SceneInfo>();
             si.name = std::filesystem::path(AssetDB::idToPath(queuedSceneID)).stem().string();
@@ -1025,11 +1012,6 @@ namespace worlds
                         as.eventInstance->start();
                 }
             );
-
-            if (enableOpenVR)
-            {
-                vr::VRCompositor()->FadeGrid(0.1f, false);
-            }
         }
 
         uint64_t postUpdate = SDL_GetPerformanceCounter();
@@ -1167,7 +1149,7 @@ namespace worlds
 
                 if (ImGui::CollapsingHeader(ICON_FA_PENCIL_ALT u8" Render Stats"))
                 {
-                    if (!enableOpenVR)
+                    if (!enableVR)
                         ImGui::Text("Internal render resolution: %ix%i", screenRTTPass->width, screenRTTPass->height);
                     else
                         ImGui::Text(
@@ -1385,27 +1367,8 @@ namespace worlds
         }
         else if (deltaTime < 0.05f)
         {
-            if (enableOpenVR)
-            {
-                float fDisplayFrequency = vr::VRSystem()->GetFloatTrackedDeviceProperty(
-                    vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float
-                );
-                float fFrameDuration = 1.f / fDisplayFrequency;
-                if (deltaTime >= fFrameDuration * 2.0f)
-                {
-                    doSimStep(deltaTime * 0.5f);
-                    doSimStep(deltaTime * 0.5f);
-                }
-                else
-                {
-                    doSimStep(deltaTime);
-                }
-            }
-            else
-            {
-                doSimStep(deltaTime);
-                ran = true;
-            }
+            doSimStep(deltaTime);
+            ran = true;
 
             registry.view<RigidBody, Transform>().each(
                 [&](entt::entity, RigidBody& dpa, Transform& transform)
