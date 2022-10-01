@@ -1541,6 +1541,19 @@ namespace worlds
             reg.emplace<AudioSource>(ent);
         }
 
+        void clone(entt::entity from, entt::entity to, entt::registry& reg) override
+        {
+            AudioSource& originalAs = reg.get<AudioSource>(from);
+            AudioSource& as = reg.emplace<AudioSource>(to);
+            as.changeEventPath(originalAs.eventPath());
+            as.playOnSceneStart = originalAs.playOnSceneStart;
+            
+            if (originalAs.playbackState() == FMOD_STUDIO_PLAYBACK_PLAYING)
+            {
+                as.eventInstance->start();
+            }
+        }
+
 #ifdef BUILD_EDITOR
         void edit(entt::entity ent, entt::registry& registry, Editor* ed) override
         {
@@ -1604,8 +1617,8 @@ namespace worlds
         {
             ZoneScoped;
             auto& as = reg.emplace<AudioSource>(ent);
-            as.changeEventPath(j["eventPath"].get<std::string>());
             as.playOnSceneStart = j["playOnSceneStart"];
+            as.changeEventPath(j["eventPath"].get<std::string>());
         }
     };
 
