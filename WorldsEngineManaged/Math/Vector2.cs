@@ -74,5 +74,13 @@ namespace WorldsEngine.Math
             if (LengthSquared == 0.0f) return;
             this /= Length;
         }
+
+        public Vector2 Rotate(float angle)
+        {
+            float ca = MathF.Cos(angle);
+            float sa = MathF.Sin(angle);
+
+            return new Vector2(ca * x - sa * y, sa * x + ca * y);
+        }
     }
 }
