@@ -1249,7 +1249,6 @@ namespace worlds
         std::vector<IPLMaterial> materials;
         std::vector<int> materialIndices;
     };
-    robin_hood::unordered_map<AssetID, CacheableMeshInfo> cachedMeshes;
 #endif
     IPLScene AudioSystem::createScene(entt::registry& reg)
     {
@@ -1261,6 +1260,7 @@ namespace worlds
 
         IPLScene scene = nullptr;
         SACHECK(iplSceneCreate(phononContext, &sceneSettings, &scene));
+        robin_hood::unordered_map<AssetID, CacheableMeshInfo> cachedMeshes;
 
         reg.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& t) {
             if (!enumHasFlag(wo.staticFlags, StaticFlags::Audio))
