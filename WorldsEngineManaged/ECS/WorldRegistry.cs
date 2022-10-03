@@ -688,7 +688,7 @@ namespace WorldsEngine
 
             while (_componentRemovals.TryDequeue(out ComponentRemoval cr))
             {
-                if (Valid(cr.Entity))
+                if (Valid(cr.Entity) && HasComponent(cr.Entity, cr.ComponentType))
                     RemoveComponentActual(cr.ComponentType, cr.Entity);
             }
         }

@@ -230,6 +230,7 @@ namespace WorldsEngine
                 Editor.Editor.Update();
 
                 editorUpdateSyncContext.RunCallbacks();
+                Registry.ClearDestroyQueue();
             }
             catch (Exception e)
             {
