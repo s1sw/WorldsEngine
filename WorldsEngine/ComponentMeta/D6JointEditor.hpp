@@ -138,11 +138,9 @@ namespace worlds
 
                     Transform t1 = px2glm(j.pxJoint->getLocalPose(physx::PxJointActorIndex::eACTOR0));
                     Transform t2 = px2glm(j.pxJoint->getLocalPose(physx::PxJointActorIndex::eACTOR1));
-                    t2.rotation = glm::quat{1.f, 0.f, 0.f, 0.f};
-                    t1.rotation = glm::quat{1.f, 0.f, 0.f, 0.f};
                     // TODO: this ignores rotations. can we do better??
                     // idk, and my brain is fried so i leave this to future you
-                    Transform goal = t2.transformBy(reg.get<Transform>(target)).transformByInverse(t1);
+                    Transform goal = reg.get<Transform>(target).transformByInverse(t1).transformBy(t2);
 
                     drawSphere(goal.position, goal.rotation, 0.1f);
 
@@ -250,6 +248,14 @@ namespace worlds
 
                 if (ImGui::DragFloat3("Local Offset", &t0.p.x))
                 {
+                    j.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, t0);
+                }
+
+                glm::vec3 localEulerAngles = glm::degrees(glm::eulerAngles(px2glm(t0.q)));
+
+                if (ImGui::DragFloat3("Local Rotation", glm::value_ptr(localEulerAngles)))
+                {
+                    t0.q = glm2px(glm::quat(glm::radians(localEulerAngles)));
                     j.pxJoint->setLocalPose(physx::PxJointActorIndex::eACTOR0, t0);
                 }
 
