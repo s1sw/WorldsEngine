@@ -197,6 +197,15 @@ namespace worlds
             extendedFrame = false;
             MARGINS m{};
             DwmExtendFrameIntoClientArea(hwnd, &m);
+            static bool setDarkMode = false;
+
+            if (!setDarkMode)
+            {
+                const DWORD DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+                BOOL value = true;
+                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+                setDarkMode = true;
+            }
         }
     }
 }
