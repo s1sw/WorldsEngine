@@ -1328,7 +1328,7 @@ namespace worlds
                 ImGui::EndMenu();
             }
 
-            if (project->assetCompiler().isCompiling())
+            if (project && project->assetCompiler().isCompiling())
             {
                 AssetCompileOperation* currentOp = project->assetCompiler().currentOperation();
                 if (currentOp)
