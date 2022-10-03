@@ -83,7 +83,7 @@ namespace worlds
         {
             if (editor->isPlaying() && interfaces.renderer->getVsync())
             {
-                interfaces.renderer->setVsync(false);
+                //interfaces.renderer->setVsync(false);
             }
 
             if (editor->isPlaying())

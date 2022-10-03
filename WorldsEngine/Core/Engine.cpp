@@ -936,10 +936,10 @@ namespace worlds
 
         if (screenPassIsVR && !runAsEditor)
         {
-            if (renderer->getVsync())
-            {
-                renderer->setVsync(false);
-            }
+            //if (renderer->getVsync())
+            //{
+            //    renderer->setVsync(false);
+            //}
 
             float predictAmount = vrInterface->getPredictAmount();
             vrInterface->waitGetPoses();
