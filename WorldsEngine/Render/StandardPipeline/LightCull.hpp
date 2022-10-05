@@ -14,23 +14,26 @@ namespace R2::VK
     class DescriptorSet;
     class DescriptorSetLayout;
     class Sampler;
+    class TimestampPool;
 }
 
 namespace worlds
 {
     class SimpleCompute;
+    class VKRenderer;
 
     class LightCull
     {
-        R2::VK::Core* core;
+        VKRenderer* renderer;
         R2::VK::Texture* depthBuffer;
         R2::VK::FrameSeparatedBuffer* lightBuffers;
         R2::VK::Buffer* lightTiles;
         R2::VK::Buffer* multiVPBuffer;
         UniquePtr<R2::VK::Sampler> sampler;
         UniquePtr<SimpleCompute> cs[2];
+        UniquePtr<R2::VK::TimestampPool> timestampPool;
     public:
-        LightCull(R2::VK::Core* core, R2::VK::Texture* depthBuffer, R2::VK::FrameSeparatedBuffer* lightBuffers, R2::VK::Buffer* lightTiles, R2::VK::Buffer* multiVPBuffer);
+        LightCull(VKRenderer* renderer, R2::VK::Texture* depthBuffer, R2::VK::FrameSeparatedBuffer* lightBuffers, R2::VK::Buffer* lightTiles, R2::VK::Buffer* multiVPBuffer);
         void Execute(R2::VK::CommandBuffer& cb);
     };
 }

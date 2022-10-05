@@ -1190,6 +1190,7 @@ namespace worlds
                     ImGui::Text("- Waiting for command buffer fence: %.3fms", dbgStats.imgFenceWaitTime);
                     ImGui::Text("- Writing command buffer: %.3fms", dbgStats.cmdBufWriteTime);
                     ImGui::Text("GPU render time: %.3fms", renderer->getLastGPUTime() / 1000.0f / 1000.0f);
+                    ImGui::Text("Light cull time: %.3fms", dbgStats.lightCullTime / 1000.0f / 1000.0f);
                     ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
                     ImGui::Text("Triangles: %u", dbgStats.numTriangles);
                     ImGui::Text("Lights in view: %i", dbgStats.numLightsInView);

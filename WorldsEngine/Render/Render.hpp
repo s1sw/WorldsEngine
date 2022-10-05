@@ -93,6 +93,7 @@ namespace worlds
         double cmdBufWriteTime;
         double cmdBufFenceWaitTime;
         double imgFenceWaitTime;
+        double lightCullTime;
     };
 
     enum class VKVendor

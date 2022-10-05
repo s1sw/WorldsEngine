@@ -138,7 +138,9 @@ namespace worlds
         }
 
         lightCull =
-            new LightCull(core, depthBuffer.Get(), lightBuffers.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
+            new LightCull((VKRenderer*)engineInterfaces.renderer, depthBuffer.Get(),
+                          lightBuffers.Get(), lightTileBuffer.Get(), multiVPBuffer.Get());
+
         debugLineDrawer = new DebugLineDrawer(
             core, multiVPBuffer.Get(), rttPass->getSettings().msaaLevel, getViewMask(settings.numViews));
         bloom = new Bloom(core, colorBuffer.Get());
