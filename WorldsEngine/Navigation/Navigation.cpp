@@ -19,7 +19,7 @@
 
 namespace worlds
 {
-    const float CellSize = 0.2f;
+    const float CellSize = 0.125f;
     const float CellHeight = 0.4f;
 
     rcConfig recastConfig
@@ -30,9 +30,9 @@ namespace worlds
         .borderSize = 0,
         .cs = CellSize,
         .ch = CellHeight,
-        .walkableSlopeAngle = 45.0f,
+        .walkableSlopeAngle = 30.0f,
         .walkableHeight = (int)ceilf(2.0f / CellHeight),
-        .walkableClimb = (int)floorf(0.9f / CellHeight),
+        .walkableClimb = (int)floorf(0.2f / CellHeight),
         .walkableRadius = (int)ceilf(0.5f / CellSize),
         .maxEdgeLen = 40,
         .maxSimplificationError = 0.25f,
@@ -40,7 +40,7 @@ namespace worlds
         .mergeRegionArea = 400,
         .maxVertsPerPoly = 6,
         .detailSampleDist = 1.0f,
-        .detailSampleMaxError = 0.0f
+        .detailSampleMaxError = 0.1f
     };
 
     class CustomRCContext : public rcContext
