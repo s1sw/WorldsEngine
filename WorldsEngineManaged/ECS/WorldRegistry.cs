@@ -401,7 +401,7 @@ namespace WorldsEngine
 
             if (type.IsAssignableTo(typeof(BuiltinComponent)))
             {
-                if (!storage.Contains(entity) && GetBuiltinComponentMetadata(type).ExistsOn(entity))
+                if (GetBuiltinComponentMetadata(type).ExistsOn(entity))
                 {
                     if (!storage.Contains(entity))
                     {
