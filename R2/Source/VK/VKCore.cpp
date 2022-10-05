@@ -40,6 +40,12 @@ namespace R2::VK
 		createAllocator();
 		createDescriptorPool();
 
+        VkPhysicalDeviceProperties deviceProps{};
+        vkGetPhysicalDeviceProperties(handles.PhysicalDevice, &deviceProps);
+
+        strncpy(deviceInfo.Name, deviceProps.deviceName, 256);
+        deviceInfo.TimestampPeriod = deviceProps.limits.timestampPeriod;
+
 		Utils::SetupImmediateCommandBuffer(GetHandles());
 
 		for (uint32_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++)
@@ -75,15 +81,8 @@ namespace R2::VK
 		this->dbgOutRecv = dbgOutRecv;
 	}
 
-	GraphicsDeviceInfo Core::GetDeviceInfo()
+	const GraphicsDeviceInfo& Core::GetDeviceInfo() const
 	{
-		GraphicsDeviceInfo deviceInfo{};
-		VkPhysicalDeviceProperties deviceProps{};
-		vkGetPhysicalDeviceProperties(handles.PhysicalDevice, &deviceProps);
-
-		strncpy(deviceInfo.Name, deviceProps.deviceName, 256);
-		deviceInfo.TimestampPeriod = deviceProps.limits.timestampPeriod;
-
 		return deviceInfo;
 	}
 

@@ -88,7 +88,7 @@ namespace R2::VK
 	public:
 		Core(IDebugOutputReceiver* dbgOutRecv = nullptr, bool enableValidation = false);
 
-		GraphicsDeviceInfo GetDeviceInfo();
+		const GraphicsDeviceInfo& GetDeviceInfo() const;
 
 		Texture* CreateTexture(const TextureCreateInfo& createInfo);
 		void DestroyTexture(Texture* tex);
@@ -166,6 +166,7 @@ namespace R2::VK
 		void createDescriptorPool();
 
 		Handles handles;
+        GraphicsDeviceInfo deviceInfo;
 		VkDebugUtilsMessengerEXT messenger;
 		IDebugOutputReceiver* dbgOutRecv;
 		PerFrameResources perFrameResources[2];
