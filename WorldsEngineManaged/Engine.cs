@@ -237,7 +237,7 @@ namespace WorldsEngine
                 // There should never be exceptions this far up in editor code.
                 // Catch and rethrow so we can redirect it to our logs.
                 Log.Error($"Caught exception {e}");
-                throw e;
+                throw;
             }
             SceneRunning = false;
         }
