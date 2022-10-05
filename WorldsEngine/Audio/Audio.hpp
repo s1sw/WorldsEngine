@@ -2,11 +2,10 @@
 #include <Core/AssetDB.hpp>
 #include <Core/Console.hpp>
 #include <SDL_audio.h>
-#include <entt/entt.hpp>
+#include <entt/entity/lw_fwd.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <queue>
 #include <slib/StaticAllocList.hpp>
-#include <unordered_map>
 #ifdef ENABLE_STEAM_AUDIO
 #include <phonon.h>
 #endif
@@ -14,9 +13,6 @@
 #include <fmod_studio.hpp>
 #include <glm/glm.hpp>
 #include <robin_hood.h>
-#include <slib/HeapArray.hpp>
-
-struct stb_vorbis;
 
 #ifndef ENABLE_STEAM_AUDIO
 #define DECLARE_OPAQUE_HANDLE(x) typedef struct _##x##_t* x
@@ -102,10 +98,6 @@ namespace worlds
         void playOneShotEvent(const char* eventPath, glm::vec3 location, float volume = 1.0f);
         void playOneShotAttachedEvent(const char* eventPath, glm::vec3 location, entt::entity entity,
                                       float volume = 1.0f);
-        inline bool getPauseState()
-        {
-            return false;
-        }
         void shutdown(entt::registry& worldState);
         static AudioSystem* getInstance()
         {
@@ -162,5 +154,6 @@ namespace worlds
         robin_hood::unordered_map<const char*, FMOD::Studio::Bank*> loadedBanks;
         robin_hood::unordered_map<AssetID, FMOD::Sound*> sounds;
         std::vector<AttachedOneshot*> attachedOneshots;
+        int sourcesInSim = 0;
     };
 }
