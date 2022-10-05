@@ -12,6 +12,7 @@ using namespace R2;
 
 namespace worlds
 {
+    ConVar r_skipShadows {"r_skipShadows", "0"};
     ConVar r_shadowmapRes {"r_shadowmapRes", "2048"};
     ShadowmapManager::ShadowmapManager(VKRenderer* renderer) : renderer(renderer)
     {
@@ -71,6 +72,9 @@ namespace worlds
     {
         RenderMeshManager* meshManager = renderer->getMeshManager();
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
+
+        if (r_skipShadows) return;
+
         cb.BeginDebugLabel("Shadows", 0.1f, 0.1f, 0.1f);
         int shadowRes = r_shadowmapRes.getInt();
 
