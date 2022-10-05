@@ -120,7 +120,8 @@ namespace WorldsEngine.Math
 
         public Vector3 ClampMagnitude(float maxMagnitude)
         {
-            return (this / Length) * MathF.Min(MathF.Max(-maxMagnitude, Length), maxMagnitude);
+            if (LengthSquared <= float.Epsilon) return Vector3.Zero;
+            return (this / Length) * MathFX.Clamp(Length, -maxMagnitude, maxMagnitude);
         }
 
         public Vector3 ClampComponents(float maxMagnitude)
