@@ -362,3 +362,4 @@ compile_commands.json
 .vscode/
 EngineSrcData/Shaders/BuildTools/slang-stdlib.bin
 NetAssemblies/WorldsEngineManaged.dll
+cmake-build*
