@@ -1,6 +1,7 @@
 #include <volk.h>
 #include <R2/VKCommandBuffer.hpp>
 #include <R2/VKBuffer.hpp>
+#include <R2/VKSyncPrims.hpp>
 #include <R2/VKTexture.hpp>
 #include <R2/VKPipeline.hpp>
 
@@ -234,5 +235,15 @@ namespace R2::VK
     VkCommandBuffer CommandBuffer::GetNativeHandle()
     {
         return cb;
+    }
+
+    void CommandBuffer::SetEvent(Event *evt)
+    {
+        vkCmdSetEvent(cb, evt->GetNativeHandle(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+    }
+
+    void CommandBuffer::ResetEvent(R2::VK::Event *evt)
+    {
+        vkCmdResetEvent(cb, evt->GetNativeHandle(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
     }
 }
