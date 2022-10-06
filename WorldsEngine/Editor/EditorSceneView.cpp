@@ -368,11 +368,18 @@ namespace worlds
                 if (interfaces.inputManager->mouseButtonPressed(MouseButton::Left, true))
                 {
                     //sceneViewPass->requestPick((int)localMPos.x, (int)localMPos.y);
+                    PickParams params{};
+                    params.cam = &cam;
+                    params.pickX = localMPos.x;
+                    params.pickY = localMPos.y;
+                    params.screenWidth = sceneViewPass->width;
+                    params.screenHeight = sceneViewPass->height;
+                    interfaces.renderer->requestPick(params);
                     pickRequested = true;
                 }
 
                 uint32_t picked;
-                if (pickRequested && false) //sceneViewPass->getPickResult(&picked))
+                if (pickRequested && interfaces.renderer->getPickResult(picked))
                 {
                     if (picked == UINT32_MAX)
                         picked = entt::null;

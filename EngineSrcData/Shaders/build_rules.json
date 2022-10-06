@@ -138,5 +138,17 @@
     },
     {
         "path": "skinning.comp.slang"
+    },
+    {
+        "path": "pick.slang",
+        "outputPath": "pick.vert.spv",
+        "stage": "vert",
+        "entryPoint": "VertexShader"
+    },
+    {
+        "path": "pick.slang",
+        "outputPath": "pick.frag.spv",
+        "stage": "frag",
+        "entryPoint": "FragmentShader"
     }
 ]

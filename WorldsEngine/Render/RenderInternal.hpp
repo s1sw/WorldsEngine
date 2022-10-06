@@ -237,7 +237,7 @@ namespace worlds
 
         VKRenderer* renderer;
         VKRTTPass(VKRenderer* renderer, const RTTPassSettings& ci, IRenderPipeline* pipeline);
-        ~VKRTTPass();
+        ~VKRTTPass() override;
 
         R2::VK::Texture* finalTarget;
         uint32_t finalTargetBindlessID;
@@ -299,6 +299,8 @@ namespace worlds
         uint32_t GetShadowmapId(uint32_t idx);
     };
 
+    class ObjectPickPass;
+
     class VKRenderer : public Renderer
     {
         const EngineInterfaces& interfaces;
@@ -313,6 +315,7 @@ namespace worlds
         glm::mat4 vrUsedPose;
         UniquePtr<R2::VK::TimestampPool> timestampPool;
         UniquePtr<ShadowmapManager> shadowmapManager;
+        UniquePtr<ObjectPickPass> objectPickPass;
 
         std::vector<VKRTTPass*> rttPasses;
 
@@ -328,7 +331,7 @@ namespace worlds
 
     public:
         VKRenderer(const RendererInitInfo& initInfo, bool* success);
-        ~VKRenderer();
+        ~VKRenderer() override;
 
         void frame(entt::registry& reg, float deltaTime) override;
 
@@ -345,6 +348,9 @@ namespace worlds
 
         RTTPass* createRTTPass(RTTPassSettings& ci) override;
         void destroyRTTPass(RTTPass* pass) override;
+
+        void requestPick(PickParams params) override;
+        bool getPickResult(uint32_t& entityId) override;
 
         void reloadShaders() override;
         void drawDebugMenus();

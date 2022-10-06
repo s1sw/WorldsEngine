@@ -5,6 +5,7 @@
 
 #include "Camera.hpp"
 #include "PackedMaterial.hpp"
+#include <Render/PickParams.hpp>
 #include <Core/WorldComponents.hpp>
 #include <VR/IVRInterface.hpp>
 
@@ -208,6 +209,9 @@ namespace worlds
 
         virtual RTTPass* createRTTPass(RTTPassSettings& ci) = 0;
         virtual void destroyRTTPass(RTTPass* pass) = 0;
+
+        virtual void requestPick(PickParams params) = 0;
+        virtual bool getPickResult(uint32_t& entityId) = 0;
 
         virtual void reloadShaders() = 0;
 

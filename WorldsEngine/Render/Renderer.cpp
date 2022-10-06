@@ -9,6 +9,7 @@
 #include <R2/VKSyncPrims.hpp>
 #include <R2/VKTimestampPool.hpp>
 #include <Render/FakeLitPipeline.hpp>
+#include <Render/ObjectPickPass.hpp>
 #include <Render/R2ImGui.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
@@ -81,6 +82,7 @@ namespace worlds
         }
 
         shadowmapManager = new ShadowmapManager(this);
+        objectPickPass = new ObjectPickPass(this);
 
         *success = true;
     }
@@ -103,6 +105,7 @@ namespace worlds
         delete bindlessTextureManager;
         xrPresentManager.Reset();
         shadowmapManager.Reset();
+        objectPickPass.Reset();
         ImGui_ImplR2_Shutdown();
 
         delete core;
@@ -195,6 +198,8 @@ namespace worlds
 
         cb.EndDebugLabel();
 
+        objectPickPass->execute(cb, registry);
+
         swapchainImage->Acquire(
             cb, VK::ImageLayout::PresentSrc, VK::AccessFlags::MemoryRead, VK::PipelineStageFlags::AllCommands);
 
@@ -268,6 +273,16 @@ namespace worlds
         pass->active = false;
         delete static_cast<VKRTTPass*>(pass);
         rttPasses.erase(std::remove(rttPasses.begin(), rttPasses.end(), pass), rttPasses.end());
+    }
+
+    void VKRenderer::requestPick(PickParams params)
+    {
+        objectPickPass->requestPick(params);
+    }
+
+    bool VKRenderer::getPickResult(uint32_t& entityId)
+    {
+        return objectPickPass->getResult(entityId);
     }
 
     void VKRenderer::reloadShaders()
