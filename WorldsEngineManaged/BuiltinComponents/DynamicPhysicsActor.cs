@@ -318,8 +318,7 @@ namespace WorldsEngine
         {
             if (force.HasNaNComponent)
             {
-                Log.Error("Tried to add force with a NaN component!");
-                return;
+                throw new ArgumentException("Cannot add a force with a NaN component");
             }
 
             dynamicpa_addForce(regPtr, entityId, force, (int)forceMode);
@@ -329,8 +328,7 @@ namespace WorldsEngine
         {
             if (torque.HasNaNComponent)
             {
-                Log.Error("Tried to add torque with a NaN component!");
-                return;
+                throw new ArgumentException("Cannot add a torque with a NaN component");
             }
 
             dynamicpa_addTorque(regPtr, entityId, torque, (int)forceMode);
@@ -338,6 +336,11 @@ namespace WorldsEngine
 
         public void AddForceAtPosition(Vector3 force, Vector3 position, ForceMode forceMode = ForceMode.Force)
         {
+            if (force.HasNaNComponent)
+            {
+                throw new ArgumentException("Cannot add a force with a NaN component");
+            }
+            
             dynamicpa_addForceAtPosition(regPtr, entityId, force, position, (int)forceMode);
         }
     }
