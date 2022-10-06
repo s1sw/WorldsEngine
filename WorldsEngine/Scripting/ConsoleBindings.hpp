@@ -13,4 +13,9 @@ extern "C"
                funcPtr(commandId, args);
             }, strdup(name), help == nullptr ? nullptr : strdup(help));
     }
+
+    EXPORT void console_executeCommand(const char* cmd)
+    {
+        g_console->executeCommandStr(cmd);
+    }
 }

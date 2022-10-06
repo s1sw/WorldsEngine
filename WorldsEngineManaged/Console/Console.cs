@@ -24,6 +24,9 @@ namespace WorldsEngine
 
         [DllImport(Engine.NativeModule, CharSet = CharSet.Ansi)]
         private static extern void console_registerCommand(CommandCallbackDelegate cmdDelegate, string name, string? help, int id);
+        
+        [DllImport(Engine.NativeModule, CharSet = CharSet.Ansi)]
+        private static extern void console_executeCommand(string cmd);
 
         private static readonly CommandCallbackDelegate callbackDelegate;
 
@@ -96,5 +99,7 @@ namespace WorldsEngine
                 cmd.CurrentlyLoaded = false;
             }
         }
+
+        public static void RunCommand(string command) => console_executeCommand(command);
     }
 }
