@@ -237,6 +237,11 @@ namespace R2::VK
         return cb;
     }
 
+    void CommandBuffer::UpdateBuffer(Buffer *buffer, uint64_t offset, uint64_t size, void *data)
+    {
+        vkCmdUpdateBuffer(cb, buffer->GetNativeHandle(), offset, size, data);
+    }
+
     void CommandBuffer::SetEvent(Event *evt)
     {
         vkCmdSetEvent(cb, evt->GetNativeHandle(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
