@@ -1,8 +1,8 @@
+#include <volk.h>
 #include <R2/VKCommandBuffer.hpp>
 #include <R2/VKBuffer.hpp>
 #include <R2/VKTexture.hpp>
 #include <R2/VKPipeline.hpp>
-#include <volk.h>
 
 namespace R2::VK
 {
