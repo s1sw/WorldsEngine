@@ -83,7 +83,7 @@ namespace worlds
         if (totalVertexCount == 0) return;
 
         cb.BindPipeline(pipeline.Get());
-        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), ds->GetNativeHandle(), 0);
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), ds.Get(), 0);
         cb.PushConstants(viewOffset, VK::ShaderStage::Vertex, pipelineLayout.Get());
         cb.Draw(viewOffset, 1, 0, 0);
     }

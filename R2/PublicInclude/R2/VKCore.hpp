@@ -183,6 +183,7 @@ namespace R2::VK
 
 		friend class Buffer;
 		friend class DescriptorSet;
+        friend class Event;
 		friend class Pipeline;
 		friend class Sampler;
 		friend class Texture;

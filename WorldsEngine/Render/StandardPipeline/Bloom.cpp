@@ -140,7 +140,7 @@ namespace worlds
         hdrSource->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
 
         cb.BindComputePipeline(seedPipeline.Get());
-        cb.BindComputeDescriptorSet(pipelineLayout.Get(), seedDS->GetNativeHandle(), 0);
+        cb.BindComputeDescriptorSet(pipelineLayout.Get(), seedDS.Get(), 0);
         cb.Dispatch((hdrSource->GetWidth() + 15) / 16, (hdrSource->GetHeight() + 15) / 16, hdrSource->GetLayers());
 
         // Downsample time!
@@ -156,7 +156,7 @@ namespace worlds
             // We want to downsample from the previous mip level to this mip level.
             BloomPushConstants pcs { (uint32_t)(mip - 1), (uint32_t)0, (uint32_t)w, (uint32_t)h };
             cb.PushConstants(pcs, VK::ShaderStage::Compute, pipelineLayout.Get());
-            cb.BindComputeDescriptorSet(pipelineLayout.Get(), mipOutputSets[mip]->GetNativeHandle(), 0);
+            cb.BindComputeDescriptorSet(pipelineLayout.Get(), mipOutputSets[mip].Get(), 0);
             cb.Dispatch((w + 15) / 16, (h + 15) / 16, hdrSource->GetLayers());
 
             w /= 2;
@@ -176,7 +176,7 @@ namespace worlds
             // We want to upsample from this mip level to the next mip level.
             BloomPushConstants pcs { (uint32_t)mip, (uint32_t)0, (uint32_t)w, (uint32_t)h };
             cb.PushConstants(pcs, VK::ShaderStage::Compute, pipelineLayout.Get());
-            cb.BindComputeDescriptorSet(pipelineLayout.Get(), mipOutputSets[mip - 1]->GetNativeHandle(), 0);
+            cb.BindComputeDescriptorSet(pipelineLayout.Get(), mipOutputSets[mip - 1].Get(), 0);
             cb.Dispatch((w + 15) / 16, (h + 15) / 16, hdrSource->GetLayers());
         }
         cb.EndDebugLabel();

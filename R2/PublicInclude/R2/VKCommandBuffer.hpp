@@ -99,6 +99,7 @@ namespace R2::VK
 
     enum class ShaderStage;
 
+    class DescriptorSet;
     class Event;
     class Pipeline;
     class PipelineLayout;
@@ -116,13 +117,13 @@ namespace R2::VK
         void BindVertexBuffer(uint32_t location, Buffer* buffer, uint64_t offset);
         void BindIndexBuffer(Buffer* buffer, uint64_t offset, IndexType indexType);
         void BindPipeline(Pipeline* p);
-        void BindGraphicsDescriptorSet(PipelineLayout* pipelineLayout, VkDescriptorSet descriptorSet, uint32_t setNumber);
+        void BindGraphicsDescriptorSet(PipelineLayout* pipelineLayout, DescriptorSet* descriptorSet, uint32_t setNumber);
         void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
         void DrawIndexedIndirect(Buffer* buffer, uint64_t offset, uint32_t drawCount, uint32_t stride);
         void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 
         void BindComputePipeline(Pipeline* p);
-        void BindComputeDescriptorSet(PipelineLayout* pipelineLayout, VkDescriptorSet descriptorSet, uint32_t setNumber);
+        void BindComputeDescriptorSet(PipelineLayout* pipelineLayout, DescriptorSet* descriptorSet, uint32_t setNumber);
         void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 
         template <typename T>

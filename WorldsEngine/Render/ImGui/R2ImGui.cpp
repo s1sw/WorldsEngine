@@ -211,7 +211,8 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
     int global_idx_offset = 0;
     int global_vtx_offset = 0;
     ImVec2 clip_off = drawData->DisplayPos;
-    cb.BindGraphicsDescriptorSet(s->pipelineLayout, s->textureManager->GetTextureDescriptorSet().GetNativeHandle(), 0);
+    R2::VK::DescriptorSet& ds = s->textureManager->GetTextureDescriptorSet();
+    cb.BindGraphicsDescriptorSet(s->pipelineLayout, &ds, 0);
     cb.BindIndexBuffer(indexBuffer, 0, VK::IndexType::Uint16);
     cb.BindVertexBuffer(0, vertexBuffer, 0);
     cb.BindPipeline(s->pipeline);

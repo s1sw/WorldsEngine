@@ -99,7 +99,7 @@ namespace worlds
             ts.idx = i;
             ts.skipBloom = (int)skipBloom;
 
-            cb.BindComputeDescriptorSet(pipelineLayout.Get(), descriptorSets[i]->GetNativeHandle(), 0);
+            cb.BindComputeDescriptorSet(pipelineLayout.Get(), descriptorSets[i].Get(), 0);
             cb.PushConstants(ts, VK::ShaderStage::Compute, pipelineLayout.Get());
             cb.Dispatch((target->GetWidth() + 15) / 16, (target->GetHeight() + 15) / 16, 1);
         }

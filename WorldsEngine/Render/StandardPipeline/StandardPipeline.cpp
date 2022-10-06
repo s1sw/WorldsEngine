@@ -866,8 +866,8 @@ namespace worlds
             hiddenMeshRenderer->Execute(cb);
 
         cb.BindPipeline(depthPrePipeline.Get());
-        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()]->GetNativeHandle(), 0);
-        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), btm->GetTextureDescriptorSet().GetNativeHandle(), 1);
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()].Get(), 0);
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), &btm->GetTextureDescriptorSet(), 1);
         cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
         cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
 

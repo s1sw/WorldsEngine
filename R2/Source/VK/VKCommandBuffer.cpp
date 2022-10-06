@@ -1,5 +1,6 @@
 #include <volk.h>
 #include <R2/VKCommandBuffer.hpp>
+#include <R2/VKDescriptorSet.hpp>
 #include <R2/VKBuffer.hpp>
 #include <R2/VKSyncPrims.hpp>
 #include <R2/VKTexture.hpp>
@@ -56,10 +57,11 @@ namespace R2::VK
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, p->GetNativeHandle());
     }
 
-    void CommandBuffer::BindGraphicsDescriptorSet(PipelineLayout* pipelineLayout, VkDescriptorSet set, uint32_t setNumber)
+    void CommandBuffer::BindGraphicsDescriptorSet(PipelineLayout* pipelineLayout, DescriptorSet* set, uint32_t setNumber)
     {
+        VkDescriptorSet vkSet = set->GetNativeHandle();
         vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout->GetNativeHandle(),
-            setNumber, 1, &set, 0, nullptr);
+            setNumber, 1, &vkSet, 0, nullptr);
     }
 
     void CommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
@@ -82,10 +84,11 @@ namespace R2::VK
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, p->GetNativeHandle());
     }
 
-    void CommandBuffer::BindComputeDescriptorSet(PipelineLayout* pipelineLayout, VkDescriptorSet set, uint32_t setNumber)
+    void CommandBuffer::BindComputeDescriptorSet(PipelineLayout* pipelineLayout, DescriptorSet* set, uint32_t setNumber)
     {
+        VkDescriptorSet vkSet = set->GetNativeHandle();
         vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout->GetNativeHandle(),
-            setNumber, 1, &set, 0, nullptr);
+            setNumber, 1, &vkSet, 0, nullptr);
     }
 
     void CommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)

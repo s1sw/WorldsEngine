@@ -135,7 +135,7 @@ namespace worlds
         assert(pushConstantSize == this->pushConstantSize);
 
         cb.BindComputePipeline(pipeline.Get());
-        cb.BindComputeDescriptorSet(pipelineLayout.Get(), descriptorSet->GetNativeHandle(), 0);
+        cb.BindComputeDescriptorSet(pipelineLayout.Get(), descriptorSet.Get(), 0);
         if (pushConstantSize != SIZE_MAX && pushConstants != nullptr)
             cb.PushConstants(pushConstants, pushConstantSize, VK::ShaderStage::Compute, pipelineLayout.Get());
         cb.Dispatch(groupsX, groupsY, groupsZ);

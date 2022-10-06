@@ -129,7 +129,7 @@ namespace worlds
         uint32_t modelMatrixIndex = 0;
 
         cb.BindPipeline(pipeline);
-        cb.BindGraphicsDescriptorSet(pipelineLayout, descriptorSet->GetNativeHandle(), 0);
+        cb.BindGraphicsDescriptorSet(pipelineLayout, descriptorSet, 0);
         cb.SetViewport(VK::Viewport::Simple(rttPass->width, rttPass->height));
         cb.SetScissor(VK::ScissorRect::Simple(rttPass->width, rttPass->height));
 

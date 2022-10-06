@@ -80,7 +80,7 @@ namespace worlds
         debugLineBuffer->Unmap();
 
         cb.BindVertexBuffer(0, debugLineBuffer.Get(), 0);
-        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), ds->GetNativeHandle(), 0);
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), ds.Get(), 0);
         cb.BindPipeline(pipeline.Get());
         cb.Draw(debugLineCount * 2, 1, 0, 0);
     }
