@@ -2,11 +2,13 @@
 
 #define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 VK_DEFINE_HANDLE(VkFence)
+VK_DEFINE_HANDLE(VkEvent)
 #undef VK_DEFINE_HANDLE
 
 namespace R2::VK
 {
     struct Handles;
+    class Core;
 
     enum class FenceFlags
     {
@@ -30,5 +32,19 @@ namespace R2::VK
     private:
         const Handles* handles;
         VkFence fence;
+    };
+
+    class Event
+    {
+    public:
+        Event(Core* core);
+        bool IsSet();
+        void Set();
+        void Reset();
+        VkEvent GetNativeHandle();
+        ~Event();
+    private:
+        Core* core;
+        VkEvent event;
     };
 }

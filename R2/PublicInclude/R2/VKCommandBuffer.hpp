@@ -99,6 +99,7 @@ namespace R2::VK
 
     enum class ShaderStage;
 
+    class Event;
     class Pipeline;
     class PipelineLayout;
     class Texture;
@@ -135,6 +136,9 @@ namespace R2::VK
         void TextureBlit(Texture* source, Texture* destination, TextureBlit blitInfo);
         void TextureCopy(Texture* source, Texture* destination, TextureCopy copyInfo);
         void TextureCopyToBuffer(Texture* source, Buffer* destination);
+
+        void SetEvent(Event* evt);
+        void ResetEvent(Event* evt);
 
         VkCommandBuffer GetNativeHandle();
     private:
