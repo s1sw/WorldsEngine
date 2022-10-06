@@ -164,6 +164,8 @@ namespace R2::VK
 		void createAllocator();
 		void createDescriptorPool();
 
+        DeletionQueue* getCurrentDq();
+
 		Handles handles;
         GraphicsDeviceInfo deviceInfo;
 		VkDebugUtilsMessengerEXT messenger;

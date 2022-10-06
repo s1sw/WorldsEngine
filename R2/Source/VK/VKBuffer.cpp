@@ -161,7 +161,7 @@ namespace R2::VK
 
     Buffer::~Buffer()
     {
-        DeletionQueue* dq = renderer->perFrameResources[renderer->frameIndex].DeletionQueue;
+        DeletionQueue* dq = renderer->getCurrentDq();
         dq->QueueObjectDeletion(buffer, VK_OBJECT_TYPE_BUFFER);
         dq->QueueMemoryFree(allocation);
     }

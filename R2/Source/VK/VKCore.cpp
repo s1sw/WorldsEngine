@@ -566,4 +566,9 @@ namespace R2::VK
 
 		VKCHECK(vkEndCommandBuffer(frameResources.UploadCommandBuffer));
 	}
+
+    DeletionQueue* Core::getCurrentDq()
+    {
+        return perFrameResources[frameIndex].DeletionQueue;
+    }
 }
