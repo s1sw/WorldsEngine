@@ -26,12 +26,11 @@ typedef uint32_t VkFlags;
 typedef struct VkAllocationCallbacks VkAllocationCallbacks;
 typedef VkFlags VkDebugUtilsMessageTypeFlagsEXT;
 
-enum VkResult : int;
 enum VkDebugUtilsMessageSeverityFlagBitsEXT : int;
 
 namespace R2::VK
 {
-#define VKCHECK(res) if (res != VK_SUCCESS) { printf("RESULT: %i (file %s, line %i)", res, __FILE__, __LINE__); abort(); }
+#define VKCHECK(res) if (res != 0) { printf("RESULT: %i (file %s, line %i)", res, __FILE__, __LINE__); abort(); }
 	struct Queues
 	{
 		uint32_t GraphicsFamilyIndex;
