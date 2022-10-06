@@ -21,6 +21,13 @@ namespace R2::VK
 
     struct VertexAttribute
     {
+        // Declare an explicit constructor otherwise Clang complains about
+        // emplace_back
+        VertexAttribute(int index, TextureFormat format, uint32_t offset)
+            : Index(index)
+            , Format(format)
+            , Offset(offset) {}
+
         int Index;
         TextureFormat Format;
         uint32_t Offset;
