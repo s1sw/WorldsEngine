@@ -226,7 +226,7 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                     int blockCount = 0;
 
                     const bool jitterSamples = false;
-                    int sampleCount = 8; 
+                    int sampleCount = 8;
                     float penumbraSize = 0.5;
 
                     [[loop]]
@@ -454,6 +454,7 @@ float3 GetHeatmapColor(uint number, float2 fragCoord)
 }
 
 [shader("fragment")]
+[earlydepthstencil]
 float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position, uint viewIndex : SV_ViewID) : SV_TARGET
 {
     DrawInfo di = DrawInfos[WaveReadLaneFirst(input.DrawID)];
@@ -483,6 +484,8 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position, uint v
     }
 
     return float4(ambient * shadeInfo.ao + lo + material.EmissiveColor, 1.0);
+    //return float4(ambient * shadeInfo.ao + material.EmissiveColor, 1.0);
+    //return float4(GetHeatmapColor(GetCubemapTileCount(fragCoord), fragCoord), 1.0);
     //return float4(GetHeatmapColor(GetLightTileCount(fragCoord), fragCoord), 1.0);
 }
 
