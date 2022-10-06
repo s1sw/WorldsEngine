@@ -174,6 +174,11 @@ namespace WorldsEngine
             catch (Exception e)
             {
                 Logger.LogError($"Caught exception: {e}");
+                if (InEditor)
+                {
+                    Editor.Editor.Notify($"Paused due to {e.GetType().Name}", NotificationType.Error);
+                    Console.RunCommand("pauseAndEdit");
+                }
             }
 
             Registry.ClearDestroyQueue();
@@ -207,6 +212,11 @@ namespace WorldsEngine
             catch (Exception e)
             {
                 Logger.LogError($"Caught exception: {e}");
+                if (InEditor)
+                {
+                    Console.RunCommand("pauseAndEdit");
+                    Editor.Editor.Notify($"Paused due to {e.GetType().Name}", NotificationType.Error);
+                }
             }
 
             Registry.ClearDestroyQueue();
