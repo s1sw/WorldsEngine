@@ -65,7 +65,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
         float f2 = float(pcg_hash(asuint(sin(Time)))) / float(0xffffffffU);
 
         float2 randVel = (float2(f, f2) * 5.0) - 2.5;
-        newParticle.Velocity = float3(randVel.x, 15.0, randVel.y);
+        newParticle.Velocity = float3(randVel.x, -15.0, randVel.y);
 
         uint outputLoc;
         LiveAndSpawnCount.InterlockedAdd(CountOffset, 1, outputLoc);

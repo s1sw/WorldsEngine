@@ -14,6 +14,7 @@ namespace worlds
         uint32_t particleOffset;
         uint32_t particleCount;
         float deltaTime;
+        float time;
     };
 
     struct ParticleSpawnCompactPushConstants
@@ -115,13 +116,23 @@ namespace worlds
                 uint32_t numGroups = (ps.maxParticles + 255) / 256;
                 spawnCompactCs->Dispatch(cb, spawnCompactPushConstants, numGroups, 1, 1);
 
-                ParticleSimPushConstants pspc{};
-                pspc.particleCount = ps.maxParticles;
-                pspc.particleOffset = destinationOffset / sizeof(Particle);
-                pspc.deltaTime = deltaTime;
+                int numTicks = (int)(deltaTime / 0.02f);
 
-                particleBuffer->Acquire(cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
-                cs->Dispatch(cb, pspc, numGroups, 1, 1);
+                if (numTicks < 1) numTicks = 1;
+
+                float newDt = deltaTime / (float)numTicks;
+
+                for (int i = 0; i < numTicks; i++)
+                {
+                    ParticleSimPushConstants pspc{};
+                    pspc.particleCount = ps.maxParticles;
+                    pspc.particleOffset = destinationOffset / sizeof(Particle);
+                    pspc.deltaTime = newDt;
+                    pspc.time = (float)renderer->getTime();
+
+                    particleBuffer->Acquire(cb, VK::AccessFlags::ShaderReadWrite, VK::PipelineStageFlags::ComputeShader);
+                    cs->Dispatch(cb, pspc, numGroups, 1, 1);
+                }
             }
         );
 
