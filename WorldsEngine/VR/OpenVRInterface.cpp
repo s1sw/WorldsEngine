@@ -35,8 +35,7 @@ namespace worlds
             fatalErr(errMsg.c_str());
         }
 
-        const char* version = vr::VRSystem()->GetRuntimeVersion();
-        logMsg("Initializing OpenVR %s");
+        logMsg("Initializing OpenVR");
 
         const char* basePath = SDL_GetBasePath();
 
