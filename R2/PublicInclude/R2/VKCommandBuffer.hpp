@@ -139,6 +139,7 @@ namespace R2::VK
         void TextureCopyToBuffer(Texture* source, Buffer* destination);
 
         void UpdateBuffer(Buffer* buffer, uint64_t offset, uint64_t size, void* data);
+        void FillBuffer(Buffer* buffer, uint64_t offset, uint64_t size, uint32_t data);
 
         void SetEvent(Event* evt);
         void ResetEvent(Event* evt);
