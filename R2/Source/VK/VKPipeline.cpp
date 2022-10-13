@@ -160,6 +160,12 @@ namespace R2::VK
         return *this;
     }
 
+    PipelineBuilder& PipelineBuilder::AdditiveBlend(bool blend)
+    {
+        this->additiveBlend = blend;
+        return *this;
+    }
+
     PipelineBuilder& PipelineBuilder::DepthTest(bool enable)
     {
         depthTest = enable;
@@ -289,11 +295,7 @@ namespace R2::VK
             VkPipelineColorBlendAttachmentState cbas{};
             cbas.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
-            if (!alphaBlend)
-            {
-                cbas.blendEnable = VK_FALSE;
-            }
-            else
+            if (alphaBlend)
             {
                 cbas.blendEnable = VK_TRUE;
                 cbas.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -302,6 +304,20 @@ namespace R2::VK
                 cbas.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
                 cbas.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
                 cbas.alphaBlendOp = VK_BLEND_OP_ADD;
+            }
+            else if (additiveBlend)
+            {
+                cbas.blendEnable = VK_TRUE;
+                cbas.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+                cbas.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+                cbas.alphaBlendOp = VK_BLEND_OP_MAX;
+                cbas.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+                cbas.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+                cbas.colorBlendOp = VK_BLEND_OP_ADD;
+            }
+            else
+            {
+                cbas.blendEnable = VK_FALSE;
             }
             attachmentBlendStates.push_back(cbas);
         }

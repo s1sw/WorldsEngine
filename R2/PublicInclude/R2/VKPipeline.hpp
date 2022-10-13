@@ -125,6 +125,7 @@ namespace R2::VK
         PipelineBuilder& CullMode(CullMode mode);
         PipelineBuilder& Layout(PipelineLayout* layout);
         PipelineBuilder& AlphaBlend(bool blend);
+        PipelineBuilder& AdditiveBlend(bool blend);
         PipelineBuilder& DepthTest(bool enable);
         PipelineBuilder& DepthWrite(bool enable);
         PipelineBuilder& DepthCompareOp(CompareOp op);
@@ -150,6 +151,7 @@ namespace R2::VK
         VK::CullMode cullMode = VK::CullMode::Back;
         VkPipelineLayout layout;
         bool alphaBlend = false;
+        bool additiveBlend = false;
         bool depthTest = false;
         bool depthWrite = false;
         bool depthBias = false;
