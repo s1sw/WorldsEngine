@@ -74,7 +74,8 @@ VertexOutput VertexShader(uint viewIndex : SV_ViewID, uint vertexID : SV_VertexI
 [shader("fragment")]
 float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position) : SV_Target
 {
-    float alpha = smoothstep(0.45, 0.55, 1.0 - (distance(input.UV, float2(0.5)) * 2.0));
+    float2 recenteredUV = input.UV * 2.0 - 1.0;
+    float alpha = smoothstep(0.49, 0.51, 1.0 - length(recenteredUV));
     alpha *= 1.0 - smoothstep(7.0, 10.0, input.ParticleLifetime);
-    return float4(float3(15.0, 0.0, 0.0) * alpha, 1.0);
+    return float4(float3(50.0, 0.0, 0.0) * alpha, 1.0);
 }
