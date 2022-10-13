@@ -96,7 +96,7 @@ ConstantBuffer<MultiVP> VPBuffer;
 StructuredBuffer<float4x4> ModelMatrices;
 ByteAddressBuffer MaterialBuffer;
 ByteAddressBuffer RawLightBuffer;
-StructuredBuffer<LightingTile> LightTiles;
+ByteAddressBuffer LightTiles;
 StructuredBuffer<DrawInfo> DrawInfos;
 
 cbuffer SceneGlobals 
@@ -190,11 +190,15 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
 
     uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX) + (viewIndex * lti.tilesPerEye);
 
+    LightTileLoader tileLoader;
+    tileLoader.lightTileBuffer = LightTiles;
+
     float3 lo = 0.0f;
     for (int i = 0; i < 8; i++)
     {
         // scalarize light reads if possible
-        uint lightBits = WaveReadLaneFirst(WaveActiveBitOr(LightTiles[tileIdx].lightIdMasks[i]));
+        uint lightBits = WaveReadLaneFirst(WaveActiveBitOr(tileLoader.GetLightIDMask(tileIdx, i)));
+        //uint lightBits = LightTiles[tileIdx].lightIdMasks[i];
 
         while (lightBits != 0)
         {
@@ -343,12 +347,17 @@ float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, ui
 
     LightBufferLoader lbl;
     lbl.rawLightBuffer = RawLightBuffer;
+    
+    LightTileLoader ltl;
+    ltl.lightTileBuffer = LightTiles;
 
     int numCubemaps = 0;
     float weightSum = 0.0;
     for (int i = 0; i < 2; i++)
     {
-        uint cubemapBits = LightTiles[tileIdx].cubemapIdMasks[i];
+        uint cubemapBits = WaveReadLaneFirst(WaveActiveBitOr(ltl.GetCubemapIDMask(tileIdx, i)));
+        //uint cubemapBits = ltl.GetCubemapIDMask(tileIdx, i);
+        //uint cubemapBits = LightTiles[tileIdx].cubemapIdMasks[i];
 
         while (cubemapBits != 0)
         {
@@ -367,7 +376,7 @@ float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, ui
 
     for (int i = 0; i < 2; i++)
     {
-        uint cubemapBits = LightTiles[tileIdx].cubemapIdMasks[i];
+        uint cubemapBits = ltl.GetCubemapIDMask(tileIdx, i);
 
         while (cubemapBits != 0)
         {
@@ -413,13 +422,16 @@ uint GetCubemapTileCount(float2 fragCoord)
 {
     int tileIdxX = int(fragCoord.x / 32);
     int tileIdxY = int(fragCoord.y / 32);
+    
+    LightTileLoader ltl;
+    ltl.lightTileBuffer = LightTiles;
 
     LightTileInfo lti = CalculateTileInfo(VPBuffer.screenWidth, VPBuffer.screenHeight);
     uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX);
     uint numCubemaps = 0;
     for (int i = 0; i < 2; i++)
     {
-        uint cubemapBits = LightTiles[tileIdx].cubemapIdMasks[i];
+        uint cubemapBits = ltl.GetCubemapIDMask(tileIdx, i);
         numCubemaps += countbits(cubemapBits);
     }
 
@@ -430,13 +442,17 @@ uint GetLightTileCount(float2 fragCoord)
 {
     int tileIdxX = int(fragCoord.x / 32);
     int tileIdxY = int(fragCoord.y / 32);
+    
+    LightTileLoader ltl;
+    ltl.lightTileBuffer = LightTiles;
 
     LightTileInfo lti = CalculateTileInfo(VPBuffer.screenWidth, VPBuffer.screenHeight);
     uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX);
     uint foundLightCount = 0;
     for (int i = 0; i < 8; i++)
     {
-        uint lightBits = LightTiles[tileIdx].lightIdMasks[i];
+        //uint lightBits = LightTiles[tileIdx].lightIdMasks[i];
+        uint lightBits = ltl.GetLightIDMask(tileIdx, i);
         foundLightCount += countbits(lightBits);
     }
 
