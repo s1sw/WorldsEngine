@@ -223,6 +223,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
 #else
     accumulator = hdrImage.Load(int3(int2(threadID.xy), 0)).xyz;
 #endif
+    accumulator = lerp(accumulator, bloom, 0.2);
 #endif
 
     float3 lumaWeights = float3(0.3, 0.59, 0.11);
