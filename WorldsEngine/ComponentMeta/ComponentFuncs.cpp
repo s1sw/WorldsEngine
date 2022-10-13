@@ -1658,6 +1658,7 @@ namespace worlds
                 ImGui::InputInt("Priority", &wc.priority);
                 tooltipHover("Cubemaps with a higher priority value will be preferred over cubemaps with a lower "
                              "priority value.");
+                ImGui::DragFloat("Blend Distance", &wc.blendDistance);
 
                 Transform boundsTransform{};
                 boundsTransform.position = reg.get<Transform>(ent).position;
@@ -1684,7 +1685,8 @@ namespace worlds
                 {"extent", wc.extent},
                 {"priority", wc.priority},
                 {"resolution", wc.resolution},
-                {"captureOffset", wc.captureOffset}};
+                {"captureOffset", wc.captureOffset},
+                {"blendDistance", wc.blendDistance}};
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
@@ -1700,6 +1702,7 @@ namespace worlds
             wc.priority = j.value("priority", 0);
             wc.resolution = j.value("resolution", 128);
             wc.captureOffset = j.value("captureOffset", glm::vec3{0.0f});
+            wc.blendDistance = j.value("blendDistance", 1.0f);
         }
     };
 

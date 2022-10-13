@@ -419,6 +419,7 @@ namespace worlds
                 gc.extent = wc.extent;
                 gc.position = t.position;
                 gc.flags = wc.cubeParallax;
+                gc.blendDistance = wc.blendDistance;
                 if (!textureManager->isLoaded(wc.cubemapId))
                 {
                     convoluteQueue.push_back(wc.cubemapId);

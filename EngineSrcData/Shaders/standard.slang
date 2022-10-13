@@ -319,7 +319,7 @@ float3 sampleCubemap(Cubemap cubemap, float3 dir, float mip, float3 worldPos)
 float calcBlendWeight(Cubemap c, float3 worldPos)
 {
     float3 t = abs(worldPos - c.Position);
-    const float blendDist = 1.0;
+    float blendDist = c.BlendDistance;
     t = (t - (c.Extent - float3(blendDist))) / (float3(blendDist));
     return 1.0 - saturate(max(t.x, max(t.y, t.z)));
 }

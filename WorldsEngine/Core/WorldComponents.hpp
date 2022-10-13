@@ -128,6 +128,7 @@ namespace worlds
         AssetID cubemapId = ~0u;
         uint32_t renderIdx = 0u;
         AssetID loadedId = ~0u;
+        float blendDistance = 0.0f;
     };
 
     struct ProxyAOComponent

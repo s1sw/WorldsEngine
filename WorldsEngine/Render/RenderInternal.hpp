@@ -84,6 +84,7 @@ namespace worlds
         uint32_t texture;
         glm::vec3 position;
         uint32_t flags;
+        float blendDistance;
     };
 
     struct LightUB
