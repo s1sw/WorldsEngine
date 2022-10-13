@@ -20,6 +20,7 @@
 #include <Render/StandardPipeline/SkyboxRenderer.hpp>
 #include <Render/StandardPipeline/Tonemapper.hpp>
 #include <Render/StandardPipeline/RenderMaterialManager.hpp>
+#include <Render/StandardPipeline/ParticleRenderer.hpp>
 #include <entt/entity/registry.hpp>
 #include <Util/AABB.hpp>
 #include <Util/AtomicBufferWrapper.hpp>
@@ -279,6 +280,7 @@ namespace worlds
             hiddenMeshRenderer = new HiddenMeshRenderer(engineInterfaces, settings.msaaLevel);
         
         computeSkinner = new ComputeSkinner(renderer);
+        particleRenderer = new ParticleRenderer(renderer, settings.msaaLevel, getViewMask(settings.numViews), multiVPBuffer.Get());
     }
 
     void StandardPipeline::onResize(int width, int height)
@@ -908,6 +910,8 @@ namespace worlds
 
         debugLineDrawer->Execute(cb, dbgLines, dbgLinesCount);
         cb.EndDebugLabel();
+
+        particleRenderer->Execute(cb, reg);
 
         colorPass.End(cb);
         cb.EndDebugLabel();

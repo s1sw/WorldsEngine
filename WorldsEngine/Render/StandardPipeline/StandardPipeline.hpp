@@ -35,6 +35,7 @@ namespace worlds
     class SkyboxRenderer;
     class HiddenMeshRenderer;
     class ComputeSkinner;
+    class ParticleRenderer;
     struct EngineInterfaces;
 
     class StandardPipeline : public IRenderPipeline
@@ -62,6 +63,7 @@ namespace worlds
         UniquePtr<SkyboxRenderer> skyboxRenderer;
         UniquePtr<HiddenMeshRenderer> hiddenMeshRenderer;
         UniquePtr<ComputeSkinner> computeSkinner;
+        UniquePtr<ParticleRenderer> particleRenderer;
 
         const EngineInterfaces& engineInterfaces;
         VKRTTPass* rttPass;

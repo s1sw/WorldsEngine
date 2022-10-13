@@ -10,6 +10,8 @@
 #include <R2/VKTimestampPool.hpp>
 #include <Render/FakeLitPipeline.hpp>
 #include <Render/ObjectPickPass.hpp>
+#include <Render/ParticleDataManager.hpp>
+#include <Render/ParticleSimulator.hpp>
 #include <Render/R2ImGui.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
@@ -84,6 +86,9 @@ namespace worlds
         shadowmapManager = new ShadowmapManager(this);
         objectPickPass = new ObjectPickPass(this);
 
+        particleDataManager = new ParticleDataManager(this);
+        particleSimulator = new ParticleSimulator(this);
+
         *success = true;
     }
 
@@ -106,6 +111,8 @@ namespace worlds
         xrPresentManager.Reset();
         shadowmapManager.Reset();
         objectPickPass.Reset();
+        particleSimulator.Reset();
+        particleDataManager.Reset();
         ImGui_ImplR2_Shutdown();
 
         delete core;
@@ -119,7 +126,7 @@ namespace worlds
 
         // Reset debug stats
         debugStats.numDrawCalls = 0;
-        debugStats.numRTTPasses = rttPasses.size();
+        debugStats.numRTTPasses = (int)rttPasses.size();
         debugStats.numActiveRTTPasses = 0;
         debugStats.numTriangles = 0;
 
@@ -144,7 +151,7 @@ namespace worlds
 
         if (timestampPool->GetTimestamps(core->GetFrameIndex() * 2, 2, lastTimestamps))
         {
-            lastGPUTime = (lastTimestamps[1] - lastTimestamps[0]) * timestampPeriod;
+            lastGPUTime = (float)(lastTimestamps[1] - lastTimestamps[0]) * timestampPeriod;
         }
 
         timestampPool->Reset(cb, core->GetFrameIndex() * 2, 2);
@@ -152,6 +159,8 @@ namespace worlds
 
         shadowmapManager->AllocateShadowmaps(registry);
         shadowmapManager->RenderShadowmaps(cb, registry);
+
+        particleSimulator->execute(registry, cb, deltaTime);
 
         bool xrRendered = false;
         for (VKRTTPass* pass : rttPasses)
@@ -295,6 +304,9 @@ namespace worlds
             pass->pipeline = new StandardPipeline(interfaces);
             pass->pipeline->setup(pass);
         }
+
+        particleSimulator.Reset();
+        particleSimulator = new ParticleSimulator(this);
     }
 
     static ConVar showRenderDebugMenus{ "r_showExtraDebug", "0" };
@@ -331,6 +343,11 @@ namespace worlds
     ShadowmapManager* VKRenderer::getShadowmapManager()
     {
         return shadowmapManager.Get();
+    }
+
+    ParticleDataManager* VKRenderer::getParticleDataManager()
+    {
+        return particleDataManager.Get();
     }
 
     const DebugLine* VKRenderer::getCurrentDebugLines(size_t* count)

@@ -2137,6 +2137,54 @@ namespace worlds
         }
     };
 
+    class ParticleSystemEditor : public BasicComponentUtil<ParticleSystem>
+    {
+    public:
+        const char* getName() override
+        {
+            return "ParticleSystem";
+        }
+
+#ifdef BUILD_EDITOR
+        void edit(entt::entity entity, entt::registry& reg, Editor* ed) override
+        {
+            if (ImGui::CollapsingHeader("Particle System"))
+            {
+                if (ImGui::Button("Remove##ParticleSystem"))
+                {
+                    reg.remove<ParticleSystem>(entity);
+                    return;
+                }
+
+                auto& ps = reg.get<ParticleSystem>(entity);
+
+                ImGui::InputInt("Emission Rate", &ps.emissionRate);
+                ps.settingsDirty = ImGui::InputInt("Max Particles", &ps.maxParticles);
+                if (ps.maxParticles == 0)
+                    ps.settingsDirty = false;
+            }
+        }
+#endif
+
+        void toJson(entt::entity ent, entt::registry& reg, json& j) override
+        {
+            ParticleSystem& ps = reg.get<ParticleSystem>(ent);
+            j = {
+                { "emissionRate", ps.emissionRate },
+                { "maxParticles", ps.maxParticles }
+            };
+        }
+
+        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
+        {
+            ZoneScoped;
+
+            auto& ps = reg.emplace<ParticleSystem>(ent);
+            ps.emissionRate = j.value("emissionRate", 1);
+            ps.maxParticles = j.value("maxParticles", 1000);
+        }
+    };
+
     TransformEditor transformEd;
     WorldObjectEditor worldObjEd;
     SkinnedWorldObjectEditor skWorldObjEd;
@@ -2156,4 +2204,5 @@ namespace worlds
     FMODAudioSourceEditor fase;
     AudioListenerOverrideEditor alo;
     ChildComponentEditor ced;
+    ParticleSystemEditor pse;
 }

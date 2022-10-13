@@ -301,6 +301,8 @@ namespace worlds
     };
 
     class ObjectPickPass;
+    class ParticleDataManager;
+    class ParticleSimulator;
 
     class VKRenderer : public Renderer
     {
@@ -317,6 +319,8 @@ namespace worlds
         UniquePtr<R2::VK::TimestampPool> timestampPool;
         UniquePtr<ShadowmapManager> shadowmapManager;
         UniquePtr<ObjectPickPass> objectPickPass;
+        UniquePtr<ParticleDataManager> particleDataManager;
+        UniquePtr<ParticleSimulator> particleSimulator;
 
         std::vector<VKRTTPass*> rttPasses;
 
@@ -361,6 +365,7 @@ namespace worlds
         R2::BindlessTextureManager* getBindlessTextureManager();
         VKTextureManager* getTextureManager();
         ShadowmapManager* getShadowmapManager();
+        ParticleDataManager* getParticleDataManager();
         const DebugLine* getCurrentDebugLines(size_t* count);
         double getTime();
     };

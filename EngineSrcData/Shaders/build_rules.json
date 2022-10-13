@@ -150,5 +150,23 @@
         "outputPath": "pick.frag.spv",
         "stage": "frag",
         "entryPoint": "FragmentShader"
+    },
+    {
+        "path": "particle_sim.comp.slang"
+    },
+    {
+        "path": "particle_spawn_compact.comp.slang"
+    },
+    {
+        "path": "particle_render.slang",
+        "outputPath": "particle.vert.spv",
+        "stage": "vert",
+        "entryPoint": "VertexShader"
+    },
+    {
+        "path": "particle_render.slang",
+        "outputPath": "particle.frag.spv",
+        "stage": "frag",
+        "entryPoint": "FragmentShader"
     }
 ]

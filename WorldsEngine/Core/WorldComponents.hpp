@@ -174,4 +174,14 @@ namespace worlds
     {
         entt::entity firstChild;
     };
+
+    struct ParticleSystem
+    {
+        int emissionRate = 50;
+        int maxParticles = 10000;
+
+        bool settingsDirty = false;
+        bool useBufferB = false;
+        bool initialized = false;
+    };
 }
