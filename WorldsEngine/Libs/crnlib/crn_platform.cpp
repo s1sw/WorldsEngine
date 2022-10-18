@@ -5,7 +5,7 @@
 #if CRNLIB_USE_WIN32_API
 #include "crn_winhdr.h"
 #endif
-#ifndef _MSC_VER
+#ifndef _WIN32
 int sprintf_s(char *buffer, size_t sizeOfBuffer, const char *format, ...)
 {
    if (!sizeOfBuffer)

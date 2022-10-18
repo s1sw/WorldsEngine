@@ -8,6 +8,7 @@
 #include <R2/VKDescriptorSet.hpp>
 #include <volk.h>
 #include <vk_mem_alloc.h>
+#include <string.h>
 
 size_t operator""_KB(size_t sz)
 {
@@ -512,6 +513,11 @@ namespace R2::VK
 	{
 		return &handles;
 	}
+
+    IDebugOutputReceiver* Core::GetDebugOutputReceiver()
+    {
+        return dbgOutRecv;
+    }
 
 	void Core::writeFrameUploadCommands(uint32_t index)
 	{

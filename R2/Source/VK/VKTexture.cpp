@@ -7,6 +7,7 @@
 #include <volk.h>
 #include <vk_mem_alloc.h>
 #include <assert.h>
+#include <math.h>
 
 namespace R2::VK
 {

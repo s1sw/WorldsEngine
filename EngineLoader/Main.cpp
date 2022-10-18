@@ -12,6 +12,7 @@ int _dummy[sizeof(void *) - 7];
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <dbghelp.h>
+#include <winuser.h>
 LONG unhandledExceptionHandler(LPEXCEPTION_POINTERS exceptionPtrs)
 {
     FILE *f = fopen("crash.txt", "w");
@@ -56,7 +57,9 @@ int main(int argc, char **argv)
 #ifdef _WIN32
     if (!IsDebuggerPresent())
         SetUnhandledExceptionFilter(unhandledExceptionHandler);
+#ifndef __MINGW32__
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+#endif
 #endif
 
     worlds::EngineInitOptions initOptions;

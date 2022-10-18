@@ -407,7 +407,7 @@ namespace worlds
         leftVKTexData.m_nQueueFamilyIndex = handles->Queues.GraphicsFamilyIndex;
         leftVKTexData.m_nWidth = submitInfo.leftEye->GetWidth();
         leftVKTexData.m_nHeight = submitInfo.leftEye->GetHeight();
-        leftVKTexData.m_nFormat = (VkFormat)submitInfo.leftEye->GetFormat();
+        leftVKTexData.m_nFormat = (uint32_t)submitInfo.leftEye->GetFormat();
         leftVKTexData.m_nSampleCount = 1;
 
         vr::VRVulkanTextureData_t rightVKTexData{};
@@ -419,7 +419,7 @@ namespace worlds
         rightVKTexData.m_nQueueFamilyIndex = handles->Queues.GraphicsFamilyIndex;
         rightVKTexData.m_nWidth = submitInfo.rightEye->GetWidth();
         rightVKTexData.m_nHeight = submitInfo.rightEye->GetHeight();
-        rightVKTexData.m_nFormat = (VkFormat)submitInfo.rightEye->GetFormat();
+        rightVKTexData.m_nFormat = (uint32_t)submitInfo.rightEye->GetFormat();
         rightVKTexData.m_nSampleCount = 1;
 
         vr::VRTextureWithPose_t leftTex{};

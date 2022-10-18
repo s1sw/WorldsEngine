@@ -12,6 +12,7 @@
 #include <slib/DynamicLibrary.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <Tracy.hpp>
+#include <condition_variable>
 
 #define FMCHECK(_result) checkFmodErr(_result, __FILE__, __LINE__)
 #define SACHECK(_result) checkSteamAudioErr(_result, __FILE__, __LINE__)

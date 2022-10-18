@@ -11,7 +11,7 @@ namespace R2::VK
     {
     }
 
-    void DeletionQueue::QueueObjectDeletion(void* object, VkObjectType type)
+    void DeletionQueue::QueueObjectDeletion(void* object, uint32_t type)
     {
         objectDeletions.emplace_back(object, type);
     }

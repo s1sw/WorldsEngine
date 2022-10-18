@@ -10,8 +10,6 @@ VK_DEFINE_HANDLE(VkDescriptorPool)
 VK_DEFINE_HANDLE(VkDescriptorSet)
 #undef VK_DEFINE_HANDLE
 
-enum VkObjectType;
-
 namespace R2::VK
 {
     struct Handles;
@@ -20,7 +18,7 @@ namespace R2::VK
     {
     public:
         DeletionQueue(const Handles* handles);
-        void QueueObjectDeletion(void* object, VkObjectType type);
+        void QueueObjectDeletion(void* object, uint32_t type);
         void QueueMemoryFree(VmaAllocation allocation);
         void QueueDescriptorSetFree(VkDescriptorPool dPool, VkDescriptorSet ds);
         void Cleanup();
@@ -30,7 +28,7 @@ namespace R2::VK
         struct ObjectDeletion
         {
             void* object;
-            VkObjectType type;
+            uint32_t type;
         };
 
         struct MemoryFree

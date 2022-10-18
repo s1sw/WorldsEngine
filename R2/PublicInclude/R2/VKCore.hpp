@@ -24,9 +24,6 @@ struct VkDebugUtilsMessengerCallbackDataEXT;
 typedef uint32_t VkBool32;
 typedef uint32_t VkFlags;
 typedef struct VkAllocationCallbacks VkAllocationCallbacks;
-typedef VkFlags VkDebugUtilsMessageTypeFlagsEXT;
-
-enum VkDebugUtilsMessageSeverityFlagBitsEXT : int;
 
 namespace R2::VK
 {
@@ -118,6 +115,7 @@ namespace R2::VK
 
 		~Core();
 		const Handles* GetHandles() const;
+        IDebugOutputReceiver* GetDebugOutputReceiver();
 	private:
 		struct BufferUpload
 		{
@@ -174,12 +172,6 @@ namespace R2::VK
 		uint32_t frameIndex;
 		bool inFrame;
 		std::mutex queueMutex;
-
-		static VkBool32 vulkanDebugMessageCallback(
-			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-			VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-			void* pUserData);
 
 		friend class Buffer;
 		friend class DescriptorSet;

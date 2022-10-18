@@ -8,7 +8,7 @@
 
 namespace R2::VK
 {
-    VkBool32 Core::vulkanDebugMessageCallback(
+    VkBool32 vulkanDebugMessageCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageTypes,
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -21,8 +21,8 @@ namespace R2::VK
             pCallbackData->messageIdNumber == 1813430196)
             return VK_FALSE;
 
-        if (r->dbgOutRecv)
-            r->dbgOutRecv->DebugMessage(pCallbackData->pMessage);
+        if (r->GetDebugOutputReceiver())
+            r->GetDebugOutputReceiver()->DebugMessage(pCallbackData->pMessage);
         else
             printf("vk: %s\n", pCallbackData->pMessage);
         return VK_FALSE;
