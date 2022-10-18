@@ -1,3 +1,5 @@
+using WorldsEngine.ECS;
+
 namespace WorldsEngine.Editor;
 
 public interface IComponentEditor

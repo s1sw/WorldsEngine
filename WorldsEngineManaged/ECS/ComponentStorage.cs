@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -12,8 +13,10 @@ namespace WorldsEngine.ECS
         Type Type { get; }
         bool IsThinking { get; }
         bool IsUpdateable { get; }
-        object GetBoxed(Entity entity);
-        void SetBoxed(Entity entity, object val);
+        int Count { get; }
+        Entity GetPackedEntity(int index);
+        object GetAsObject(Entity entity);
+        void SetFromObject(Entity entity, object val);
         bool Contains(Entity entity);
         void Remove(Entity entity);
         void RunSimulate();
@@ -26,30 +29,33 @@ namespace WorldsEngine.ECS
         public static Dictionary<string, int> typeIndices = new();
     }
 
+    // We use the fact that static members are unique to each generic instantiation
+    // to get this working.
+    [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
     public class ComponentStorage<T> : IComponentStorage, IEnumerable
     {
-        public Type Type { get { return type; } }
-        public readonly List<T> components = new();
-        public static readonly int typeIndex;
-        public static readonly Type type;
-        public readonly List<Entity> packedEntities = new();
+        public Type Type => ComponentType;
+        public readonly List<T> Components = new();
+        public static readonly int TypeIndex;
+        public static readonly Type ComponentType;
+        public readonly List<Entity> PackedEntities = new();
         public bool IsThinking { get; private set; }
         public bool IsUpdateable { get; private set; }
-        public int Count => packedEntities.Count;
+        public int Count => PackedEntities.Count;
 
         private readonly SparseStorage _sparseStorage = new();
 
         static ComponentStorage()
         {
-            type = typeof(T);
-            if (ComponentTypeLookup.typeIndices.ContainsKey(type.FullName!))
+            ComponentType = typeof(T);
+            if (ComponentTypeLookup.typeIndices.ContainsKey(ComponentType.FullName!))
             {
-                typeIndex = ComponentTypeLookup.typeIndices[type.FullName!];
+                TypeIndex = ComponentTypeLookup.typeIndices[ComponentType.FullName!];
             }
             else
             {
-               typeIndex = Interlocked.Increment(ref Registry.typeCounter);
-               ComponentTypeLookup.typeIndices.Add(type.FullName!, typeIndex);
+               TypeIndex = Interlocked.Increment(ref Registry.typeCounter);
+               ComponentTypeLookup.typeIndices.Add(ComponentType.FullName!, TypeIndex);
             }
         }
 
@@ -71,39 +77,41 @@ namespace WorldsEngine.ECS
                 throw new ArgumentException("Entity doesn't have that component");
             }
 
-            return components[GetIndexOf(entity)];
+            return Components[GetIndexOf(entity)];
         }
 
-        public object GetBoxed(Entity entity)
+        public Entity GetPackedEntity(int index) => PackedEntities[index];
+
+        public object GetAsObject(Entity entity)
         {
             if (!Contains(entity))
             {
                 throw new ArgumentException("Entity doesn't have that component");
             }
 
-            return components[GetIndexOf(entity)]!;
+            return Components[GetIndexOf(entity)]!;
         }
 
         public void Set(Entity entity, T component)
         {
-            int index = packedEntities.Count;
+            int index = PackedEntities.Count;
 
             _sparseStorage[entity] = index;
 
             // Update the sparse set
-            packedEntities.Add(entity);
-            components.Add(component);
+            PackedEntities.Add(entity);
+            Components.Add(component);
         }
 
-        public void SetBoxed(Entity entity, object component)
+        public void SetFromObject(Entity entity, object component)
         {
-            int index = packedEntities.Count;
+            int index = PackedEntities.Count;
 
             _sparseStorage[entity] = index;
 
             // Update the sparse set
-            packedEntities.Add(entity);
-            components.Add((T)component);
+            PackedEntities.Add(entity);
+            Components.Add((T)component);
         }
 
         public void Remove(Entity entity)
@@ -112,22 +120,21 @@ namespace WorldsEngine.ECS
                 throw new ArgumentException($"Trying to remove component {typeof(T).Name} that isn't there");
 
             int index = GetIndexOf(entity);
-            int lastIndex = packedEntities.Count - 1;
+            int lastIndex = PackedEntities.Count - 1;
 
             // To remove an entity, we want to swap the entity we're removing with the one at the end of the packed list.
-            Entity replacementEntity = packedEntities[lastIndex];
-            T replacementComponent = components[lastIndex];
+            Entity replacementEntity = PackedEntities[lastIndex];
+            T replacementComponent = Components[lastIndex];
 
             _sparseStorage[replacementEntity] = index;
 
-            packedEntities[index] = replacementEntity;
-            components[index] = replacementComponent;
+            PackedEntities[index] = replacementEntity;
+            Components[index] = replacementComponent;
 
             _sparseStorage[entity] = -1;
-
             
-            packedEntities.RemoveAt(lastIndex);
-            components.RemoveAt(lastIndex);
+            PackedEntities.RemoveAt(lastIndex);
+            Components.RemoveAt(lastIndex);
         }
 
         private int GetIndexOf(Entity entity)
@@ -142,28 +149,29 @@ namespace WorldsEngine.ECS
 
         public List<Entity>.Enumerator GetEnumerator()
         {
-            return packedEntities.GetEnumerator();
+            return PackedEntities.GetEnumerator();
         }
 
         public Entity GetFirst()
         {
-            return packedEntities[0];
+            return PackedEntities[0];
         }
 
         public void RunSimulate()
         {
-            foreach (Entity entity in packedEntities)
+            foreach (Entity entity in PackedEntities)
             {
                 System.Diagnostics.Debug.Assert(Contains(entity));
-                ((ISimulatedComponent)components[GetIndexOf(entity)]!).Simulate();
+                ((ISimulatedComponent)Components[GetIndexOf(entity)]!).Simulate();
             }
         }
 
         public void RunUpdate()
         {
-            foreach (Entity entity in packedEntities)
+            foreach (Entity entity in PackedEntities)
             {
-                ((IUpdateableComponent)components[GetIndexOf(entity)]!).Update();
+                System.Diagnostics.Debug.Assert(Contains(entity));
+                ((IUpdateableComponent)Components[GetIndexOf(entity)]!).Update();
             }
         }
     }

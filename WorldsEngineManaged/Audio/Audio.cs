@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using WorldsEngine.Math;
+using WorldsEngine.ECS;
 
 namespace WorldsEngine.Audio
 {

@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WorldsEngine.Hotloading;
 using WorldsEngine.ComponentMeta;
+using WorldsEngine.ECS;
 using System.IO;
 using System.Collections;
 
@@ -242,9 +243,9 @@ namespace WorldsEngine.Editor
             {
                 GizmoAttribute ga = t.GetCustomAttribute<GizmoAttribute>()!;
 
-                foreach (Entity e in Registry.View(t))
+                foreach (var entity in Registry.View(t))
                 {
-                    GizmoRenderer.DrawGizmo(e, ga.GizmoPath);
+                    GizmoRenderer.DrawGizmo(entity, ga.GizmoPath);
                 }
             }
 

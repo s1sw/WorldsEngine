@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using ImGuiNET;
+using WorldsEngine.ECS;
 using WorldsEngine.Math;
 
 namespace WorldsEngine.Editor;

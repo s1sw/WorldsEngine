@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
+using WorldsEngine.ECS;
 
 namespace WorldsEngine;
 
 public static partial class Physics
 {
-    struct Collision
+    private struct Collision
     {
         public uint EntityID;
         public PhysicsContactInfo ContactInfo;

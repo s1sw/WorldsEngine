@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using WorldsEngine.ComponentMeta;
 using WorldsEngine.Math;
+using WorldsEngine.ECS;
 
 namespace WorldsEngine
 {

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.Json;
+using WorldsEngine.ECS;
 using WorldsEngine.Math;
 using WorldsEngine.PhysFS;
 namespace WorldsEngine.Editor;

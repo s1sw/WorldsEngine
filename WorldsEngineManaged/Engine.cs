@@ -9,6 +9,7 @@ using ImGuiNET;
 using WorldsEngine.Math;
 using JetBrains.Annotations;
 using System.Diagnostics.CodeAnalysis;
+using WorldsEngine.ECS;
 using WorldsEngine.Editor;
 using WorldsEngine.Hotloading;
 using WorldsEngine.Input;
@@ -65,10 +66,10 @@ namespace WorldsEngine
         }
 #endif
 
-        internal static AssemblyLoadManager AssemblyLoadManager = new();
-        static readonly EngineSynchronizationContext updateSyncContext = new();
-        static readonly EngineSynchronizationContext simulateSyncContext = new();
-        static readonly EngineSynchronizationContext editorUpdateSyncContext = new();
+        internal static readonly AssemblyLoadManager AssemblyLoadManager = new();
+        static readonly EngineSynchronizationContext UpdateSyncContext = new();
+        static readonly EngineSynchronizationContext SimulateSyncContext = new();
+        static readonly EngineSynchronizationContext EditorUpdateSyncContext = new();
 
         static double _simulationTime = 0.0;
         static double _updateTime = 0.0;
@@ -82,7 +83,7 @@ namespace WorldsEngine
         static void ActualInit(IntPtr registryPtr, bool editorActive)
         {
             NativeLibrary.SetDllImportResolver(typeof(Engine).Assembly, ImportResolver);
-            Registry.nativeRegistryPtr = registryPtr;
+            Registry.NativePtr = registryPtr;
 
             MetadataManager.Initialise();
             Console.Initialise();
@@ -120,8 +121,8 @@ namespace WorldsEngine
             Physics.ContactModCallback = null;
             Logger.Log("Scene started!");
 
-            simulateSyncContext.ClearCallbacks();
-            updateSyncContext.ClearCallbacks();
+            SimulateSyncContext.ClearCallbacks();
+            UpdateSyncContext.ClearCallbacks();
 
             SceneRunning = true;
             if (_editorActive)
@@ -129,7 +130,7 @@ namespace WorldsEngine
 
             Registry.OverrideTransformToDPAPose = true;
 
-            SynchronizationContext.SetSynchronizationContext(simulateSyncContext);
+            SynchronizationContext.SetSynchronizationContext(SimulateSyncContext);
 
             foreach (var system in AssemblyLoadManager.Systems)
             {
@@ -152,7 +153,7 @@ namespace WorldsEngine
             Justification = "Called from native C++")]
         static void Update(float deltaTime, float interpAlpha)
         {
-            SynchronizationContext.SetSynchronizationContext(updateSyncContext);
+            SynchronizationContext.SetSynchronizationContext(UpdateSyncContext);
             Time.DeltaTime = deltaTime;
             Time.InterpolationAlpha = interpAlpha;
             Time.CurrentTime = _updateTime;
@@ -161,7 +162,7 @@ namespace WorldsEngine
 
             try
             {
-                updateSyncContext.RunCallbacks();
+                UpdateSyncContext.RunCallbacks();
 
                 foreach (ISystem system in AssemblyLoadManager.Systems)
                 {
@@ -191,7 +192,7 @@ namespace WorldsEngine
             Justification = "Called from native C++")]
         static void Simulate(float deltaTime)
         {
-            SynchronizationContext.SetSynchronizationContext(simulateSyncContext);
+            SynchronizationContext.SetSynchronizationContext(SimulateSyncContext);
             Time.DeltaTime = deltaTime;
             Time.CurrentTime = _simulationTime;
 
@@ -199,7 +200,7 @@ namespace WorldsEngine
             try
             {
                 Physics.FlushCollisionQueue();
-                simulateSyncContext.RunCallbacks();
+                SimulateSyncContext.RunCallbacks();
 
                 foreach (ISystem system in AssemblyLoadManager.Systems)
                 {
@@ -230,7 +231,7 @@ namespace WorldsEngine
             Justification = "Called from native C++")]
         static void EditorUpdate()
         {
-            SynchronizationContext.SetSynchronizationContext(editorUpdateSyncContext);
+            SynchronizationContext.SetSynchronizationContext(EditorUpdateSyncContext);
             try
             {
                 AssemblyLoadManager.ReloadIfNecessary();
@@ -239,7 +240,7 @@ namespace WorldsEngine
 
                 Editor.Editor.Update();
 
-                editorUpdateSyncContext.RunCallbacks();
+                EditorUpdateSyncContext.RunCallbacks();
                 Registry.ClearDestroyQueue();
             }
             catch (Exception e)

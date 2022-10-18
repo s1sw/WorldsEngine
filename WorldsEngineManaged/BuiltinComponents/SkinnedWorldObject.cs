@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using WorldsEngine.ComponentMeta;
+using WorldsEngine.ECS;
 
 namespace WorldsEngine
 {

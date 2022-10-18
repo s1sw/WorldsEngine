@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using WorldsEngine.ECS;
 using WorldsEngine.Math;
 
 namespace WorldsEngine

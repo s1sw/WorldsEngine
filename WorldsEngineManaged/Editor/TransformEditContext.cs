@@ -1,5 +1,5 @@
 using System;
-using WorldsEngine;
+using WorldsEngine.ECS;
 
 namespace WorldsEngine.Editor;
 
