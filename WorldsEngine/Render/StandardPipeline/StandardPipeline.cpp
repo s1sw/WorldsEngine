@@ -112,6 +112,7 @@ namespace worlds
 
         depthBufferCI.Samples = rttPass->getSettings().msaaLevel;
         depthBufferCI.Layers = settings.numViews;
+        if (settings.numViews > 1) depthBufferCI.Dimension = VK::TextureDimension::Array2D;
         depthBuffer = core->CreateTexture(depthBufferCI);
         depthBuffer->SetDebugName("Depth Buffer");
 
@@ -120,6 +121,7 @@ namespace worlds
 
         colorBufferCI.Samples = rttPass->getSettings().msaaLevel;
         colorBufferCI.Layers = settings.numViews;
+        if (settings.numViews > 1) colorBufferCI.Dimension = VK::TextureDimension::Array2D;
         colorBuffer = core->CreateTexture(colorBufferCI);
         colorBuffer->SetDebugName("Color Buffer");
 

@@ -3,6 +3,7 @@
 #include <Render/IRenderPipeline.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Tracy.hpp>
+#include <stdexcept>
 
 using namespace R2::VK;
 
@@ -70,7 +71,7 @@ namespace worlds
 
     void VKRTTPass::requestHDRData()
     {
-        if (settings.msaaLevel != 1) throw std::exception("Can't download HDR data from an MSAA RTTPass");
+        if (settings.msaaLevel != 1) throw std::runtime_error("Can't download HDR data from an MSAA RTTPass");
         hdrDataRequested = true;
     }
 

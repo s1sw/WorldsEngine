@@ -130,6 +130,21 @@ namespace worlds
         debugStats.numActiveRTTPasses = 0;
         debugStats.numTriangles = 0;
 
+        if (xrPresentManager)
+        {
+            bool needsCompositorWait = false;
+            for (VKRTTPass *pass: rttPasses)
+            {
+                if (pass->settings.outputToXR)
+                    needsCompositorWait = true;
+            }
+
+            if (needsCompositorWait)
+            {
+                interfaces.vrInterface->waitGetPoses();
+            }
+        }
+
         frameFence->WaitFor();
         frameFence->Reset();
         VK::Texture* swapchainImage = swapchain->Acquire(frameFence);
@@ -168,6 +183,23 @@ namespace worlds
             if (!pass->active)
                 continue;
             debugStats.numActiveRTTPasses++;
+
+            // I don't like having to do this in the renderer, but doing it elsewhere introduces unnecessary latency
+            // and frame-pacing issues :(
+            if (pass->settings.setViewsFromXR)
+            {
+                float predictAmount = interfaces.vrInterface->getPredictAmount();
+                glm::mat4 ht = interfaces.vrInterface->getHeadTransform(predictAmount);
+                setVRUsedPose(ht);
+
+                pass->setView(
+                        0, glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::LeftEye)),
+                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::LeftEye, interfaces.mainCamera->near));
+
+                pass->setView(
+                        1, glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::RightEye)),
+                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::RightEye, interfaces.mainCamera->near));
+            }
 
             cb.BeginDebugLabel("RTT Pass", 0.0f, 0.0f, 0.0f);
             pass->pipeline->draw(pass->settings.registryOverride ? *pass->settings.registryOverride : registry, cb);
@@ -216,7 +248,9 @@ namespace worlds
         bindlessTextureManager->UpdateDescriptorsIfNecessary();
 
         if (this->xrPresentManager && xrRendered)
+        {
             xrPresentManager->preSubmit();
+        }
         core->EndFrame();
 
         swapchain->Present();

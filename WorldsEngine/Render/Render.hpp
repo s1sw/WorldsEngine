@@ -130,6 +130,7 @@ namespace worlds
         entt::registry* registryOverride = nullptr;
         bool renderDebugShapes = true;
         bool outputToXR = false;
+        bool setViewsFromXR = false;
     };
 
     /**

@@ -37,7 +37,8 @@ namespace worlds
                     .enableShadows = true,
                     .msaaLevel = 4,
                     .numViews = isVR ? 2 : 1,
-                    .outputToXR = isVR
+                    .outputToXR = isVR,
+                    .setViewsFromXR = isVR
                 };
 
                 gameRTTPass = interfaces.renderer->createRTTPass(gameViewPassCI);
@@ -85,21 +86,6 @@ namespace worlds
             {
                 //interfaces.renderer->setVsync(false);
             }
-
-            if (editor->isPlaying())
-                interfaces.vrInterface->waitGetPoses();
-
-            float predictAmount = interfaces.vrInterface->getPredictAmount();
-            glm::mat4 ht = interfaces.vrInterface->getHeadTransform(predictAmount);
-            interfaces.renderer->setVRUsedPose(ht);
-
-            gameRTTPass->setView(
-                0, glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::LeftEye)),
-                interfaces.vrInterface->getEyeProjectionMatrix(Eye::LeftEye, interfaces.mainCamera->near));
-
-            gameRTTPass->setView(
-                1, glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::RightEye)),
-                interfaces.vrInterface->getEyeProjectionMatrix(Eye::RightEye, interfaces.mainCamera->near));
         }
         ImGui::End();
     }
