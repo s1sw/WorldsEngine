@@ -188,12 +188,12 @@ namespace worlds
         createManagedDelegate("WorldsEngine.Engine", "Simulate", (void**)&simulateFunc);
         createManagedDelegate("WorldsEngine.Engine", "OnSceneStart", (void**)&sceneStartFunc);
         createManagedDelegate("WorldsEngine.Engine", "EditorUpdate", (void**)&editorUpdateFunc);
-        createManagedDelegate("WorldsEngine.Registry", "OnNativeEntityDestroy", (void**)&nativeEntityDestroyFunc);
-        createManagedDelegate("WorldsEngine.Registry", "SerializeManagedComponents", (void**)&serializeComponentsFunc);
-        createManagedDelegate("WorldsEngine.Registry", "DeserializeManagedComponent",
+        createManagedDelegate("WorldsEngine.ECS.Registry", "OnNativeEntityDestroy", (void**)&nativeEntityDestroyFunc);
+        createManagedDelegate("WorldsEngine.ECS.Registry", "SerializeManagedComponents", (void**)&serializeComponentsFunc);
+        createManagedDelegate("WorldsEngine.ECS.Registry", "DeserializeManagedComponent",
                               (void**)&deserializeComponentFunc);
+        createManagedDelegate("WorldsEngine.ECS.Registry", "CopyManagedComponents", (void**)&copyManagedComponentsFunc);
         createManagedDelegate("WorldsEngine.Physics", "HandleCollisionFromNative", (void**)&physicsContactFunc);
-        createManagedDelegate("WorldsEngine.Registry", "CopyManagedComponents", (void**)&copyManagedComponentsFunc);
 
         reg.on_destroy<Transform>().connect<&DotNetScriptEngine::onTransformDestroy>(*this);
 
