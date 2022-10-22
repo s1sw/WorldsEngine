@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 include(FetchContent)
 option(WORLDS_USE_ASSIMP "Build with Assimp to import models." ON)
 option(WORLDS_USE_OPENVR "Build with OpenVR for VR support." ON)
+option(WORLDS_USE_OPENXR "Build with OpenXR for VR support." ON)
 option(WORLDS_BUILD_EDITOR "Build the editor." ON)
 
 FetchContent_Declare(
@@ -96,14 +97,11 @@ set(
     ${worlds_imgui_src} ${worlds_input_src} ${worlds_io_src} ${worlds_libs_src}
     ${worlds_navigation_src} ${worlds_physics_src} ${worlds_render_src}
     ${worlds_scripting_src} ${worlds_serialization_src} ${worlds_util_src}
+    ${worlds_vr_src}
 )
 
 if(WORLDS_BUILD_EDITOR)
     list(APPEND wsrc ${worlds_editor_src} ${worlds_assetcompilation_src})
-endif()
-
-if(WORLDS_USE_OPENVR)
-    list(APPEND wsrc ${worlds_vr_src})
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${wsrc})
@@ -116,6 +114,10 @@ endif()
 
 if(WORLDS_USE_OPENVR)
     target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_OPENVR)
+endif()
+
+if(WORLDS_USE_OPENXR)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_OPENXR)
 endif()
 
 if(WORLDS_BUILD_EDITOR)
@@ -137,8 +139,19 @@ if(WIN32)
     )
     target_link_libraries(${PROJECT_NAME} "${FMOD_DIR}/core/lib/x64/fmod_vc.lib" "${FMOD_DIR}/studio/lib/x64/fmodstudio_vc.lib")
     target_link_libraries(${PROJECT_NAME} "../External/Lib/phonon")
+
+    if(WORLDS_USE_OPENVR)
+        target_link_libraries(${PROJECT_NAME} "${LIB_PATH}/openvr_api")
+    endif()
+
+    if(WORLDS_USE_OPENXR)
+        target_link_libraries(${PROJECT_NAME} "${LIB_PATH}/openxr_loader")
+    endif()
 endif()
 
+find_package(Vulkan REQUIRED)
+
 target_link_libraries(${PROJECT_NAME} R2 SDL2::SDL2 physfs TracyClient slib Recast Detour enkiTS)
+target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC . ../External/Include ../External/Include/physx ../TextureFormat ../ModelFormat)
 target_include_directories(${PROJECT_NAME} PUBLIC "${FMOD_DIR}/core/inc" "${FMOD_DIR}/studio/inc")

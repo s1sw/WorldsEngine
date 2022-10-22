@@ -1,7 +1,10 @@
 #include "OpenVRInterface.hpp"
 #include <Core/Console.hpp>
+#include <Core/Fatal.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <R2/VK.hpp>
+#include <SDL_filesystem.h>
+#include <Util/MatUtil.hpp>
 #include "openvr.h"
 
 namespace worlds

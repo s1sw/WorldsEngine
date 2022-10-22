@@ -1,1 +1,9 @@
-file(GLOB_RECURSE worlds_vr_src ${CMAKE_CURRENT_LIST_DIR}/*.cpp ${CMAKE_CURRENT_LIST_DIR}/*.cc ${CMAKE_CURRENT_LIST_DIR}/*.c)
+set(worlds_vr_src VR/FakeVRInterface.cpp)
+
+if(WORLDS_USE_OPENVR)
+    list(APPEND worlds_vr_src VR/OpenVRInterface.cpp)
+endif()
+
+if(WORLDS_USE_OPENXR)
+    list(APPEND worlds_vr_src VR/OpenXRInterface.cpp)
+endif()

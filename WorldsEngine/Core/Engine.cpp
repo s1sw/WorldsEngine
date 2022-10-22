@@ -2,6 +2,7 @@
 #include <Audio/Audio.hpp>
 #include <Core/Console.hpp>
 #include <Core/EarlySDLUtil.hpp>
+#include <Core/Fatal.hpp>
 #include <Core/HierarchyUtil.hpp>
 #include <Core/ISystem.hpp>
 #include <Core/Log.hpp>
@@ -40,6 +41,8 @@
 #include <Util/TimingUtil.hpp>
 #include <VR/OpenVRInterface.hpp>
 #include <VR/FakeVRInterface.hpp>
+#include <VR/OpenXRInterface.hpp>
+#include <filesystem>
 
 #ifdef BUILD_EDITOR
 #define EDITORONLY(expr) expr
@@ -404,8 +407,8 @@ namespace worlds
         if (enableVR)
         {
             //vrInterface = new OpenVRInterface();
-            //vrInterface->init();
-            vrInterface = new FakeVRInterface();
+            //vrInterface = new FakeVRInterface();
+            vrInterface = new OpenXRInterface();
             vrInterface->init();
             interfaces.vrInterface = vrInterface.Get();
 

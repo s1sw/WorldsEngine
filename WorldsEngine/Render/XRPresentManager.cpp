@@ -25,15 +25,10 @@ namespace worlds
         , interfaces(interfaces)
         , core(renderer->getCore())
     {
-        if (width == 0 || height == 0)
+        if (width != 0 && height != 0)
         {
-            uint32_t uWidth, uHeight;
-            interfaces.vrInterface->getRenderResolution(&uWidth, &uHeight);
-            this->width = (int)uWidth;
-            this->height = (int)uHeight;
+            createTextures();
         }
-
-        createTextures();
     }
 
     void XRPresentManager::resize(int width, int height)
@@ -45,6 +40,13 @@ namespace worlds
 
     void XRPresentManager::copyFromLayered(VK::CommandBuffer cb, VK::Texture* layeredTexture)
     {
+        uint32_t uWidth, uHeight;
+        interfaces.vrInterface->getRenderResolution(&uWidth, &uHeight);
+        if ((int)uWidth != width || (int)uHeight != height)
+        {
+            resize((int)uWidth, (int)uHeight);
+        }
+
         VK::TextureCopy leftCopy{};
         leftCopy.Source.LayerCount = 1;
         leftCopy.Destination.LayerCount = 1;
