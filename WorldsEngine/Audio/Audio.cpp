@@ -806,6 +806,16 @@ namespace worlds
 
         updateSteamAudio(worldState, deltaTime, listenerPos, listenerRot);
 
+        worldState.view<AudioTrigger, AudioSource, Transform>()
+            .each([&](AudioTrigger& trigger, AudioSource& source, Transform& transform) {
+                glm::vec3 localPos = transform.inverseTransformPoint(listenerPos);
+                if (glm::all(glm::lessThan(localPos, transform.scale)) && glm::all(glm::greaterThan(localPos, -transform.scale)))
+                {
+                    if (source.playbackState() == FMOD_STUDIO_PLAYBACK_STOPPED)
+                        FMCHECK(source.eventInstance->start());
+                }
+            });
+
         worldState.view<AudioSource, Transform>().each([](AudioSource& as, Transform& t) {
             if (as.eventInstance == nullptr)
                 return;
