@@ -230,7 +230,7 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                     int blockCount = 0;
 
                     const bool jitterSamples = false;
-                    int sampleCount = 8;
+                    int sampleCount = 6;
                     float penumbraSize = 0.5;
 
                     [[loop]]
@@ -376,7 +376,7 @@ float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, ui
 
     for (int i = 0; i < 2; i++)
     {
-        uint cubemapBits = ltl.GetCubemapIDMask(tileIdx, i);
+        uint cubemapBits = WaveReadLaneFirst(WaveActiveBitOr(ltl.GetCubemapIDMask(tileIdx, i)));
 
         while (cubemapBits != 0)
         {
