@@ -31,6 +31,12 @@ namespace worlds
             [&](AssetID asset) {
                 if (!textureIds.contains(asset)) return;
                 auto& texInfo = textureIds.at(asset);
+                if (texInfo.isCubemap)
+                {
+                    // Fully unload cubemaps so convolution can take care of them
+                    unload(asset);
+                    return;
+                }
                 if (texInfo.tex != missingTexture)
                 {
                     delete texInfo.tex;
@@ -135,6 +141,8 @@ namespace worlds
         TexInfo& ti = textureIds[id];
         ti.tex = t;
         ti.refCount = 1;
+        ti.isCubemap = td.isCubemap;
+        
         textureManager->SetTextureAt(handle, t);
 
         if (!td.isCubemap)

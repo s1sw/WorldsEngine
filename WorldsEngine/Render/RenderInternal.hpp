@@ -211,6 +211,7 @@ namespace worlds
             R2::VK::Texture* tex;
             uint32_t bindlessId;
             int refCount;
+            bool isCubemap;
         };
 
         uint32_t load(AssetID id, uint32_t handle);
