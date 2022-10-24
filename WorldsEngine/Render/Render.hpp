@@ -131,6 +131,7 @@ namespace worlds
         bool renderDebugShapes = true;
         bool outputToXR = false;
         bool setViewsFromXR = false;
+        bool enableHDRCapture = false;
     };
 
     /**

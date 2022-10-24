@@ -33,6 +33,7 @@ namespace worlds
             glm::vec3 pos;
             int faceIdx = 0;
             bool waitingForResult = false;
+            entt::entity entity;
 
             std::vector<std::string> outputPaths;
         };
@@ -85,25 +86,24 @@ namespace worlds
             rtci.msaaLevel = 1;
             rtci.renderDebugShapes = false;
             rtci.staticsOnly = true;
+            rtci.enableHDRCapture = true;
             cam.verticalFOV = glm::radians(90.0f);
 
             rttPass = renderer->createRTTPass(rtci);
+            rttPass->active = false;
         }
 
-        void addToQueue(std::string name, glm::vec3 pos)
+        void addToQueue(std::string name, glm::vec3 pos, entt::entity entity)
         {
-            cubemapBakeOps.emplace_back(name, pos);
+            cubemapBakeOps.emplace_back(name, pos, 0, false, entity);
         }
 
         void update()
         {
             if (cubemapBakeOps.empty())
             {
-                rttPass->active = false;
                 return;
             }
-
-            rttPass->active = true;
 
             CubemapBakeOp& currentOp = cubemapBakeOps.front();
 
@@ -133,6 +133,7 @@ namespace worlds
                     }
 
                     PHYSFS_close(fHandle);
+                    //logMsg("Written face %i", currentOp.faceIdx);
 
                     currentOp.outputPaths.push_back(outPath);
                     free(data);
@@ -156,7 +157,8 @@ namespace worlds
                         PHYSFS_close(file);
 
                         AssetDB::notifyAssetChange(AssetDB::pathToId(jsonPath));
-                        
+
+                        world.get<WorldCubemap>(currentOp.entity).loadedId = INVALID_ASSET;
                         cubemapBakeOps.pop_front();
                     }
                     else
@@ -167,10 +169,10 @@ namespace worlds
             }
             else
             {
-               cam.position = currentOp.pos;
-               cam.rotation = glm::quatLookAt(directions[currentOp.faceIdx], upDirs[currentOp.faceIdx]);
-               rttPass->requestHDRData();
-               currentOp.waitingForResult = true;
+                cam.position = currentOp.pos;
+                cam.rotation = glm::quatLookAt(directions[currentOp.faceIdx], upDirs[currentOp.faceIdx]);
+                rttPass->requestHDRData();
+                currentOp.waitingForResult = true;
             }
         }
 
@@ -226,13 +228,13 @@ namespace worlds
                 cb->update();
 
                 reg.view<Transform, WorldCubemap, NameComponent>().each(
-                    [&](Transform& t, WorldCubemap& wc, NameComponent& nc) {
+                    [&](entt::entity entity, Transform& t, WorldCubemap& wc, NameComponent& nc) {
                         ImGui::Text("%s (%.2f, %.2f, %.2f)", nc.name.c_str(), t.position.x, t.position.y, t.position.z);
                         ImGui::SameLine();
                         ImGui::PushID(nc.name.c_str());
                         if (ImGui::Button("Bake"))
                         {
-                            cb->addToQueue(nc.name, t.position + wc.captureOffset);
+                            cb->addToQueue(nc.name, t.position + wc.captureOffset, entity);
                             // bakeCubemap(editor, t.position + wc.captureOffset,
                             // static_cast<worlds::VKRenderer*>(interfaces.renderer), nc.name, reg, wc.resolution,
                             // numIterations);

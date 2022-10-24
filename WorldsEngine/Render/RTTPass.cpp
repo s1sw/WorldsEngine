@@ -1,5 +1,6 @@
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/VK.hpp>
+#include <R2/VKSyncPrims.hpp>
 #include <Render/IRenderPipeline.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Tracy.hpp>
@@ -29,12 +30,27 @@ namespace worlds
         width = settings.width;
         height = settings.height;
         cam = settings.cam;
+
+        if (settings.enableHDRCapture)
+        {
+            TextureCreateInfo tci = TextureCreateInfo::Texture2D(TextureFormat::R32G32B32A32_SFLOAT, width, height);
+            tci.CanUseAsStorage = false;
+
+            requestedHdrResult = renderer->getCore()->CreateTexture(tci);
+            BufferCreateInfo bci { BufferUsage::Storage, sizeof(float) * 4 * width * height, true };
+            hdrDataBuffer = renderer->getCore()->CreateBuffer(bci);
+            captureEvent = new Event(renderer->getCore());
+            captureEvent->Reset();
+        }
     }
 
     VKRTTPass::~VKRTTPass()
     {
         renderer->bindlessTextureManager->FreeTextureHandle(finalTargetBindlessID);
         renderer->core->DestroyTexture(finalTarget);
+
+        if (settings.enableHDRCapture)
+            renderer->core->DestroyTexture(requestedHdrResult);
         delete pipeline;
     }
 
@@ -45,28 +61,19 @@ namespace worlds
 
     void VKRTTPass::downloadHDROutput(R2::VK::CommandBuffer& cb)
     {
-        BufferCreateInfo bci { BufferUsage::Storage, sizeof(float) * 4 * width * height, true };
-        hdrDataBuffer = renderer->getCore()->CreateBuffer(bci);
-
         Texture* hdrTex = pipeline->getHDRTexture();
-
-        TextureCreateInfo tci = TextureCreateInfo::Texture2D(TextureFormat::R32G32B32A32_SFLOAT, width, height);
-        tci.CanUseAsStorage = false;
-
-        Texture* blitTarget = renderer->getCore()->CreateTexture(tci);
 
         TextureBlit blitInfo{};
         blitInfo.Source.LayerCount = 1;
         blitInfo.Destination.LayerCount = 1;
         blitInfo.SourceOffsets[1] = blitInfo.DestinationOffsets[1] = BlitOffset{ (int)width, (int)height, 1 };
 
-        cb.TextureBlit(hdrTex, blitTarget, blitInfo);
-        cb.TextureCopyToBuffer(blitTarget, hdrDataBuffer);
+        cb.TextureBlit(hdrTex, requestedHdrResult, blitInfo);
+        cb.TextureCopyToBuffer(requestedHdrResult, hdrDataBuffer);
+        cb.SetEvent(captureEvent);
 
         hdrDataReady = true;
         hdrDataRequested = false;
-
-        renderer->getCore()->DestroyTexture(blitTarget);
     }
 
     void VKRTTPass::requestHDRData()
@@ -77,8 +84,10 @@ namespace worlds
 
     bool VKRTTPass::getHDRData(float*& out)
     {
-        if (!hdrDataReady)
+        if (!hdrDataReady || !captureEvent->IsSet())
             return false;
+
+        captureEvent->Reset();
         
         hdrDataReady = false;
         float* data = (float*)malloc(sizeof(float) * 4 * width * height);
@@ -86,8 +95,6 @@ namespace worlds
         float* src = (float*)hdrDataBuffer->Map();
         memcpy(data, src, sizeof(float) * 4 * width * height);
         hdrDataBuffer->Unmap();
-
-        renderer->getCore()->DestroyBuffer(hdrDataBuffer);
 
         out = data;
 

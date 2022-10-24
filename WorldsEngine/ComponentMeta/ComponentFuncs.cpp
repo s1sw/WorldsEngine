@@ -616,6 +616,11 @@ namespace worlds
                 ImGui::DragFloat("Tube Radius", &worldLight.tubeRadius, 0.1f, 0.0f, FLT_MAX);
             }
             break;
+            case LightType::Directional:
+            {
+                ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
+            }
+            break;
             default:
                 break;
             }
@@ -662,7 +667,7 @@ namespace worlds
                             if (ImGui::Selectable(p.second, &isSelected))
                             {
                                 worldLight.type = p.first;
-                                if (p.first != LightType::Spot)
+                                if (p.first != LightType::Spot && p.first != LightType::Directional)
                                 {
                                     worldLight.enableShadows = false;
                                 }

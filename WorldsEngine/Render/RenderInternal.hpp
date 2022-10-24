@@ -19,6 +19,7 @@ namespace R2
 namespace R2::VK
 {
     class Swapchain;
+    class Event;
     class Fence;
     class Texture;
     class Buffer;
@@ -247,7 +248,9 @@ namespace worlds
         RTTPassSettings settings;
         bool hdrDataRequested = false;
         bool hdrDataReady = false;
+        R2::VK::Texture* requestedHdrResult;
         R2::VK::Buffer* hdrDataBuffer;
+        R2::VK::Event* captureEvent;
 
         void downloadHDROutput(R2::VK::CommandBuffer& cb);
 
