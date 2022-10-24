@@ -52,13 +52,15 @@ namespace worlds
             si.bindlessID = renderer->getBindlessTextureManager()->AllocateTextureHandle(si.texture.Get());
             shadowmapInfo.push_back(std::move(si));
         }
+        shadowmapMatrices.resize(NUM_SHADOW_LIGHTS);
     }
 
     void ShadowmapManager::AllocateShadowmaps(entt::registry& registry)
     {
         uint32_t count = 0;
         registry.view<WorldLight>().each([&](WorldLight& worldLight) {
-            if (!worldLight.enableShadows || worldLight.type != LightType::Spot || count == NUM_SHADOW_LIGHTS)
+            bool isShadowable = worldLight.type == LightType::Spot || worldLight.type == LightType::Directional;
+            if (!worldLight.enableShadows || !isShadowable || count == NUM_SHADOW_LIGHTS)
             {
                 worldLight.shadowmapIdx = ~0u;
                 return;
@@ -68,7 +70,67 @@ namespace worlds
         });
     }
 
-    void ShadowmapManager::RenderShadowmaps(R2::VK::CommandBuffer& cb, entt::registry& registry)
+    glm::mat4 getCascadeMatrix(glm::mat4 camVP, glm::vec3 lightDir, float& texelsPerUnit)
+    {
+        glm::mat4 vpInv = glm::inverse(camVP);
+
+        glm::vec3 frustumCorners[8] = {
+                glm::vec3(-1.0f,  1.0f, -1.0f),
+                glm::vec3(1.0f,  1.0f, -1.0f),
+                glm::vec3(1.0f, -1.0f, -1.0f),
+                glm::vec3(-1.0f, -1.0f, -1.0f),
+                glm::vec3(-1.0f,  1.0f,  1.0f),
+                glm::vec3(1.0f,  1.0f,  1.0f),
+                glm::vec3(1.0f, -1.0f,  1.0f),
+                glm::vec3(-1.0f, -1.0f,  1.0f),
+        };
+
+        for (int i = 0; i < 8; i++)
+        {
+            glm::vec4 transformed = vpInv * glm::vec4{ frustumCorners[i], 1.0f };
+            transformed /= transformed.w;
+            frustumCorners[i] = transformed;
+        }
+
+        glm::vec3 center{ 0.0f };
+
+        for (int i = 0; i < 8; i++)
+        {
+            center += frustumCorners[i];
+        }
+
+        center /= 8.0f;
+
+        float diameter = 0.0f;
+        for (int i = 0; i < 8; i++)
+        {
+            float dist = glm::length(frustumCorners[i] - center);
+            diameter = glm::max(diameter, dist);
+        }
+        float radius = diameter * 0.5f;
+
+        texelsPerUnit = r_shadowmapRes.getFloat() / diameter;
+
+        glm::mat4 scaleMatrix = glm::scale(glm::mat4{ 1.0f }, glm::vec3{ texelsPerUnit });
+
+        glm::mat4 lookAt = glm::lookAt(glm::vec3{ 0.0f }, lightDir, glm::vec3{ 0.0f, 1.0f, 0.0f });
+        lookAt *= scaleMatrix;
+
+        glm::mat4 lookAtInv = glm::inverse(lookAt);
+
+        center = lookAt * glm::vec4{ center, 1.0f };
+        center = glm::floor(center);
+        center = lookAtInv * glm::vec4{ center, 1.0f };
+
+        glm::vec3 eye = center + (lightDir * diameter);
+
+        glm::mat4 viewMat = glm::lookAt(eye, center, glm::vec3{ 0.0f, 1.0f, 0.0f });
+        glm::mat4 projMat = glm::orthoZO(-radius, radius, -radius, radius, radius * 20.0f, -radius * 20.0f);
+
+        return projMat * viewMat;
+    }
+
+    void ShadowmapManager::RenderShadowmaps(R2::VK::CommandBuffer& cb, entt::registry& registry, glm::mat4& viewMatrix)
     {
         RenderMeshManager* meshManager = renderer->getMeshManager();
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
@@ -98,17 +160,37 @@ namespace worlds
         cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
 
         registry.view<WorldLight, Transform>().each([&](WorldLight& worldLight, Transform& t) {
-            if (!worldLight.enableShadows || worldLight.type != LightType::Spot || worldLight.shadowmapIdx == ~0u)
+            bool isShadowable = worldLight.type == LightType::Spot || worldLight.type == LightType::Directional;
+            if (!worldLight.enableShadows || !isShadowable || worldLight.shadowmapIdx == ~0u)
                 return;
 
-            Camera shadowCam{};
-            shadowCam.position = t.position;
-            shadowCam.rotation = t.rotation;
-            shadowCam.verticalFOV = worldLight.spotOuterCutoff * 2.0f;
-            shadowCam.near = worldLight.shadowNear;
-            shadowCam.far = worldLight.shadowFar;
+            glm::mat4 vp;
 
-            glm::mat4 vp = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
+            if (worldLight.type == LightType::Spot)
+            {
+                Camera shadowCam{};
+                shadowCam.position = t.position;
+                shadowCam.rotation = t.rotation;
+                shadowCam.verticalFOV = worldLight.spotOuterCutoff * 2.0f;
+                shadowCam.near = worldLight.shadowNear;
+                shadowCam.far = worldLight.shadowFar;
+
+                vp = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
+            }
+            else
+            {
+                Camera viewerCopy{};
+                viewerCopy.near = 0.1f;
+                viewerCopy.far = 50.0f;
+                viewerCopy.verticalFOV = 1.8f;
+                glm::mat4 cascadeVp = viewerCopy.getProjectionMatrixZONonInfinite(1.0f) * viewMatrix;
+                float whatever;
+                vp = getCascadeMatrix(cascadeVp, t.transformDirection(glm::vec3(0.0f, 0.0f, -1.0f)),
+                                      whatever);
+            }
+
+            shadowmapMatrices[worldLight.shadowmapIdx] = vp;
+
             Frustum f{};
             f.fromVPMatrix(vp);
 
@@ -175,5 +257,10 @@ namespace worlds
     uint32_t ShadowmapManager::GetShadowmapId(uint32_t idx)
     {
         return shadowmapInfo[idx].bindlessID;
+    }
+
+    glm::mat4& ShadowmapManager::GetShadowVPMatrix(uint32_t idx)
+    {
+        return shadowmapMatrices[idx];
     }
 }

@@ -297,10 +297,12 @@ namespace worlds
         std::vector<ShadowmapInfo> shadowmapInfo;
         UniquePtr<R2::VK::Pipeline> pipeline;
         UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
+        std::vector<glm::mat4> shadowmapMatrices;
     public:
         ShadowmapManager(VKRenderer* renderer);
         void AllocateShadowmaps(entt::registry& registry);
-        void RenderShadowmaps(R2::VK::CommandBuffer& cb, entt::registry& registry);
+        void RenderShadowmaps(R2::VK::CommandBuffer& cb, entt::registry& registry, glm::mat4& viewMatrix);
+        glm::mat4& GetShadowVPMatrix(uint32_t idx);
         uint32_t GetShadowmapId(uint32_t idx);
     };
 

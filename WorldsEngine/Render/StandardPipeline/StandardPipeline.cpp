@@ -361,15 +361,7 @@ namespace worlds
 
                 if (wl.shadowmapIdx != ~0u)
                 {
-                    Camera shadowCam{};
-                    shadowCam.position = t.position;
-                    shadowCam.rotation = t.rotation;
-                    shadowCam.verticalFOV = wl.spotOuterCutoff * 2.0f;
-                    shadowCam.near = wl.shadowNear;
-                    shadowCam.far = wl.shadowFar;
-
-                    glm::mat4 vp = shadowCam.getProjectMatrixNonInfinite(1.0f) * shadowCam.getViewMatrix();
-                    lightUB->additionalShadowMatrices[wl.shadowmapIdx] = vp;
+                    lightUB->additionalShadowMatrices[wl.shadowmapIdx] = shadowmapManager->GetShadowVPMatrix(wl.shadowmapIdx);
                     lightUB->shadowmapIds[wl.shadowmapIdx] = shadowmapManager->GetShadowmapId(wl.shadowmapIdx);
                 }
 

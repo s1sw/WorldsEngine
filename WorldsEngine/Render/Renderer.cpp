@@ -172,15 +172,32 @@ namespace worlds
         timestampPool->Reset(cb, core->GetFrameIndex() * 2, 2);
         timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 2);
 
+        glm::mat4 shadowViewMatrix = interfaces.mainCamera->getViewMatrix();
+        for (VKRTTPass* pass : rttPasses)
+        {
+            if (pass->active && pass->settings.enableShadows)
+            {
+                if (pass->settings.setViewsFromXR)
+                {
+                    float predictAmount = interfaces.vrInterface->getPredictAmount();
+                    glm::mat4 ht = interfaces.vrInterface->getHeadTransform(predictAmount);
+                    shadowViewMatrix = glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::LeftEye));
+                }
+                else
+                {
+                    shadowViewMatrix = pass->cam->getViewMatrix();
+                }
+            }
+        }
         shadowmapManager->AllocateShadowmaps(registry);
-        shadowmapManager->RenderShadowmaps(cb, registry);
+        shadowmapManager->RenderShadowmaps(cb, registry, shadowViewMatrix);
 
         particleSimulator->execute(registry, cb, deltaTime);
 
         bool xrRendered = false;
         for (VKRTTPass* pass : rttPasses)
         {
-            if (!pass->active)
+            if (!pass->active && !pass->hdrDataRequested)
                 continue;
             debugStats.numActiveRTTPasses++;
 
