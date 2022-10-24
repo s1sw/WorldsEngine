@@ -388,7 +388,7 @@ namespace worlds
         return r;
     }
 
-    void OpenVRInterface::submitExplicitTimingData()
+    void OpenVRInterface::preSubmit()
     {
         vr::VRCompositor()->SubmitExplicitTimingData();
     }

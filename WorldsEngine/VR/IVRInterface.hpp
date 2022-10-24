@@ -93,7 +93,7 @@ namespace worlds
         virtual std::vector<std::string> getVulkanDeviceExtensions(VkPhysicalDevice physDevice) = 0;
         virtual void getRenderResolution(uint32_t* x, uint32_t* y) = 0;
         virtual float getPredictAmount() = 0;
-        virtual void submitExplicitTimingData() = 0;
+        virtual void preSubmit() = 0;
         virtual void submit(VRSubmitInfo submitInfo) = 0;
         virtual void waitGetPoses() = 0;
 

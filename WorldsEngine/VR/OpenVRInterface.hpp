@@ -64,7 +64,7 @@ namespace worlds
         std::vector<std::string> getVulkanDeviceExtensions(VkPhysicalDevice physDevice) override;
         void getRenderResolution(uint32_t* x, uint32_t* y) override;
         float getPredictAmount() override;
-        void submitExplicitTimingData() override;
+        void preSubmit() override;
         void submit(VRSubmitInfo submitInfo) override;
         void waitGetPoses() override;
     };

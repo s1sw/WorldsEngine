@@ -73,7 +73,7 @@ namespace worlds
             resize((int)uWidth, (int)uHeight);
         }
 
-        interfaces.vrInterface->submitExplicitTimingData();
+        interfaces.vrInterface->preSubmit();
     }
 
     void XRPresentManager::submit(glm::mat4 usedPose)

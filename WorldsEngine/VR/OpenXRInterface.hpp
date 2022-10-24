@@ -5,6 +5,7 @@
 XR_DEFINE_HANDLE(XrInstance)
 XR_DEFINE_HANDLE(XrSession)
 XR_DEFINE_HANDLE(XrSpace)
+XR_DEFINE_HANDLE(XrSwapchain)
 #undef XR_DEFINE_HANDLE
 #define XR_DEFINE_ATOM(object) typedef uint64_t object;
 XR_DEFINE_ATOM(XrSystemId)
@@ -49,14 +50,17 @@ namespace worlds
         std::vector<std::string> getVulkanDeviceExtensions(VkPhysicalDevice physDevice) override;
         void getRenderResolution(uint32_t* x, uint32_t* y) override;
         float getPredictAmount() override;
-        void submitExplicitTimingData() override;
+        void preSubmit() override;
         void submit(VRSubmitInfo submitInfo) override;
         void waitGetPoses() override;
     private:
+        class OpenXRSwapchain;
         const EngineInterfaces& interfaces;
         XrInstance instance;
         XrSystemId systemId;
         XrSession session;
         XrSpace stageReferenceSpace;
+        XrSpace viewReferenceSpace;
+        std::vector<OpenXRSwapchain> swapchains;
     };
 }

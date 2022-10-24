@@ -225,7 +225,7 @@ namespace worlds
         return actions[handle].v2Val;
     }
 
-    void FakeVRInterface::submitExplicitTimingData()
+    void FakeVRInterface::preSubmit()
     {
     }
 
