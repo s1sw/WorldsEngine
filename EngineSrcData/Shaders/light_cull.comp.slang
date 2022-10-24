@@ -457,7 +457,7 @@ void cullCubemaps(uint tileIndex, uint groupIndex)
 
         float3 mi = c.Position - c.Extent;
         float3 ma = c.Position + c.Extent;
-        bool inFrustum = frustumContainsAABB(mi, ma);
+        bool inFrustum = frustumContainsAABB(mi, ma) && aabbContainsAABB(mi, ma);
 
         uint bucketIdx = cubemapIdx / 32;
         uint bucketBit = cubemapIdx % 32;
