@@ -270,19 +270,15 @@ namespace worlds
 
     class XRPresentManager
     {
-        UniquePtr<R2::VK::Texture> leftEye;
-        UniquePtr<R2::VK::Texture> rightEye;
         int width, height;
         const EngineInterfaces& interfaces;
         R2::VK::Core* core;
-        void createTextures();
-
     public:
         XRPresentManager(VKRenderer* renderer, const EngineInterfaces& interfaces, int width, int height);
-        void resize(int width, int height);
         void copyFromLayered(R2::VK::CommandBuffer cb, R2::VK::Texture* layeredTexture);
-        void preSubmit();
-        void submit(glm::mat4 usedPose);
+        void beginFrame();
+        void waitFrame();
+        void endFrame();
     };
 
     class ShadowmapManager

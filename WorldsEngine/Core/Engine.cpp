@@ -39,8 +39,6 @@
 #include <Util/CircularBuffer.hpp>
 #include <Util/CreateModelObject.hpp>
 #include <Util/TimingUtil.hpp>
-#include <VR/OpenVRInterface.hpp>
-#include <VR/FakeVRInterface.hpp>
 #include <VR/OpenXRInterface.hpp>
 #include <filesystem>
 
@@ -406,31 +404,25 @@ namespace worlds
 
         if (enableVR)
         {
-            //vrInterface = new OpenVRInterface();
-            //vrInterface = new FakeVRInterface();
-            vrInterface = new OpenXRInterface();
-            vrInterface->init();
+            vrInterface = new OpenXRInterface(interfaces);
             interfaces.vrInterface = vrInterface.Get();
-
-            if (!runAsEditor)
+            std::vector<std::string> instanceExts = vrInterface->getRequiredInstanceExtensions();
+            logMsg("OpenXR asked for the following instance extensions:");
+            for (const std::string& s : instanceExts)
             {
-                uint32_t newW, newH;
-
-                vrInterface->getRenderResolution(&newW, &newH);
-                SDL_Rect rect;
-                SDL_GetDisplayUsableBounds(0, &rect);
-
-                float scaleFac = glm::min(((float)rect.w * 0.9f) / newW, ((float)rect.h * 0.9f) / newH);
-
-                window->resize(newW * scaleFac, newH * scaleFac);
+                logMsg(" - %s", s.c_str());
             }
-        }
 
-        VrApi activeApi = VrApi::None;
+            additionalInstanceExts.insert(additionalInstanceExts.begin(), instanceExts.begin(), instanceExts.end());
 
-        if (enableVR)
-        {
-            activeApi = VrApi::OpenVR;
+            std::vector<std::string> deviceExts = vrInterface->getRequiredDeviceExtensions();
+            logMsg("OpenXR asked for the following device extensions:");
+            for (const std::string& s : deviceExts)
+            {
+                logMsg(" - %s", s.c_str());
+            }
+
+            additionalDeviceExts.insert(additionalDeviceExts.begin(), deviceExts.begin(), deviceExts.end());
         }
 
         if (!dedicatedServer && runAsEditor)
@@ -444,8 +436,6 @@ namespace worlds
                 additionalInstanceExts,
                 additionalDeviceExts,
                 enableVR,
-                activeApi,
-                vrInterface.Get(),
                 initOptions.gameName,
                 interfaces
             };
@@ -458,6 +448,23 @@ namespace worlds
             {
                 fatalErr("Failed to initialise renderer");
                 return;
+            }
+
+            if (enableVR)
+            {
+                vrInterface->init();
+                if (!runAsEditor)
+                {
+                    uint32_t newW, newH;
+
+                    vrInterface->getRenderResolution(&newW, &newH);
+                    SDL_Rect rect;
+                    SDL_GetDisplayUsableBounds(0, &rect);
+
+                    float scaleFac = glm::min(((float)rect.w * 0.9f) / newW, ((float)rect.h * 0.9f) / newH);
+
+                    window->resize(newW * scaleFac, newH * scaleFac);
+                }
             }
         }
 
@@ -774,7 +781,7 @@ namespace worlds
         inputManager->update();
 
         if (vrInterface)
-            vrInterface->updateInput();
+            vrInterface->updateEvents();
 
         if (!dedicatedServer)
         {
@@ -802,12 +809,14 @@ namespace worlds
                 renderer->destroyRTTPass(screenRTTPass);
 
                 RTTPassSettings screenRTTCI{
-                    .cam = &cam,
-                    .width = w,
-                    .height = h,
-                    .useForPicking = false,
-                    .enableShadows = true,
-                    .outputToXR = screenPassIsVR};
+                        .cam = &cam,
+                        .width = w,
+                        .height = h,
+                        .useForPicking = false,
+                        .enableShadows = true,
+                        .outputToXR = screenPassIsVR,
+                        .setViewsFromXR = screenPassIsVR
+                };
 
                 screenRTTPass = renderer->createRTTPass(screenRTTCI);
             }
@@ -943,21 +952,6 @@ namespace worlds
             //{
             //    renderer->setVsync(false);
             //}
-
-            float predictAmount = vrInterface->getPredictAmount();
-            vrInterface->waitGetPoses();
-            glm::mat4 ht = vrInterface->getHeadTransform(predictAmount);
-            renderer->setVRUsedPose(ht);
-            screenRTTPass->setView(
-                0,
-                glm::inverse(ht * vrInterface->getEyeViewMatrix(Eye::LeftEye)),
-                vrInterface->getEyeProjectionMatrix(Eye::LeftEye, cam.near)
-            );
-            screenRTTPass->setView(
-                1,
-                glm::inverse(ht * vrInterface->getEyeViewMatrix(Eye::RightEye)),
-                vrInterface->getEyeProjectionMatrix(Eye::RightEye, cam.near)
-            );
         }
 
         if (!dedicatedServer)

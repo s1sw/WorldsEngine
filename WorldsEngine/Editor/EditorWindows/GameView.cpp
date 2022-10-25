@@ -1,6 +1,7 @@
 #include "EditorWindows.hpp"
 #include <Render/Render.hpp>
 #include <Libs/IconsFontAwesome5.h>
+#include <VR/OpenXRInterface.hpp>
 
 namespace worlds
 {

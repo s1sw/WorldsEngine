@@ -1,4 +1,6 @@
 #include "OpenXRInterface.hpp"
+// EW EW EW
+#include "../../R2/PrivateInclude/volk.h"
 #include <Core/Log.hpp>
 #include <Core/Fatal.hpp>
 #include <string.h>
@@ -12,6 +14,9 @@
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <Util/EnumUtil.hpp>
+
+using namespace R2;
 
 namespace worlds
 {
@@ -26,9 +31,9 @@ namespace worlds
 
     class OpenXRInterface::OpenXRSwapchain
     {
-        XrSwapchain swapchain;
     public:
         std::vector<XrSwapchainImageVulkanKHR> images;
+        XrSwapchain swapchain;
         OpenXRSwapchain(XrSwapchain swapchain)
             : swapchain(swapchain)
         {
@@ -36,19 +41,20 @@ namespace worlds
             uint32_t imageCount;
             XRCHECK(xrEnumerateSwapchainImages(swapchain, 0, &imageCount, nullptr));
 
-            images.resize(imageCount);
+            images.resize(imageCount, { XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR });
 
             XRCHECK(xrEnumerateSwapchainImages(swapchain, imageCount, &imageCount,
                     (XrSwapchainImageBaseHeader*)(images.data())));
         }
     };
 
+    PFN_xrGetVulkanGraphicsRequirementsKHR xrGetVulkanGraphicsRequirementsKHR;
+    PFN_xrGetVulkanGraphicsDeviceKHR xrGetVulkanGraphicsDeviceKHR;
+    PFN_xrGetVulkanInstanceExtensionsKHR xrGetVulkanInstanceExtensionsKHR;
+    PFN_xrGetVulkanDeviceExtensionsKHR xrGetVulkanDeviceExtensionsKHR;
+
     OpenXRInterface::OpenXRInterface(const EngineInterfaces& interfaces)
         : interfaces(interfaces)
-    {
-    }
-
-    void OpenXRInterface::init()
     {
         XrInstanceCreateInfo instanceCreateInfo { XR_TYPE_INSTANCE_CREATE_INFO };
 
@@ -68,7 +74,21 @@ namespace worlds
         instanceCreateInfo.enabledExtensionCount = extensions.size();
         instanceCreateInfo.enabledExtensionNames = extensions.data();
 
+        std::vector<const char*> layers;
+        //layers.push_back("XR_APILAYER_LUNARG_core_validation");
+
+        instanceCreateInfo.enabledApiLayerCount = layers.size();
+        instanceCreateInfo.enabledApiLayerNames = layers.data();
+
         XRCHECK(xrCreateInstance(&instanceCreateInfo, &instance));
+
+        // Set up the function pointers to things not included by the default OpenXR loader
+#define LOAD_XR_FUNC(name) xrGetInstanceProcAddr(instance, #name, (PFN_xrVoidFunction*)&name);
+        LOAD_XR_FUNC(xrGetVulkanGraphicsRequirementsKHR);
+        LOAD_XR_FUNC(xrGetVulkanGraphicsDeviceKHR);
+        LOAD_XR_FUNC(xrGetVulkanInstanceExtensionsKHR);
+        LOAD_XR_FUNC(xrGetVulkanDeviceExtensionsKHR);
+#undef LOAD_XR_FUNC
 
         // Get the XR system
         XrSystemGetInfo systemGetInfo{ XR_TYPE_SYSTEM_GET_INFO };
@@ -80,16 +100,80 @@ namespace worlds
         {
             fatalErr("Couldn't find HMD!");
         }
+        else
+        {
+            XRCHECK(getSystemResult);
+        }
 
-        XrSystemProperties systemProperties{};
+        XrSystemProperties systemProperties{ XR_TYPE_SYSTEM_PROPERTIES };
         XRCHECK(xrGetSystemProperties(instance, systemId, &systemProperties));
 
         logMsg("XR System name: %s (vendor ID %u)", systemProperties.systemName, systemProperties.vendorId);
+    }
 
+    std::vector<std::string> parseExtensionString(std::string extString)
+    {
+        std::vector<std::string> extList;
+
+        auto it = result.begin();
+        while (it < result.end())
+        {
+            auto extStart = it;
+
+            while (*it != ' ')
+            {
+                it++;
+                if (it == result.end()) break;
+            }
+
+            std::string ext;
+            ext.assign(extStart, it);
+            extList.push_back(ext);
+            it++;
+        }
+    }
+
+    std::vector<std::string> OpenXRInterface::getRequiredInstanceExtensions()
+    {
+        uint32_t bufferSize;
+        XRCHECK(xrGetVulkanInstanceExtensionsKHR(instance, systemId, 0, &bufferSize, nullptr));
+
+        std::string result;
+        result.resize(bufferSize, ' ');
+        XRCHECK(xrGetVulkanInstanceExtensionsKHR(instance, systemId, bufferSize, &bufferSize, result.data()));
+
+        return parseExtensionString(result);
+    }
+
+    std::vector<std::string> OpenXRInterface::getRequiredDeviceExtensions()
+    {
+        uint32_t bufferSize;
+        XRCHECK(xrGetVulkanDeviceExtensionsKHR(instance, systemId, 0, &bufferSize, nullptr));
+
+        std::string result;
+        result.resize(bufferSize, ' ');
+        XRCHECK(xrGetVulkanDeviceExtensionsKHR(instance, systemId, bufferSize, &bufferSize, result.data()));
+
+        return parseExtensionString(result);
+    }
+
+    void OpenXRInterface::init()
+    {
         VKRenderer* renderer = (VKRenderer*)interfaces.renderer;
+        const R2::VK::Handles* handles = renderer->getCore()->GetHandles();
+
+        XrGraphicsRequirementsVulkanKHR requirements{ XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN_KHR };
+        XRCHECK(xrGetVulkanGraphicsRequirementsKHR(instance, systemId, &requirements));
+
+        VkPhysicalDevice device;
+        XRCHECK(xrGetVulkanGraphicsDeviceKHR(instance, systemId, handles->Instance, &device));
+
+        if (device != handles->PhysicalDevice)
+        {
+            fatalErr("OpenXR's desired graphics device didn't match the graphics device R2 picked!");
+        }
 
         // Set up the Vulkan graphics binding
-        const R2::VK::Handles* handles = renderer->getCore()->GetHandles();
         XrGraphicsBindingVulkanKHR graphicsBinding{ XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR };
         graphicsBinding.instance = handles->Instance;
         graphicsBinding.device = handles->Device;
@@ -104,8 +188,10 @@ namespace worlds
 
         XRCHECK(xrCreateSession(instance, &sessionCreateInfo, &session));
 
+        // Create the Stage and View reference spaces that we need.
         XrReferenceSpaceCreateInfo referenceSpaceCreateInfo { XR_TYPE_REFERENCE_SPACE_CREATE_INFO };
         referenceSpaceCreateInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_STAGE;
+        referenceSpaceCreateInfo.poseInReferenceSpace.orientation = { 0.0f, 0.0f, 0.0f, 1.0f };
 
         XRCHECK(xrCreateReferenceSpace(session, &referenceSpaceCreateInfo, &stageReferenceSpace));
 
@@ -113,12 +199,10 @@ namespace worlds
 
         XRCHECK(xrCreateReferenceSpace(session, &referenceSpaceCreateInfo, &viewReferenceSpace));
 
-        XrViewConfigurationProperties viewConfigProps{};
-
+        XrViewConfigurationProperties viewConfigProps{ XR_TYPE_VIEW_CONFIGURATION_PROPERTIES };
         XRCHECK(xrGetViewConfigurationProperties(instance, systemId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, &viewConfigProps));
 
-        std::vector<XrViewConfigurationView> viewConfigViews;
-
+        // Enumerate the view configurations
         uint32_t viewCount;
         XRCHECK(xrEnumerateViewConfigurationViews(
                 instance, systemId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
@@ -129,12 +213,14 @@ namespace worlds
             fatalErr("Nooo views?! <:(");
         }
 
-        viewConfigViews.resize(viewCount);
+        viewConfigViews.resize(viewCount, { XR_TYPE_VIEW_CONFIGURATION_VIEW });
+        views.resize(viewCount, { XR_TYPE_VIEW });
 
         XRCHECK(xrEnumerateViewConfigurationViews(
                 instance, systemId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
                 (uint32_t)viewConfigViews.size(), &viewCount, viewConfigViews.data()));
 
+        // Make sure the right swapchain format is supported
         std::vector<int64_t> swapchainFormats;
         uint32_t numSwapchainFormats;
         XRCHECK(xrEnumerateSwapchainFormats(session, 0, &numSwapchainFormats, nullptr));
@@ -142,6 +228,9 @@ namespace worlds
         XRCHECK(xrEnumerateSwapchainFormats(session, numSwapchainFormats, &numSwapchainFormats,
                                             swapchainFormats.data()));
 
+        // For now, we're only going to support R8G8B8A8_SRGB. I think this'll be fine since this is
+        // the format that's most likely to be supported, but in case this is required somewhere,
+        // it shouldn't be too difficult to fix up.
         bool foundFormat = false;
         for (int64_t format : swapchainFormats)
         {
@@ -157,6 +246,7 @@ namespace worlds
             fatalErr("Couldn't find correct OpenXR swapchain format");
         }
 
+        // Create the OpenXR swapchains
         for (int i = 0; i < viewCount; i++)
         {
             const XrViewConfigurationView& viewConfigView = viewConfigViews[i];
@@ -184,59 +274,8 @@ namespace worlds
         XRCHECK(xrDestroyInstance(instance));
     }
 
-    bool OpenXRInterface::hasFocus()
+    void OpenXRInterface::updateEvents()
     {
-        return true;
-    }
-
-    bool OpenXRInterface::getHiddenMeshData(Eye eye, HiddenMeshData &hmd)
-    {
-        return false;
-    }
-
-    glm::mat4 OpenXRInterface::getEyeViewMatrix(Eye eye)
-    {
-        return glm::mat4();
-    }
-
-    glm::mat4 OpenXRInterface::getEyeProjectionMatrix(Eye eye, float near)
-    {
-        return glm::mat4();
-    }
-
-    glm::mat4 OpenXRInterface::getEyeProjectionMatrix(Eye eye, float near, float far)
-    {
-        return glm::mat4();
-    }
-
-    glm::mat4 OpenXRInterface::getHeadTransform(float predictionTime)
-    {
-        XrSpaceLocation spaceLocation { XR_TYPE_SPACE_LOCATION };
-        XRCHECK(xrLocateSpace(viewReferenceSpace, stageReferenceSpace, 0, &spaceLocation));
-        Transform t{glm::make_vec3(&spaceLocation.pose.position.x), glm::make_quat(&spaceLocation.pose.orientation.x));
-        return t.getMatrix();
-    }
-
-    bool OpenXRInterface::getHandTransform(Hand hand, Transform &t)
-    {
-        return false;
-    }
-
-    bool OpenXRInterface::getHandVelocity(Hand hand, glm::vec3 &velocity)
-    {
-        return false;
-    }
-
-    Transform OpenXRInterface::getHandBoneTransform(Hand hand, int boneIdx)
-    {
-        return Transform();
-    }
-
-    void OpenXRInterface::updateInput()
-    {
-        // we're gonna poll for OpenXR events here
-        // YOLO!
-
         XrEventDataBuffer event{};
         while (true)
         {
@@ -249,16 +288,22 @@ namespace worlds
                 if (event.type == XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED)
                 {
                     auto* evt = (XrEventDataSessionStateChanged*)&event;
+
                     if (evt->state == XR_SESSION_STATE_READY)
                     {
                         XrSessionBeginInfo beginInfo{ XR_TYPE_SESSION_BEGIN_INFO };
                         beginInfo.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
                         XRCHECK(xrBeginSession(session, &beginInfo));
+                        sessionRunning = true;
+                    }
+                    else if (evt->state == XR_SESSION_STATE_STOPPING)
+                    {
+                        XRCHECK(xrEndSession(session));
+                        sessionRunning = false;
                     }
                     else
                     {
-                        XRCHECK(xrEndSession(session));
-                        fatalErr("Note to self: finish OpenXR session state changes");
+                        logWarn("Unhandled OpenXR session state: %i", evt->state);
                     }
                 }
             }
@@ -273,90 +318,217 @@ namespace worlds
         }
     }
 
-    InputActionHandle OpenXRInterface::getActionHandle(std::string actionPath)
+    void OpenXRInterface::getRenderResolution(uint32_t* x, uint32_t* y)
     {
-        return 0;
-    }
-
-    bool OpenXRInterface::getActionHeld(InputActionHandle handle)
-    {
-        return false;
-    }
-
-    bool OpenXRInterface::getActionPressed(InputActionHandle handle)
-    {
-        return false;
-    }
-
-    bool OpenXRInterface::getActionReleased(InputActionHandle handle)
-    {
-        return false;
-    }
-
-    void OpenXRInterface::triggerHaptics(InputActionHandle handle, float timeFromNow, float duration, float frequency,
-                                         float amplitude)
-    {
-
-    }
-
-    glm::vec2 OpenXRInterface::getActionV2(InputActionHandle handle)
-    {
-        return glm::vec2();
-    }
-
-    std::vector<std::string> OpenXRInterface::getVulkanInstanceExtensions()
-    {
-        return std::vector<std::string>();
-    }
-
-    std::vector<std::string> OpenXRInterface::getVulkanDeviceExtensions(VkPhysicalDevice physDevice)
-    {
-        return std::vector<std::string>();
-    }
-
-    void OpenXRInterface::getRenderResolution(uint32_t *x, uint32_t *y)
-    {
-        std::vector<XrViewConfigurationView> viewConfigViews;
-
-        uint32_t viewCount;
-        XRCHECK(xrEnumerateViewConfigurationViews(
-                instance, systemId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
-                0, &viewCount, nullptr));
-
-        if (viewCount == 0)
-        {
-            fatalErr("Nooo views?! <:(");
-        }
-
-        viewConfigViews.resize(viewCount);
-
-        XRCHECK(xrEnumerateViewConfigurationViews(
-                instance, systemId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
-                (uint32_t)viewConfigViews.size(), &viewCount, viewConfigViews.data()));
-
         *x = viewConfigViews[0].recommendedImageRectWidth;
         *y = viewConfigViews[0].recommendedImageRectHeight;
     }
 
-    float OpenXRInterface::getPredictAmount()
+    const UnscaledTransform& OpenXRInterface::getEyeTransform(Eye eye)
     {
-        return 0;
+        switch (eye)
+        {
+            default:
+            case Eye::LeftEye:
+                return leftEyeTransform;
+            case Eye::RightEye:
+                return rightEyeTransform;
+        }
     }
 
-    void OpenXRInterface::preSubmit()
+    const UnscaledTransform& OpenXRInterface::getHmdTransform()
     {
+        return hmdTransform;
+    }
+
+    const glm::mat4& OpenXRInterface::getEyeProjectionMatrix(Eye eye)
+    {
+        switch (eye)
+        {
+            default:
+            case Eye::LeftEye:
+                return leftEyeProjectionMatrix;
+            case Eye::RightEye:
+                return rightEyeProjectionMatrix;
+        }
+    }
+
+    void OpenXRInterface::beginFrame()
+    {
+        if (!sessionRunning) return;
         XrFrameBeginInfo frameBeginInfo{ XR_TYPE_FRAME_BEGIN_INFO };
         XRCHECK(xrBeginFrame(session, &frameBeginInfo));
     }
 
-    void OpenXRInterface::submit(VRSubmitInfo submitInfo)
+    void composeProjection(XrFovf fov, float zNear, glm::mat4& p)
     {
+        float left = tanf(fov.angleLeft);
+        float right = tanf(fov.angleRight);
+        float up = tanf(fov.angleUp);
+        float down = tanf(fov.angleDown);
+
+        float idx = 1.0f / (right - left);
+        float idy = 1.0f / (up - down);
+        float sx = right + left;
+        float sy = down + up;
+
+        p[0][0] = 2 * idx; p[1][0] = 0;       p[2][0] = sx * idx;    p[3][0] = 0;
+        p[0][1] = 0;       p[1][1] = 2 * idy; p[2][1] = sy * idy;    p[3][1] = 0;
+        p[0][2] = 0;       p[1][2] = 0;       p[2][2] = 0.0f; p[3][2] = zNear;
+        p[0][3] = 0;       p[1][3] = 0;       p[2][3] = -1.0f;       p[3][3] = 0;
     }
 
-    void OpenXRInterface::waitGetPoses()
+    void OpenXRInterface::waitFrame()
     {
+        if (!sessionRunning) return;
         XrFrameWaitInfo waitInfo{ XR_TYPE_FRAME_WAIT_INFO };
         XrFrameState frameState{ XR_TYPE_FRAME_STATE };
         XRCHECK(xrWaitFrame(session, &waitInfo, &frameState));
+        nextDisplayTime = frameState.predictedDisplayTime;
+
+        // Get the pose of each eye
+        XrViewLocateInfo viewLocateInfo{ XR_TYPE_VIEW_LOCATE_INFO };
+        viewLocateInfo.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+        viewLocateInfo.displayTime = nextDisplayTime;
+        viewLocateInfo.space = stageReferenceSpace;
+
+        XrViewState viewState{ XR_TYPE_VIEW_STATE };
+        uint32_t numViews;
+        XRCHECK(xrLocateViews(session, &viewLocateInfo, &viewState, views.size(), &numViews, views.data()));
+
+        if (enumHasFlag(viewState.viewStateFlags, XR_VIEW_STATE_ORIENTATION_VALID_BIT))
+        {
+            XrQuaternionf lO = views[0].pose.orientation;
+            leftEyeTransform.rotation = glm::quat{lO.w, lO.x, lO.y, lO.z};
+
+            XrQuaternionf rO = views[1].pose.orientation;
+            rightEyeTransform.rotation = glm::quat{rO.w, rO.x, rO.y, rO.z};
+        }
+
+        if (enumHasFlag(viewState.viewStateFlags, XR_VIEW_STATE_POSITION_VALID_BIT))
+        {
+            leftEyeTransform.position = glm::make_vec3(&views[0].pose.position.x);
+            rightEyeTransform.position = glm::make_vec3(&views[1].pose.position.x);
+        }
+
+        // Get the pose of the HMD
+        XrSpaceLocation spaceLocation{ XR_TYPE_SPACE_LOCATION };
+        XRCHECK(xrLocateSpace(viewReferenceSpace, stageReferenceSpace, nextDisplayTime, &spaceLocation));
+        if (enumHasFlag(spaceLocation.locationFlags, XR_SPACE_LOCATION_ORIENTATION_VALID_BIT))
+        {
+            XrQuaternionf o = spaceLocation.pose.orientation;
+            hmdTransform.rotation = glm::quat{o.w, o.x, o.y, o.z};
+        }
+
+        if (enumHasFlag(spaceLocation.locationFlags, XR_SPACE_LOCATION_POSITION_VALID_BIT))
+        {
+            hmdTransform.position = glm::make_vec3(&spaceLocation.pose.position.x);
+        }
+
+        leftEyeProjectionMatrix = glm::mat4{ 1.0f };
+        rightEyeProjectionMatrix = glm::mat4{ 1.0f };
+        composeProjection(views[0].fov, 0.01f, leftEyeProjectionMatrix);
+        composeProjection(views[1].fov, 0.01f, rightEyeProjectionMatrix);
+    }
+
+    void OpenXRInterface::submitLayered(R2::VK::CommandBuffer& cb, R2::VK::Texture* texture)
+    {
+        if (!sessionRunning) return;
+        texture->Acquire(cb,
+                         VK::ImageLayout::TransferSrcOptimal,
+                         VK::AccessFlags::TransferRead, VK::PipelineStageFlags::Transfer);
+
+        for (int i = 0; i < 2; i++)
+        {
+            XrSwapchainImageAcquireInfo acquireInfo{ XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
+
+            uint32_t imageIndex;
+            XRCHECK(xrAcquireSwapchainImage(swapchains[i].swapchain, &acquireInfo, &imageIndex));
+
+            XrSwapchainImageWaitInfo waitInfo{ XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
+            waitInfo.timeout = XR_INFINITE_DURATION;
+            XRCHECK(xrWaitSwapchainImage(swapchains[i].swapchain, &waitInfo));
+
+            VkImageCopy imageCopy{};
+            imageCopy.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imageCopy.srcSubresource.baseArrayLayer = i;
+            imageCopy.srcSubresource.layerCount = 1;
+            imageCopy.srcSubresource.mipLevel = 0;
+
+            imageCopy.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imageCopy.dstSubresource.baseArrayLayer = 0;
+            imageCopy.dstSubresource.layerCount = 1;
+            imageCopy.dstSubresource.mipLevel = 0;
+
+            imageCopy.extent.width = texture->GetWidth();
+            imageCopy.extent.height = texture->GetHeight();
+            imageCopy.extent.depth = 1;
+
+            VkImage destImage = swapchains[i].images[imageIndex].image;
+
+            VkImageMemoryBarrier imb{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+            imb.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            imb.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            imb.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            imb.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            imb.image = destImage;
+            imb.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+            vkCmdPipelineBarrier(cb.GetNativeHandle(),
+                                 VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                 0, 0, nullptr, 0, nullptr, 1, &imb);
+
+            vkCmdCopyImage(cb.GetNativeHandle(),
+               texture->GetNativeHandle(),
+               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+               destImage,
+               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+               1, &imageCopy);
+
+            imb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            imb.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                                VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+            imb.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            imb.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+            vkCmdPipelineBarrier(cb.GetNativeHandle(),
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+                                 0, 0, nullptr, 0, nullptr, 1, &imb);
+
+            XrSwapchainImageReleaseInfo releaseInfo{ XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
+            XRCHECK(xrReleaseSwapchainImage(swapchains[i].swapchain, &releaseInfo));
+        }
+    }
+
+    void OpenXRInterface::endFrame()
+    {
+        if (!sessionRunning) return;
+        XrCompositionLayerProjectionView layerViews[2] { XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW };
+
+        for (int i = 0; i < 2; i++)
+        {
+            layerViews[i].fov = views[i].fov;
+            layerViews[i].pose = views[i].pose;
+            layerViews[i].subImage.swapchain = swapchains[i].swapchain;
+            layerViews[i].subImage.imageArrayIndex = 0;
+            layerViews[i].subImage.imageRect.extent = {
+                    (int)viewConfigViews[i].recommendedImageRectWidth,
+                    (int)viewConfigViews[i].recommendedImageRectHeight
+            };
+        }
+
+        XrCompositionLayerProjection layer{ XR_TYPE_COMPOSITION_LAYER_PROJECTION };
+        layer.space = stageReferenceSpace;
+        layer.viewCount = 2;
+        layer.views = layerViews;
+
+        XrCompositionLayerProjection* layerPtr = &layer;
+
+        XrFrameEndInfo frameEndInfo{ XR_TYPE_FRAME_END_INFO };
+        frameEndInfo.displayTime = nextDisplayTime;
+        frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
+        frameEndInfo.layers = (XrCompositionLayerBaseHeader**)&layerPtr;
+        frameEndInfo.layerCount = 1;
+        XRCHECK(xrEndFrame(session, &frameEndInfo));
     }
 }

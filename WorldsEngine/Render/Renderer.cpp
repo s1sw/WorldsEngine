@@ -19,6 +19,7 @@
 #include <Render/StandardPipeline/RenderMaterialManager.hpp>
 #include <SDL_vulkan.h>
 #include <Tracy.hpp>
+#include <VR/OpenXRInterface.hpp>
 
 namespace R2::VK
 {
@@ -157,7 +158,7 @@ namespace worlds
 
             if (needsCompositorWait)
             {
-                interfaces.vrInterface->waitGetPoses();
+                xrPresentManager->waitFrame();
             }
         }
 
@@ -195,9 +196,8 @@ namespace worlds
             {
                 if (pass->settings.setViewsFromXR)
                 {
-                    float predictAmount = interfaces.vrInterface->getPredictAmount();
-                    glm::mat4 ht = interfaces.vrInterface->getHeadTransform(predictAmount);
-                    shadowViewMatrix = glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::LeftEye));
+                    // TODO
+                    shadowViewMatrix = pass->cam->getViewMatrix();
                 }
                 else
                 {
@@ -221,17 +221,15 @@ namespace worlds
             // and frame-pacing issues :(
             if (pass->settings.setViewsFromXR)
             {
-                float predictAmount = interfaces.vrInterface->getPredictAmount();
-                glm::mat4 ht = interfaces.vrInterface->getHeadTransform(predictAmount);
-                setVRUsedPose(ht);
+                const UnscaledTransform& leftEye = interfaces.vrInterface->getEyeTransform(Eye::LeftEye);
+                const UnscaledTransform& rightEye = interfaces.vrInterface->getEyeTransform(Eye::RightEye);
+                pass->setView(
+                        0, glm::inverse(leftEye.getMatrix()),
+                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::LeftEye));
 
                 pass->setView(
-                        0, glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::LeftEye)),
-                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::LeftEye, interfaces.mainCamera->near));
-
-                pass->setView(
-                        1, glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::RightEye)),
-                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::RightEye, interfaces.mainCamera->near));
+                        1, glm::inverse(rightEye.getMatrix()),
+                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::RightEye));
             }
 
             cb.BeginDebugLabel("RTT Pass", 0.0f, 0.0f, 0.0f);
@@ -282,14 +280,14 @@ namespace worlds
 
         if (this->xrPresentManager && xrRendered)
         {
-            xrPresentManager->preSubmit();
+            xrPresentManager->beginFrame();
         }
         core->EndFrame();
 
         swapchain->Present();
 
         if (this->xrPresentManager && xrRendered)
-            xrPresentManager->submit(vrUsedPose);
+            xrPresentManager->endFrame();
     }
 
     float VKRenderer::getLastGPUTime() const

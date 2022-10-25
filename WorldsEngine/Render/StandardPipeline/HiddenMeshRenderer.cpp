@@ -4,6 +4,7 @@
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
 #include <R2/VK.hpp>
+#include <VR/OpenXRInterface.hpp>
 
 using namespace R2;
 
@@ -19,12 +20,14 @@ namespace worlds
         HiddenMeshData leftMesh{};
         HiddenMeshData rightMesh{};
 
-        if (!interfaces.vrInterface->getHiddenMeshData(Eye::LeftEye, leftMesh) ||
-            !interfaces.vrInterface->getHiddenMeshData(Eye::RightEye, rightMesh))
-        {
-            logWarn(WELogCategoryRender, "VR hidden area mesh was empty");
-            return;
-        }
+        //if (!interfaces.vrInterface->getHiddenMeshData(Eye::LeftEye, leftMesh) ||
+        //    !interfaces.vrInterface->getHiddenMeshData(Eye::RightEye, rightMesh))
+        //{
+        //    logWarn(WELogCategoryRender, "VR hidden area mesh was empty");
+        //    return;
+        //}
+        // TODO
+        return;
 
         uint64_t triangleSize = 2 * 3 * sizeof(float);
         uint64_t leftSize = leftMesh.triangleCount * triangleSize;

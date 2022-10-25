@@ -2,12 +2,12 @@
 #include <SDL_video.h>
 #include <entt/entity/lw_fwd.hpp>
 #include <glm/glm.hpp>
+#include <string>
 
 #include "Camera.hpp"
 #include "PackedMaterial.hpp"
 #include <Render/PickParams.hpp>
 #include <Core/WorldComponents.hpp>
-#include <VR/IVRInterface.hpp>
 
 typedef void* ImTextureID;
 
@@ -35,6 +35,8 @@ namespace worlds
         glm::vec4 viewPos[2];
         int screenWidth;
         int screenHeight;
+        int pad0;
+        int pad1;
     };
 
     struct PackedLight
@@ -112,8 +114,6 @@ namespace worlds
         std::vector<std::string> additionalInstanceExtensions;
         std::vector<std::string> additionalDeviceExtensions;
         bool enableVR;
-        VrApi activeVrApi;
-        IVRInterface* vrInterface;
         const char* applicationName = nullptr;
         const EngineInterfaces& interfaces;
     };
