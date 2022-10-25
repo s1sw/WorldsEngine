@@ -82,7 +82,8 @@ namespace R2::VK
 	class Core
 	{
 	public:
-		Core(IDebugOutputReceiver* dbgOutRecv = nullptr, bool enableValidation = false);
+		Core(IDebugOutputReceiver* dbgOutRecv = nullptr, bool enableValidation = false,
+             const char** instanceExts = nullptr, const char** deviceExts = nullptr);
 
 		const GraphicsDeviceInfo& GetDeviceInfo() const;
 
@@ -153,11 +154,11 @@ namespace R2::VK
 		void writeFrameUploadCommands(uint32_t index);
 
 		void setAllocCallbacks();
-		void createInstance(bool enableValidation);
+		void createInstance(bool enableValidation, const char** instanceExts);
 		void selectPhysicalDevice();
 		void findQueueFamilies();
 		bool checkFeatures(VkPhysicalDevice device);
-		void createDevice();
+		void createDevice(const char** deviceExts);
 		void createCommandPool();
 		void createAllocator();
 		void createDescriptorPool();
