@@ -52,6 +52,7 @@ namespace worlds
     PFN_xrGetVulkanGraphicsDeviceKHR xrGetVulkanGraphicsDeviceKHR;
     PFN_xrGetVulkanInstanceExtensionsKHR xrGetVulkanInstanceExtensionsKHR;
     PFN_xrGetVulkanDeviceExtensionsKHR xrGetVulkanDeviceExtensionsKHR;
+    PFN_xrGetVisibilityMaskKHR xrGetVisibilityMaskKHR;
 
     OpenXRInterface::OpenXRInterface(const EngineInterfaces& interfaces)
         : interfaces(interfaces)
@@ -70,6 +71,7 @@ namespace worlds
 
         std::vector<const char*> extensions;
         extensions.push_back(XR_KHR_VULKAN_ENABLE_EXTENSION_NAME);
+        extensions.push_back(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME);
 
         instanceCreateInfo.enabledExtensionCount = extensions.size();
         instanceCreateInfo.enabledExtensionNames = extensions.data();
@@ -88,6 +90,7 @@ namespace worlds
         LOAD_XR_FUNC(xrGetVulkanGraphicsDeviceKHR);
         LOAD_XR_FUNC(xrGetVulkanInstanceExtensionsKHR);
         LOAD_XR_FUNC(xrGetVulkanDeviceExtensionsKHR);
+        LOAD_XR_FUNC(xrGetVisibilityMaskKHR);
 #undef LOAD_XR_FUNC
 
         // Get the XR system
@@ -131,6 +134,8 @@ namespace worlds
             extList.push_back(ext);
             it++;
         }
+
+        return extList;
     }
 
     std::vector<std::string> OpenXRInterface::getRequiredInstanceExtensions()
@@ -351,6 +356,32 @@ namespace worlds
             case Eye::RightEye:
                 return rightEyeProjectionMatrix;
         }
+    }
+
+    bool OpenXRInterface::getHiddenAreaMesh(Eye eye, HiddenAreaMesh& mesh)
+    {
+        XrVisibilityMaskKHR mask { XR_TYPE_VISIBILITY_MASK_KHR };
+        XRCHECK(xrGetVisibilityMaskKHR(session,
+                                       XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, (int)eye,
+                                       XR_VISIBILITY_MASK_TYPE_HIDDEN_TRIANGLE_MESH_KHR, &mask));
+
+        if (mask.vertexCountOutput == 0 || mask.indexCountOutput == 0)
+        {
+            return false;
+        }
+
+        mesh.indices.resize(mask.indexCountOutput);
+        mesh.verts.resize(mask.vertexCountOutput);
+        mask.vertexCapacityInput = mesh.verts.size();
+        mask.indexCapacityInput = mesh.indices.size();
+        mask.indices = mesh.indices.data();
+        mask.vertices = (XrVector2f*)mesh.verts.data();
+
+        XRCHECK(xrGetVisibilityMaskKHR(session,
+                                       XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, (int)eye,
+                                       XR_VISIBILITY_MASK_TYPE_HIDDEN_TRIANGLE_MESH_KHR, &mask));
+
+        return true;
     }
 
     void OpenXRInterface::beginFrame()

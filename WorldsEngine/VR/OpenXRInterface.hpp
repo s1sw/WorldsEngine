@@ -52,10 +52,10 @@ namespace worlds
 
     typedef uint64_t InputActionHandle;
 
-    struct HiddenMeshData
+    struct HiddenAreaMesh
     {
         std::vector<glm::vec2> verts;
-        uint32_t triangleCount;
+        std::vector<uint32_t> indices;
     };
 
     class OpenXRInterface
@@ -72,6 +72,7 @@ namespace worlds
         const UnscaledTransform& getEyeTransform(Eye eye);
         const UnscaledTransform& getHmdTransform();
         const glm::mat4& getEyeProjectionMatrix(Eye eye);
+        bool getHiddenAreaMesh(Eye eye, HiddenAreaMesh& mesh);
 
         void waitFrame();
         void beginFrame();
