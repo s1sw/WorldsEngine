@@ -115,15 +115,15 @@ namespace worlds
     {
         std::vector<std::string> extList;
 
-        auto it = result.begin();
-        while (it < result.end())
+        auto it = extString.begin();
+        while (it < extString.end())
         {
             auto extStart = it;
 
             while (*it != ' ')
             {
                 it++;
-                if (it == result.end()) break;
+                if (it == extString.end()) break;
             }
 
             std::string ext;
