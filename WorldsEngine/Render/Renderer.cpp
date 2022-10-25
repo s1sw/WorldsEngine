@@ -52,7 +52,23 @@ namespace worlds
         enableValidation = !EngineArguments::hasArgument("no-validation-layers");
 #endif
 
-        core = new VK::Core(new LogDebugOutputReceiver, enableValidation);
+        std::vector<const char*> instanceExts;
+
+        for (const std::string& s : initInfo.additionalInstanceExtensions)
+        {
+            instanceExts.push_back(s.c_str());
+        }
+        instanceExts.push_back(nullptr);
+
+        std::vector<const char*> deviceExts;
+
+        for (const std::string& s : initInfo.additionalDeviceExtensions)
+        {
+            deviceExts.push_back(s.c_str());
+        }
+        deviceExts.push_back(nullptr);
+
+        core = new VK::Core(new LogDebugOutputReceiver, enableValidation, instanceExts.data(), deviceExts.data());
         VK::SwapchainCreateInfo sci{};
 
         SDL_Vulkan_CreateSurface(initInfo.window, core->GetHandles()->Instance, &sci.surface);
