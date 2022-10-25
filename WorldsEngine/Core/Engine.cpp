@@ -1420,6 +1420,9 @@ namespace worlds
             editor.Reset();
 #endif
 
+        if (vrInterface)
+            vrInterface.Reset();
+
         if (!dedicatedServer)
         {
             renderer.Reset();
