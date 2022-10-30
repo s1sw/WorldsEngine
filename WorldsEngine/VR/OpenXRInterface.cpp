@@ -15,6 +15,9 @@
 #include <openxr/openxr_platform.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <Util/EnumUtil.hpp>
+#include <IO/IOUtil.hpp>
+#include <nlohmann/json.hpp>
+#include <robin_hood.h>
 
 using namespace R2;
 
@@ -48,11 +51,151 @@ namespace worlds
         }
     };
 
+
+    struct ActionInternal
+    {
+        XrAction action;
+        bool isPoseAction;
+        XrSpace poseSpace;
+        robin_hood::unordered_flat_map<XrPath, XrSpace> poseSubactionSpaces;
+    };
+
+    robin_hood::unordered_flat_map<uint64_t, ActionInternal> actionsInternal;
+
+    class ActionSet
+    {
+    public:
+        XrActionSet actionSet;
+        std::string name;
+        robin_hood::unordered_flat_map<std::string, uint64_t> actions;
+
+        ActionSet(XrInstance instance, XrSession session, std::string name, nlohmann::json& value)
+             : name(name)
+             , actionSet(XR_NULL_HANDLE)
+        {
+            XrActionSetCreateInfo setCreateInfo{ XR_TYPE_ACTION_SET_CREATE_INFO };
+
+            if (name.size() >= XR_MAX_ACTION_SET_NAME_SIZE)
+            {
+                logErr("Action set name %s is too long", name.c_str());
+                return;
+            }
+
+            strcpy(setCreateInfo.actionSetName, name.c_str());
+            // At some point, finish this so the action set name is localized
+            strcpy(setCreateInfo.localizedActionSetName, name.c_str());
+            setCreateInfo.priority = 0;
+            XRCHECK(xrCreateActionSet(instance, &setCreateInfo, &actionSet));
+
+            // Iterate over the actions and add them to the set
+            for (auto& actionPair : value["actions"].items())
+            {
+                std::string actionName = actionPair.key();
+                if (actionName.size() >= XR_MAX_ACTION_NAME_SIZE)
+                {
+                    logErr("Action name %s is too long!", actionName.c_str());
+                    continue;
+                }
+
+                ActionInternal actionInternal{};
+                XrActionCreateInfo actionCreateInfo{ XR_TYPE_ACTION_CREATE_INFO };
+                strcpy(actionCreateInfo.actionName, actionName.c_str());
+                strcpy(actionCreateInfo.localizedActionName, actionName.c_str());
+
+                auto& actionTypeVal = actionPair.value()["type"];
+
+                if (actionTypeVal == "boolean")
+                {
+                    actionCreateInfo.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT;
+                }
+                else if (actionTypeVal == "float")
+                {
+                    actionCreateInfo.actionType = XR_ACTION_TYPE_FLOAT_INPUT;
+                }
+                else if (actionTypeVal == "pose")
+                {
+                    actionCreateInfo.actionType = XR_ACTION_TYPE_POSE_INPUT;
+                    actionInternal.isPoseAction = true;
+                }
+                else if (actionTypeVal == "vibration_output")
+                {
+                    actionCreateInfo.actionType = XR_ACTION_TYPE_VIBRATION_OUTPUT;
+                }
+                else
+                {
+                    logErr("Invalid action type %s", actionTypeVal.get<std::string>().c_str());
+                    continue;
+                }
+
+                // There are a maximum of 4 possible actions, so just use an array for that
+                XrPath subactions[4];
+                if (actionPair.value().contains("subactions"))
+                {
+                    auto& subactionsVal = actionPair.value()["subactions"];
+                    actionCreateInfo.countSubactionPaths = subactionsVal.size();
+                    actionCreateInfo.subactionPaths = subactions;
+
+                    for (int i = 0; i < subactionsVal.size(); i++)
+                    {
+                        XRCHECK(xrStringToPath(instance,
+                                               subactionsVal[i].get<std::string>().c_str(),
+                                               &subactions[i]));
+
+                        if (actionInternal.isPoseAction)
+                        {
+                            XrActionSpaceCreateInfo asci{ XR_TYPE_ACTION_SPACE_CREATE_INFO };
+                            asci.poseInActionSpace.orientation = XrQuaternionf{ 0.0f, 0.0f, 0.0f, 1.0f };
+                            asci.subactionPath = subactions[i];
+
+                            XrSpace poseSpace;
+                            XRCHECK(xrCreateActionSpace(session, &asci, &poseSpace));
+                            actionInternal.poseSubactionSpaces.insert({ subactions[i], poseSpace });
+                        }
+                    }
+                }
+                else if (actionInternal.isPoseAction)
+                {
+                    XrActionSpaceCreateInfo asci{ XR_TYPE_ACTION_SPACE_CREATE_INFO };
+                    asci.poseInActionSpace.orientation = XrQuaternionf{ 0.0f, 0.0f, 0.0f, 1.0f };
+                    XRCHECK(xrCreateActionSpace(session, &asci, &actionInternal.poseSpace));
+                }
+
+                XRCHECK(xrCreateAction(actionSet, &actionCreateInfo, &actionInternal.action));
+                actionsInternal.insert({ (uint64_t)actionInternal.action, actionInternal });
+                actions.insert({ actionName, (uint64_t)actionInternal.action });
+            }
+        }
+
+        ~ActionSet()
+        {
+            for (auto& pair : actions)
+            {
+                ActionInternal& ai = actionsInternal[pair.second];
+                XRCHECK(xrDestroyAction(ai.action));
+                if (ai.isPoseAction && ai.poseSubactionSpaces.size() == 0)
+                {
+                    XRCHECK(xrDestroySpace(ai.poseSpace));
+                }
+                else
+                {
+                    for (auto& spacePair : ai.poseSubactionSpaces)
+                    {
+                        XRCHECK(xrDestroySpace(spacePair.second));
+                    }
+                }
+            }
+
+            XRCHECK(xrDestroyActionSet(actionSet));
+        }
+    };
+
     PFN_xrGetVulkanGraphicsRequirementsKHR xrGetVulkanGraphicsRequirementsKHR;
     PFN_xrGetVulkanGraphicsDeviceKHR xrGetVulkanGraphicsDeviceKHR;
     PFN_xrGetVulkanInstanceExtensionsKHR xrGetVulkanInstanceExtensionsKHR;
     PFN_xrGetVulkanDeviceExtensionsKHR xrGetVulkanDeviceExtensionsKHR;
     PFN_xrGetVisibilityMaskKHR xrGetVisibilityMaskKHR;
+
+    robin_hood::unordered_flat_map<std::string, ActionSet*> actionSets;
 
     OpenXRInterface::OpenXRInterface(const EngineInterfaces& interfaces)
         : interfaces(interfaces)
@@ -321,6 +464,16 @@ namespace worlds
                 fatalErr("xrPollEvent failed!");
             }
         }
+
+        if (actionSets.size() > 0)
+        {
+            ActionSet* activeSet = actionSets[activeActionSet];
+            XrActiveActionSet activeActionSet{ activeSet->actionSet, (XrPath)XR_NULL_HANDLE };
+            XrActionsSyncInfo actionSyncInfo{ XR_TYPE_ACTIONS_SYNC_INFO };
+            actionSyncInfo.countActiveActionSets = 1;
+            actionSyncInfo.activeActionSets = &activeActionSet;
+            XRCHECK(xrSyncActions(session, &actionSyncInfo));
+        }
     }
 
     void OpenXRInterface::getRenderResolution(uint32_t* x, uint32_t* y)
@@ -382,6 +535,184 @@ namespace worlds
                                        XR_VISIBILITY_MASK_TYPE_HIDDEN_TRIANGLE_MESH_KHR, &mask));
 
         return true;
+    }
+
+    void OpenXRInterface::loadActionJson(const char* path)
+    {
+        auto loadResult = LoadFileToString(path);
+        if (loadResult.error != IOError::None)
+        {
+            logWarn("Failed to load action json %s", path);
+            return;
+        }
+
+        XrActionSet activeSet = XR_NULL_HANDLE;
+        nlohmann::json j = nlohmann::json::parse(loadResult.value);
+        for (auto& actionSetPair : j["action_sets"].items())
+        {
+            ActionSet* set = new ActionSet(instance, session, actionSetPair.key(), actionSetPair.value());
+            actionSets.insert({ actionSetPair.key(), set });
+            activeActionSet = actionSetPair.key();
+            activeSet = set->actionSet;
+        }
+
+        if (activeSet == XR_NULL_HANDLE)
+        {
+            logErr("Action json file didn't have an action set!");
+            return;
+        }
+
+        for (auto& suggestedBindingPair : j["suggested_bindings"].items())
+        {
+            std::string interactionProfile = suggestedBindingPair.key();
+            XrInteractionProfileSuggestedBinding suggestedBinding
+                { XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING };
+
+            suggestedBinding.interactionProfile = getXrPath(interactionProfile.c_str());
+
+            std::vector<XrActionSuggestedBinding> suggestedActionBindings;
+
+            for (auto& actionBinding : suggestedBindingPair.value().items())
+            {
+                std::string actionPath = actionBinding.key();
+                size_t secondSlashPos = actionPath.find('/', 1);
+                std::string actionSetName = actionPath.substr(1, secondSlashPos - 1);
+                std::string actionName = actionPath.substr(secondSlashPos);
+
+                ActionSet* set = actionSets[actionSetName];
+                XrAction action = (XrAction)set->actions[actionName];
+
+                for (auto& inputSource : actionBinding.value())
+                {
+                    XrActionSuggestedBinding asb{ action };
+                    asb.binding = getXrPath(inputSource.get<std::string>().c_str());
+                    suggestedActionBindings.push_back(asb);
+                }
+            }
+
+            suggestedBinding.countSuggestedBindings = suggestedActionBindings.size();
+            suggestedBinding.suggestedBindings = suggestedActionBindings.data();
+
+            XRCHECK(xrSuggestInteractionProfileBindings(instance, &suggestedBinding));
+        }
+
+        XrSessionActionSetsAttachInfo attachInfo{ XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO };
+        attachInfo.actionSets = &activeSet;
+        attachInfo.countActionSets = 1;
+        XRCHECK(xrAttachSessionActionSets(session, &attachInfo));
+    }
+
+    uint64_t OpenXRInterface::getActionHandle(const char* actionSet, const char* action)
+    {
+        auto setIterator = actionSets.find(actionSet);
+
+        if (setIterator == actionSets.end())
+        {
+            logErr("Couldn't find action set %s", actionSet);
+            return UINT64_MAX;
+        }
+
+        auto actionIterator = setIterator->second->actions.find(action);
+
+        if (actionIterator == setIterator->second->actions.end())
+        {
+            logErr("Couldn't find action %s", action);
+            return UINT64_MAX;
+        }
+
+        return actionIterator->second;
+    }
+
+    uint64_t OpenXRInterface::getSubactionHandle(const char* subaction)
+    {
+        return (uint64_t)getXrPath(subaction);
+    }
+
+    BooleanActionState OpenXRInterface::getBooleanActionState(uint64_t actionHandle, uint64_t subactionHandle)
+    {
+        auto action = (XrAction)actionHandle;
+        XrActionStateGetInfo stateGetInfo { XR_TYPE_ACTION_STATE_GET_INFO };
+        stateGetInfo.action = action;
+        if (subactionHandle != UINT64_MAX)
+        {
+            stateGetInfo.subactionPath = (XrPath)subactionHandle;
+        }
+
+        XrActionStateBoolean xrState{ XR_TYPE_ACTION_STATE_BOOLEAN };
+        XRCHECK(xrGetActionStateBoolean(session, &stateGetInfo, &xrState));
+
+        BooleanActionState state{};
+        state.changedSinceLastFrame = xrState.changedSinceLastSync;
+        state.currentState = xrState.currentState;
+
+        return state;
+    }
+
+    FloatActionState OpenXRInterface::getFloatActionState(uint64_t actionHandle, uint64_t subactionHandle)
+    {
+        auto action = (XrAction)actionHandle;
+        XrActionStateGetInfo stateGetInfo { XR_TYPE_ACTION_STATE_GET_INFO };
+        stateGetInfo.action = action;
+        if (subactionHandle != UINT64_MAX)
+        {
+            stateGetInfo.subactionPath = (XrPath)subactionHandle;
+        }
+
+        XrActionStateFloat xrState{ XR_TYPE_ACTION_STATE_FLOAT };
+        XRCHECK(xrGetActionStateFloat(session, &stateGetInfo, &xrState));
+
+        FloatActionState state{};
+        state.changedSinceLastFrame = xrState.changedSinceLastSync;
+        state.currentState = xrState.currentState;
+
+        return state;
+    }
+
+    Vector2fActionState OpenXRInterface::getVector2fActionState(uint64_t actionHandle, uint64_t subactionHandle)
+    {
+        auto action = (XrAction)actionHandle;
+        XrActionStateGetInfo stateGetInfo { XR_TYPE_ACTION_STATE_GET_INFO };
+        stateGetInfo.action = action;
+        if (subactionHandle != UINT64_MAX)
+        {
+            stateGetInfo.subactionPath = (XrPath)subactionHandle;
+        }
+
+        XrActionStateVector2f xrState{ XR_TYPE_ACTION_STATE_VECTOR2F };
+        XRCHECK(xrGetActionStateVector2f(session, &stateGetInfo, &xrState));
+
+        Vector2fActionState state{};
+        state.changedSinceLastFrame = xrState.changedSinceLastSync;
+        state.currentState = glm::vec2(xrState.currentState.x, xrState.currentState.y);
+
+        return state;
+    }
+
+    UnscaledTransform OpenXRInterface::getPoseActionState(uint64_t actionHandle, uint64_t subactionHandle)
+    {
+        const ActionInternal& actionInternal = actionsInternal[actionHandle];
+
+        XrSpaceLocation spaceLocation{ XR_TYPE_SPACE_LOCATION };
+        XrSpace poseSpace;
+
+        if (subactionHandle != UINT64_MAX)
+        {
+            poseSpace = actionInternal.poseSpace;
+        }
+        else
+        {
+            poseSpace = actionInternal.poseSubactionSpaces.at((XrPath)subactionHandle);
+        }
+
+        XRCHECK(xrLocateSpace(poseSpace, stageReferenceSpace, nextDisplayTime, &spaceLocation));
+
+        UnscaledTransform transform{};
+        transform.position = glm::make_vec3(&spaceLocation.pose.position.x);
+
+        XrQuaternionf rot = spaceLocation.pose.orientation;
+        transform.rotation = glm::quat{rot.w, rot.x, rot.y, rot.z};
+
+        return transform;
     }
 
     void OpenXRInterface::beginFrame()
@@ -561,5 +892,12 @@ namespace worlds
         frameEndInfo.layers = (XrCompositionLayerBaseHeader**)&layerPtr;
         frameEndInfo.layerCount = 1;
         XRCHECK(xrEndFrame(session, &frameEndInfo));
+    }
+
+    XrPath OpenXRInterface::getXrPath(const char* path)
+    {
+        XrPath ret;
+        XRCHECK(xrStringToPath(instance, path, &ret));
+        return ret;
     }
 }

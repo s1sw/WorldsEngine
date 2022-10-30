@@ -16,6 +16,7 @@ XR_DEFINE_HANDLE(VkPhysicalDevice)
 #undef XR_DEFINE_HANDLE
 #define XR_DEFINE_ATOM(object) typedef uint64_t object;
 XR_DEFINE_ATOM(XrSystemId)
+XR_DEFINE_ATOM(XrPath)
 #undef XR_DEFINE_ATOM
 
 struct XrView;
@@ -58,6 +59,26 @@ namespace worlds
         std::vector<uint32_t> indices;
     };
 
+    struct BooleanActionState
+    {
+        bool currentState;
+        bool changedSinceLastFrame;
+    };
+
+    struct FloatActionState
+    {
+        float currentState;
+        bool changedSinceLastFrame;
+    };
+
+    struct Vector2fActionState
+    {
+        glm::vec2 currentState;
+        bool changedSinceLastFrame;
+    };
+
+    class ActionSet;
+
     class OpenXRInterface
     {
     public:
@@ -73,6 +94,15 @@ namespace worlds
         const UnscaledTransform& getHmdTransform();
         const glm::mat4& getEyeProjectionMatrix(Eye eye);
         bool getHiddenAreaMesh(Eye eye, HiddenAreaMesh& mesh);
+
+        // Input
+        void loadActionJson(const char* path);
+        uint64_t getActionHandle(const char* actionSet, const char* action);
+        uint64_t getSubactionHandle(const char* subaction);
+        BooleanActionState getBooleanActionState(uint64_t actionHandle, uint64_t subactionHandle = UINT64_MAX);
+        FloatActionState getFloatActionState(uint64_t actionHandle, uint64_t subactionHandle = UINT64_MAX);
+        Vector2fActionState getVector2fActionState(uint64_t actionHandle, uint64_t subactionHandle = UINT64_MAX);
+        UnscaledTransform getPoseActionState(uint64_t actionHandle, uint64_t subactionHandle = UINT64_MAX);
 
         void waitFrame();
         void beginFrame();
@@ -97,5 +127,9 @@ namespace worlds
         glm::mat4 leftEyeProjectionMatrix;
         glm::mat4 rightEyeProjectionMatrix;
         bool sessionRunning = false;
+
+        // Input Stuff
+        std::string activeActionSet;
+        XrPath getXrPath(const char* path);
     };
 }
