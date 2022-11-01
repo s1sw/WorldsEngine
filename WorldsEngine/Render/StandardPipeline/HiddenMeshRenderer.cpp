@@ -10,7 +10,7 @@ using namespace R2;
 
 namespace worlds
 {
-    HiddenMeshRenderer::HiddenMeshRenderer(const EngineInterfaces& interfaces, int sampleCount)
+    HiddenMeshRenderer::HiddenMeshRenderer(const EngineInterfaces& interfaces, int sampleCount, VK::Buffer* vpBuffer)
         : interfaces(interfaces)
         , leftIndexCount(0)
         , rightIndexCount(0)
@@ -49,8 +49,20 @@ namespace worlds
         core->QueueBufferUpload(indexBuffer.Get(), leftMesh.indices.data(), leftIndicesSize, 0);
         core->QueueBufferUpload(indexBuffer.Get(), rightMesh.indices.data(), rightIndicesSize, leftIndicesSize);
 
+
+        VK::DescriptorSetLayoutBuilder dslb{core};
+        dslb.Binding(0, VK::DescriptorType::UniformBuffer, 1, VK::ShaderStage::Vertex);
+        dsl = dslb.Build();
+
+        ds = core->CreateDescriptorSet(dsl.Get());
+
+        VK::DescriptorSetUpdater dsu{ core, ds.Get() };
+        dsu.AddBuffer(0, 0, VK::DescriptorType::UniformBuffer, vpBuffer);
+        dsu.Update();
+
         VK::PipelineLayoutBuilder plb{core};
         plb.PushConstants(VK::ShaderStage::Vertex, 0, sizeof(uint32_t));
+        plb.DescriptorSet(dsl.Get());
         pipelineLayout = plb.Build();
 
         VK::VertexBinding vb{};
@@ -87,6 +99,7 @@ namespace worlds
         cb.BindIndexBuffer(indexBuffer.Get(), 0, VK::IndexType::Uint32);
 
         cb.BindPipeline(pipeline.Get());
+        cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), ds.Get(), 0);
 
         uint32_t view = 0;
         cb.PushConstants(view, VK::ShaderStage::Vertex, pipelineLayout.Get());
