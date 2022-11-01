@@ -8,56 +8,120 @@ using WorldsEngine.Math;
 
 namespace WorldsEngine
 {
+    [StructLayout(LayoutKind.Sequential)]
+    struct BooleanActionState
+    {
+        [MarshalAs(UnmanagedType.I1)]
+        public bool CurrentState;
+        [MarshalAs(UnmanagedType.I1)]
+        public bool ChangedSinceLastFrame;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct FloatActionState
+    {
+        public float CurrentState;
+        [MarshalAs(UnmanagedType.I1)]
+        public bool ChangedSinceLastFrame;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct Vector2ActionState
+    {
+        public Vector2 CurrentState;
+        [MarshalAs(UnmanagedType.I1)]
+        public bool ChangedSinceLastFrame;
+    }
+
+    public static class VRSubactions
+    {
+        public static string LeftHand => "/user/hand/left";
+        public static string RightHand => "/user/hand/right";
+    }
+
     public class VRAction
     {
         [DllImport(Engine.NativeModule, CharSet = CharSet.Ansi)]
-        private static extern ulong vr_getActionHandle(string actionPath);
+        private static extern ulong vr_getActionHandle(string actionSet, string actionPath);
+        [DllImport(Engine.NativeModule, CharSet = CharSet.Ansi)]
+        private static extern ulong vr_getSubactionHandle(string subaction);
 
         [DllImport(Engine.NativeModule)]
-        [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool vr_getActionHeld(ulong handle);
+        private static extern BooleanActionState vr_getBooleanActionState(ulong actionHandle, ulong subactionHandle);
 
         [DllImport(Engine.NativeModule)]
-        [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool vr_getActionPressed(ulong handle);
+        private static extern FloatActionState vr_getFloatActionState(ulong actionHandle, ulong subactionHandle);
 
         [DllImport(Engine.NativeModule)]
-        [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool vr_getActionReleased(ulong handle);
+        private static extern Vector2ActionState vr_getVector2fActionState(ulong actionHandle, ulong subactionHandle);
 
         [DllImport(Engine.NativeModule)]
-        private static extern void vr_getActionVector2(ulong handle, out Vector2 vec);
+        private static extern void vr_getPoseActionState(ulong actionHandle, ulong subactionHandle, ref Transform t);
 
         [DllImport(Engine.NativeModule)]
-        private static extern void vr_triggerHaptics(ulong handle, float timeFromNow, float duration, float frequency, float amplitude);
+        private static extern void vr_triggerHaptics(float duration, float frequency, float amplitude,
+            ulong actionHandle, ulong subactionHandle);
 
         private readonly ulong _actionHandle;
+        private readonly ulong _subactionHandle = 0;
 
-        public VRAction(string actionPath)
+        public VRAction(string actionSet, string actionPath, string? subaction = null)
         {
             if (!VR.Enabled)
                 throw new InvalidOperationException("Can't create a VRAction when VR isn't enabled");
-            _actionHandle = vr_getActionHandle(actionPath);
-        }
-
-        public bool Held => vr_getActionHeld(_actionHandle);
-        public bool Pressed => vr_getActionPressed(_actionHandle);
-        public bool Released => vr_getActionReleased(_actionHandle);
-        public Vector2 Vector2Value
-        {
-            get
+            
+            _actionHandle = vr_getActionHandle(actionSet, actionPath);
+            
+            if (subaction != null)
             {
-                Vector2 v = new Vector2();
-
-                vr_getActionVector2(_actionHandle, out v);
-
-                return v;
+                _subactionHandle = vr_getSubactionHandle(subaction);
             }
         }
 
-        public void TriggerHaptics(float timeFromNow, float duration, float frequency, float amplitude)
+        public bool Held
         {
-            vr_triggerHaptics(_actionHandle, timeFromNow, duration, frequency, amplitude);
+            get
+            {
+                var actionState = vr_getBooleanActionState(_actionHandle, _subactionHandle);
+                return actionState.CurrentState;
+            }
+        }
+
+        public bool Pressed
+        {
+            get
+            {
+                var actionState = vr_getBooleanActionState(_actionHandle, _subactionHandle);
+                return actionState.CurrentState && actionState.ChangedSinceLastFrame;
+            }
+        }
+
+        public bool Released
+        {
+            get
+            {
+                var actionState = vr_getBooleanActionState(_actionHandle, _subactionHandle);
+                return !actionState.CurrentState && actionState.ChangedSinceLastFrame;
+            }
+        }
+
+        public float FloatValue => vr_getFloatActionState(_actionHandle, _subactionHandle).CurrentState;
+
+        public Vector2 Vector2Value => vr_getVector2fActionState(_actionHandle, _subactionHandle).CurrentState;
+
+        public Transform Pose
+        {
+            get
+            {
+                Transform t = new();
+                vr_getPoseActionState(_actionHandle, _subactionHandle, ref t);
+                return t;
+            }
+        }
+
+        public void TriggerHaptics(float duration, float frequency, float amplitude)
+        {
+            vr_triggerHaptics(duration, frequency, amplitude, _actionHandle, _subactionHandle);
         }
     }
 }

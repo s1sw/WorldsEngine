@@ -1,4 +1,5 @@
 #include "OpenXRInterface.hpp"
+#include <Tracy.hpp>
 // EW EW EW
 #include "../../R2/PrivateInclude/volk.h"
 #include <Core/Log.hpp>
@@ -9,6 +10,7 @@
 #include <Core/Engine.hpp>
 
 #define XR_USE_GRAPHICS_API_VULKAN
+#define XR_USE_PLATFORM_WIN32
 #include <vulkan/vulkan.h>
 #include <R2/VK.hpp>
 #include <openxr/openxr.h>
@@ -112,6 +114,10 @@ namespace worlds
                 {
                     actionCreateInfo.actionType = XR_ACTION_TYPE_FLOAT_INPUT;
                 }
+                else if (actionTypeVal == "vector2f")
+                {
+                    actionCreateInfo.actionType = XR_ACTION_TYPE_VECTOR2F_INPUT;
+                }
                 else if (actionTypeVal == "pose")
                 {
                     actionCreateInfo.actionType = XR_ACTION_TYPE_POSE_INPUT;
@@ -140,27 +146,36 @@ namespace worlds
                         XRCHECK(xrStringToPath(instance,
                                                subactionsVal[i].get<std::string>().c_str(),
                                                &subactions[i]));
-
-                        if (actionInternal.isPoseAction)
-                        {
-                            XrActionSpaceCreateInfo asci{ XR_TYPE_ACTION_SPACE_CREATE_INFO };
-                            asci.poseInActionSpace.orientation = XrQuaternionf{ 0.0f, 0.0f, 0.0f, 1.0f };
-                            asci.subactionPath = subactions[i];
-
-                            XrSpace poseSpace;
-                            XRCHECK(xrCreateActionSpace(session, &asci, &poseSpace));
-                            actionInternal.poseSubactionSpaces.insert({ subactions[i], poseSpace });
-                        }
                     }
-                }
-                else if (actionInternal.isPoseAction)
-                {
-                    XrActionSpaceCreateInfo asci{ XR_TYPE_ACTION_SPACE_CREATE_INFO };
-                    asci.poseInActionSpace.orientation = XrQuaternionf{ 0.0f, 0.0f, 0.0f, 1.0f };
-                    XRCHECK(xrCreateActionSpace(session, &asci, &actionInternal.poseSpace));
                 }
 
                 XRCHECK(xrCreateAction(actionSet, &actionCreateInfo, &actionInternal.action));
+
+                if (actionInternal.isPoseAction)
+                {
+                    if (actionCreateInfo.countSubactionPaths > 0)
+                    {
+                        for (int i = 0; i < actionCreateInfo.countSubactionPaths; i++)
+                        {
+                            XrActionSpaceCreateInfo asci{XR_TYPE_ACTION_SPACE_CREATE_INFO};
+                            asci.poseInActionSpace.orientation = XrQuaternionf{0.0f, 0.0f, 0.0f, 1.0f};
+                            asci.subactionPath = subactions[i];
+                            asci.action = actionInternal.action;
+
+                            XrSpace poseSpace;
+                            XRCHECK(xrCreateActionSpace(session, &asci, &poseSpace));
+                            actionInternal.poseSubactionSpaces.insert({subactions[i], poseSpace});
+                        }
+                    }
+                    else
+                    {
+                        XrActionSpaceCreateInfo asci{XR_TYPE_ACTION_SPACE_CREATE_INFO};
+                        asci.poseInActionSpace.orientation = XrQuaternionf{0.0f, 0.0f, 0.0f, 1.0f};
+                        asci.action = actionInternal.action;
+                        XRCHECK(xrCreateActionSpace(session, &asci, &actionInternal.poseSpace));
+                    }
+                }
+
                 actionsInternal.insert({ (uint64_t)actionInternal.action, actionInternal });
                 actions.insert({ actionName, (uint64_t)actionInternal.action });
             }
@@ -215,6 +230,7 @@ namespace worlds
         std::vector<const char*> extensions;
         extensions.push_back(XR_KHR_VULKAN_ENABLE_EXTENSION_NAME);
         extensions.push_back(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME);
+        extensions.push_back("XR_KHR_win32_convert_performance_counter_time");
 
         instanceCreateInfo.enabledExtensionCount = extensions.size();
         instanceCreateInfo.enabledExtensionNames = extensions.data();
@@ -274,7 +290,14 @@ namespace worlds
 
             std::string ext;
             ext.assign(extStart, it);
-            extList.push_back(ext);
+
+            // Hacky thing: SteamVR always requests VK_EXT_debug_marker which is only present when
+            // using debug layers, so we just ignore its request
+            if (ext.find("debug_marker") == std::string::npos)
+            {
+                logMsg("parsed extension %s", ext.c_str());
+                extList.push_back(ext);
+            }
             it++;
         }
 
@@ -568,8 +591,6 @@ namespace worlds
             XrInteractionProfileSuggestedBinding suggestedBinding
                 { XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING };
 
-            suggestedBinding.interactionProfile = getXrPath(interactionProfile.c_str());
-
             std::vector<XrActionSuggestedBinding> suggestedActionBindings;
 
             for (auto& actionBinding : suggestedBindingPair.value().items())
@@ -577,7 +598,7 @@ namespace worlds
                 std::string actionPath = actionBinding.key();
                 size_t secondSlashPos = actionPath.find('/', 1);
                 std::string actionSetName = actionPath.substr(1, secondSlashPos - 1);
-                std::string actionName = actionPath.substr(secondSlashPos);
+                std::string actionName = actionPath.substr(secondSlashPos + 1);
 
                 ActionSet* set = actionSets[actionSetName];
                 XrAction action = (XrAction)set->actions[actionName];
@@ -590,6 +611,7 @@ namespace worlds
                 }
             }
 
+            suggestedBinding.interactionProfile = getXrPath(interactionProfile.c_str());
             suggestedBinding.countSuggestedBindings = suggestedActionBindings.size();
             suggestedBinding.suggestedBindings = suggestedActionBindings.data();
 
@@ -609,7 +631,7 @@ namespace worlds
         if (setIterator == actionSets.end())
         {
             logErr("Couldn't find action set %s", actionSet);
-            return UINT64_MAX;
+            return 0;
         }
 
         auto actionIterator = setIterator->second->actions.find(action);
@@ -617,7 +639,7 @@ namespace worlds
         if (actionIterator == setIterator->second->actions.end())
         {
             logErr("Couldn't find action %s", action);
-            return UINT64_MAX;
+            return 0;
         }
 
         return actionIterator->second;
@@ -633,7 +655,7 @@ namespace worlds
         auto action = (XrAction)actionHandle;
         XrActionStateGetInfo stateGetInfo { XR_TYPE_ACTION_STATE_GET_INFO };
         stateGetInfo.action = action;
-        if (subactionHandle != UINT64_MAX)
+        if (subactionHandle != 0)
         {
             stateGetInfo.subactionPath = (XrPath)subactionHandle;
         }
@@ -653,7 +675,7 @@ namespace worlds
         auto action = (XrAction)actionHandle;
         XrActionStateGetInfo stateGetInfo { XR_TYPE_ACTION_STATE_GET_INFO };
         stateGetInfo.action = action;
-        if (subactionHandle != UINT64_MAX)
+        if (subactionHandle != 0)
         {
             stateGetInfo.subactionPath = (XrPath)subactionHandle;
         }
@@ -673,7 +695,7 @@ namespace worlds
         auto action = (XrAction)actionHandle;
         XrActionStateGetInfo stateGetInfo { XR_TYPE_ACTION_STATE_GET_INFO };
         stateGetInfo.action = action;
-        if (subactionHandle != UINT64_MAX)
+        if (subactionHandle != 0)
         {
             stateGetInfo.subactionPath = (XrPath)subactionHandle;
         }
@@ -690,33 +712,63 @@ namespace worlds
 
     UnscaledTransform OpenXRInterface::getPoseActionState(uint64_t actionHandle, uint64_t subactionHandle)
     {
+        if (!actionsInternal.contains(actionHandle))
+        {
+            logErr("getPoseActionState was passed an invalid actionHandle!");
+            return UnscaledTransform{};
+        }
+
         const ActionInternal& actionInternal = actionsInternal[actionHandle];
 
         XrSpaceLocation spaceLocation{ XR_TYPE_SPACE_LOCATION };
         XrSpace poseSpace;
 
-        if (subactionHandle != UINT64_MAX)
+        if (subactionHandle == 0)
         {
             poseSpace = actionInternal.poseSpace;
         }
         else
         {
+            if (!actionInternal.poseSubactionSpaces.contains((XrPath)subactionHandle))
+            {
+                logErr("getPoseActionState was passed an invalid subactionHandle!");
+                return UnscaledTransform{};
+            }
             poseSpace = actionInternal.poseSubactionSpaces.at((XrPath)subactionHandle);
         }
 
         XRCHECK(xrLocateSpace(poseSpace, stageReferenceSpace, nextDisplayTime, &spaceLocation));
 
         UnscaledTransform transform{};
-        transform.position = glm::make_vec3(&spaceLocation.pose.position.x);
+        XrVector3f position = spaceLocation.pose.position;
+        transform.position = glm::vec3(-position.x, position.y, -position.z);
 
         XrQuaternionf rot = spaceLocation.pose.orientation;
-        transform.rotation = glm::quat{rot.w, rot.x, rot.y, rot.z};
+        transform.rotation = glm::quat{rot.w, -rot.x, rot.y, -rot.z};
 
         return transform;
     }
 
+    void OpenXRInterface::applyHapticFeedback(float duration, float frequency, float amplitude, uint64_t actionHandle, uint64_t subactionHandle)
+    {
+        const ActionInternal& actionInternal = actionsInternal[actionHandle];
+
+        XrHapticVibration vibration{ XR_TYPE_HAPTIC_VIBRATION };
+        vibration.duration = (int64_t)(duration * 1000.0f) * 1000 * 1000;
+        vibration.frequency = frequency;
+        vibration.amplitude = amplitude;
+
+        XrHapticActionInfo actionInfo{ XR_TYPE_HAPTIC_ACTION_INFO };
+        actionInfo.action = (XrAction)actionHandle;
+        if (actionHandle != 0)
+            actionInfo.subactionPath = subactionHandle;
+
+        XRCHECK(xrApplyHapticFeedback(session, &actionInfo, (XrHapticBaseHeader*)&vibration));
+    }
+
     void OpenXRInterface::beginFrame()
     {
+        ZoneScoped;
         if (!sessionRunning) return;
         XrFrameBeginInfo frameBeginInfo{ XR_TYPE_FRAME_BEGIN_INFO };
         XRCHECK(xrBeginFrame(session, &frameBeginInfo));
@@ -742,6 +794,7 @@ namespace worlds
 
     void OpenXRInterface::waitFrame()
     {
+        ZoneScoped;
         if (!sessionRunning) return;
         XrFrameWaitInfo waitInfo{ XR_TYPE_FRAME_WAIT_INFO };
         XrFrameState frameState{ XR_TYPE_FRAME_STATE };
@@ -779,12 +832,13 @@ namespace worlds
         if (enumHasFlag(spaceLocation.locationFlags, XR_SPACE_LOCATION_ORIENTATION_VALID_BIT))
         {
             XrQuaternionf o = spaceLocation.pose.orientation;
-            hmdTransform.rotation = glm::quat{o.w, o.x, o.y, o.z};
+            hmdTransform.rotation = glm::quat{o.w, -o.x, o.y, -o.z};
         }
 
         if (enumHasFlag(spaceLocation.locationFlags, XR_SPACE_LOCATION_POSITION_VALID_BIT))
         {
-            hmdTransform.position = glm::make_vec3(&spaceLocation.pose.position.x);
+            XrVector3f position = spaceLocation.pose.position;
+            hmdTransform.position = glm::vec3(-position.x, position.y, -position.z);
         }
 
         leftEyeProjectionMatrix = glm::mat4{ 1.0f };
@@ -795,6 +849,7 @@ namespace worlds
 
     void OpenXRInterface::submitLayered(R2::VK::CommandBuffer& cb, R2::VK::Texture* texture)
     {
+        ZoneScoped;
         if (!sessionRunning) return;
         texture->Acquire(cb,
                          VK::ImageLayout::TransferSrcOptimal,
@@ -864,6 +919,7 @@ namespace worlds
 
     void OpenXRInterface::endFrame()
     {
+        ZoneScoped;
         if (!sessionRunning) return;
         XrCompositionLayerProjectionView layerViews[2] { XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW };
 

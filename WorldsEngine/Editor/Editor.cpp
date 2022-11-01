@@ -29,7 +29,6 @@
 #include <Libs/IconsFontAwesome5.h>
 #include <Libs/IconsFontaudio.h>
 #include <Libs/pcg_basic.h>
-#include <Physics/D6Joint.hpp>
 #include <Physics/Physics.hpp>
 #include <Physics/PhysicsActor.hpp>
 #include <Scripting/NetVM.hpp>
@@ -40,6 +39,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 #include <nlohmann/json.hpp>
 #include <slib/Subprocess.hpp>
+#include <VR/OpenXRInterface.hpp>
 
 namespace worlds
 {
@@ -878,6 +878,11 @@ namespace worlds
             interfaces.scriptEngine->createManagedDelegate("WorldsEngine.Editor.Editor", "OnGameProjectSelected",
                                                            (void**)&gameProjectSelectedCallback);
         gameProjectSelectedCallback(project.get());
+
+        if (interfaces.vrInterface && PHYSFS_exists("SourceData/VRInput/actions.json"))
+        {
+            interfaces.vrInterface->loadActionJson("SourceData/VRInput/actions.json");
+        }
 
         dotnetWatchProcess =
             new slib::Subprocess("dotnet watch build", (std::string(project->root()) + "/Code").c_str());

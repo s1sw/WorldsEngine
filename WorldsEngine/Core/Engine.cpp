@@ -464,6 +464,7 @@ namespace worlds
                     float scaleFac = glm::min(((float)rect.w * 0.9f) / newW, ((float)rect.h * 0.9f) / newH);
 
                     window->resize(newW * scaleFac, newH * scaleFac);
+                    vrInterface->loadActionJson("VRInput/actions.json");
                 }
             }
         }

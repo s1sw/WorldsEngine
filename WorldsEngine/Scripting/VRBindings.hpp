@@ -11,7 +11,7 @@ extern "C"
         return csharpVrInterface != nullptr;
     }
 
-    EXPORT void vr_getHeadTransform(float predictionTime, Transform* transform)
+    EXPORT void vr_getHeadTransform(Transform* transform)
     {
         const UnscaledTransform& ut = csharpVrInterface->getHmdTransform();
         transform->position = ut.position;
@@ -19,55 +19,42 @@ extern "C"
         transform->scale = glm::vec3{ 1.0f };
     }
 
-    EXPORT void vr_getHandTransform(Hand hand, Transform* transform)
+    EXPORT uint64_t vr_getActionHandle(const char* actionSet, const char* action)
     {
-        // TODO
-        *transform = Transform{};
+        return csharpVrInterface->getActionHandle(actionSet, action);
     }
 
-    EXPORT void vr_getHandVelocity(Hand hand, glm::vec3* vel)
+    EXPORT uint64_t vr_getSubactionHandle(const char* subaction)
     {
-        *vel = glm::vec3{ 0.0f };
+        return csharpVrInterface->getSubactionHandle(subaction);
     }
 
-    EXPORT InputActionHandle vr_getActionHandle(const char* actionPath)
+    EXPORT BooleanActionState vr_getBooleanActionState(uint64_t actionHandle, uint64_t subactionHandle)
     {
-        //return csharpVrInterface->getActionHandle(actionPath);
-        return false;
+        return csharpVrInterface->getBooleanActionState(actionHandle, subactionHandle);
     }
 
-    EXPORT bool vr_getActionHeld(InputActionHandle handle)
+    EXPORT FloatActionState vr_getFloatActionState(uint64_t actionHandle, uint64_t subactionHandle)
     {
-        //return csharpVrInterface->getActionHeld(handle);
-        return false;
+        return csharpVrInterface->getFloatActionState(actionHandle, subactionHandle);
     }
 
-    EXPORT bool vr_getActionPressed(InputActionHandle handle)
+    EXPORT Vector2fActionState vr_getVector2fActionState(uint64_t actionHandle, uint64_t subactionHandle)
     {
-        //return csharpVrInterface->getActionPressed(handle);
-        return false;
+        return csharpVrInterface->getVector2fActionState(actionHandle, subactionHandle);
     }
 
-    EXPORT bool vr_getActionReleased(InputActionHandle handle)
+    EXPORT void vr_getPoseActionState(uint64_t actionHandle, uint64_t subactionHandle, Transform* t)
     {
-        //return csharpVrInterface->getActionReleased(handle);
-        return false;
+        auto us = csharpVrInterface->getPoseActionState(actionHandle, subactionHandle);
+        t->position = us.position;
+        t->rotation = us.rotation;
+        t->scale = glm::vec3{ 1.0f };
     }
 
-    EXPORT void vr_getActionVector2(InputActionHandle handle, glm::vec2* v2)
+    EXPORT void vr_triggerHaptics(float duration, float frequency, float amplitude, uint64_t actionHandle, uint64_t subactionHandle)
     {
-        *v2 = glm::vec2{ 0.0f };
-    }
-
-    EXPORT void vr_triggerHaptics(InputActionHandle handle, float timeFromNow, float duration, float frequency,
-                                  float amplitude)
-    {
-        //csharpVrInterface->triggerHaptics(handle, timeFromNow, duration, frequency, amplitude);
-    }
-
-    EXPORT void vr_getHandBoneTransform(Hand hand, int boneIdx, Transform* transform)
-    {
-        //*transform = csharpVrInterface->getHandBoneTransform(hand, boneIdx);
+        csharpVrInterface->applyHapticFeedback(duration, frequency, amplitude, actionHandle, subactionHandle);
     }
 
     EXPORT bool vr_hasInputFocus()

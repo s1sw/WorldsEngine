@@ -51,8 +51,6 @@ namespace worlds
         RightEye
     };
 
-    typedef uint64_t InputActionHandle;
-
     struct HiddenAreaMesh
     {
         std::vector<glm::vec2> verts;
@@ -99,10 +97,11 @@ namespace worlds
         void loadActionJson(const char* path);
         uint64_t getActionHandle(const char* actionSet, const char* action);
         uint64_t getSubactionHandle(const char* subaction);
-        BooleanActionState getBooleanActionState(uint64_t actionHandle, uint64_t subactionHandle = UINT64_MAX);
-        FloatActionState getFloatActionState(uint64_t actionHandle, uint64_t subactionHandle = UINT64_MAX);
-        Vector2fActionState getVector2fActionState(uint64_t actionHandle, uint64_t subactionHandle = UINT64_MAX);
-        UnscaledTransform getPoseActionState(uint64_t actionHandle, uint64_t subactionHandle = UINT64_MAX);
+        BooleanActionState getBooleanActionState(uint64_t actionHandle, uint64_t subactionHandle = 0);
+        FloatActionState getFloatActionState(uint64_t actionHandle, uint64_t subactionHandle = 0);
+        Vector2fActionState getVector2fActionState(uint64_t actionHandle, uint64_t subactionHandle = 0);
+        UnscaledTransform getPoseActionState(uint64_t actionHandle, uint64_t subactionHandle = 0);
+        void applyHapticFeedback(float duration, float frequency, float amplitude, uint64_t actionHandle, uint64_t subactionHandle = 0);
 
         void waitFrame();
         void beginFrame();
