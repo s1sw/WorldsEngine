@@ -13,7 +13,7 @@ using namespace R2;
 namespace worlds
 {
     ConVar r_skipShadows {"r_skipShadows", "0"};
-    ConVar r_shadowmapRes {"r_shadowmapRes", "2048"};
+    ConVar r_shadowmapRes {"r_shadowmapRes", "512"};
     ShadowmapManager::ShadowmapManager(VKRenderer* renderer) : renderer(renderer)
     {
         VK::PipelineLayoutBuilder plb{renderer->getCore()->GetHandles()};
