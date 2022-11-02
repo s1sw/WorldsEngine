@@ -892,6 +892,7 @@ namespace worlds
             .simTime = simTime,
             .didSimRun = didSimRun,
             .lastUpdateTime = interFrameInfo.lastUpdateTime,
+            .lastTickRendererTime = interFrameInfo.lastTickRendererTime,
             .frameCounter = interFrameInfo.frameCounter,
         };
 
@@ -962,7 +963,9 @@ namespace worlds
 
         if (!dedicatedServer)
         {
+            PerfTimer rpt{};
             tickRenderer(interFrameInfo.deltaTime, true);
+            interFrameInfo.lastTickRendererTime = rpt.stopGetMs();
         }
 
         interFrameInfo.frameCounter++;
@@ -1086,7 +1089,7 @@ namespace worlds
                     historicalPhysicsTimes.add(timeInfo.simTime);
 
                 const auto& dbgStats = renderer->getDebugStats();
-                historicalRenderTimes.add((timeInfo.deltaTime - timeInfo.lastUpdateTime) * 1000.0);
+                historicalRenderTimes.add(timeInfo.lastTickRendererTime);
                 historicalGpuTimes.add(renderer->getLastGPUTime() / 1000.0f / 1000.0f);
 
                 if (ImGui::CollapsingHeader(ICON_FA_CLOCK u8" Performance"))
@@ -1186,14 +1189,14 @@ namespace worlds
                     ImGui::Text("Frustum culled objects: %i", dbgStats.numCulledObjs);
                     ImGui::Text("Active RTT passes: %i/%i", dbgStats.numActiveRTTPasses, dbgStats.numRTTPasses);
                     ImGui::Text(
-                        "Time spent in renderer: %.3fms", (timeInfo.deltaTime - timeInfo.lastUpdateTime) * 1000.0
+                        "Time spent in renderer: %.3fms", timeInfo.lastTickRendererTime
                     );
                     ImGui::Text("- Acquiring image: %.3f", dbgStats.imgAcquisitionTime);
                     ImGui::Text("- Waiting for image fence: %.3fms", dbgStats.imgFenceWaitTime);
                     ImGui::Text("- Waiting for command buffer fence: %.3fms", dbgStats.imgFenceWaitTime);
                     ImGui::Text("- Writing command buffer: %.3fms", dbgStats.cmdBufWriteTime);
                     ImGui::Text("GPU render time: %.3fms", renderer->getLastGPUTime() / 1000.0f / 1000.0f);
-                    ImGui::Text("Light cull time: %.3fms", dbgStats.lightCullTime / 1000.0f / 1000.0f);
+                    ImGui::Text("GPU light cull time: %.3fms", dbgStats.lightCullTime / 1000.0f / 1000.0f);
                     ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
                     ImGui::Text("Triangles: %u", dbgStats.numTriangles);
                     ImGui::Text("Lights in view: %i", dbgStats.numLightsInView);

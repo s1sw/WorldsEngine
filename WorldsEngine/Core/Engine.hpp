@@ -127,6 +127,7 @@ namespace worlds
             double simTime;
             bool didSimRun;
             double lastUpdateTime;
+            double lastTickRendererTime;
             int frameCounter;
         };
 
@@ -136,6 +137,7 @@ namespace worlds
             double deltaTime;
             double lastUpdateTime;
             int frameCounter;
+            double lastTickRendererTime;
         };
 
         static int eventFilter(void* enginePtr, SDL_Event* evt);
