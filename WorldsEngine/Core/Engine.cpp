@@ -1183,9 +1183,6 @@ namespace worlds
                     ImGui::Text(
                         "Time spent in renderer: %.3fms", (timeInfo.deltaTime - timeInfo.lastUpdateTime) * 1000.0
                     );
-                    ImGui::Text("- Acquiring image: %.3f", dbgStats.imgAcquisitionTime);
-                    ImGui::Text("- Waiting for image fence: %.3fms", dbgStats.imgFenceWaitTime);
-                    ImGui::Text("- Waiting for command buffer fence: %.3fms", dbgStats.imgFenceWaitTime);
                     ImGui::Text("- Writing command buffer: %.3fms", dbgStats.cmdBufWriteTime);
                     ImGui::Text("GPU render time: %.3fms", renderer->getLastGPUTime() / 1000.0f / 1000.0f);
                     ImGui::Text("Light cull time: %.3fms", dbgStats.lightCullTime / 1000.0f / 1000.0f);

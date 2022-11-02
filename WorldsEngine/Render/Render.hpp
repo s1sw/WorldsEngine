@@ -92,10 +92,7 @@ namespace worlds
         int numLightsInView;
         int numTexturesLoaded;
         int numMaterialsLoaded;
-        double imgAcquisitionTime;
         double cmdBufWriteTime;
-        double cmdBufFenceWaitTime;
-        double imgFenceWaitTime;
         double lightCullTime;
     };
 

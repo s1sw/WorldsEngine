@@ -20,6 +20,7 @@
 #include <SDL_vulkan.h>
 #include <Tracy.hpp>
 #include <VR/OpenXRInterface.hpp>
+#include <Util/TimingUtil.hpp>
 
 namespace R2::VK
 {
@@ -147,9 +148,15 @@ namespace worlds
         debugStats.numActiveRTTPasses = 0;
         debugStats.numTriangles = 0;
 
+        frameFence->WaitFor();
+        frameFence->Reset();
+
+        VK::Texture* swapchainImage;
+        swapchainImage = swapchain->Acquire(frameFence);
+
+        bool needsCompositorWait = false;
         if (xrPresentManager)
         {
-            bool needsCompositorWait = false;
             for (VKRTTPass *pass: rttPasses)
             {
                 if (pass->settings.outputToXR)
@@ -162,9 +169,8 @@ namespace worlds
             }
         }
 
-        frameFence->WaitFor();
-        frameFence->Reset();
-        VK::Texture* swapchainImage = swapchain->Acquire(frameFence);
+        PerfTimer cmdBufWrite{};
+
         ImGui_ImplR2_NewFrame();
 
         currentDebugLines = swapDebugLineBuffer(currentDebugLineCount);
@@ -175,6 +181,7 @@ namespace worlds
         swapchain->GetSize(width, height);
 
         core->BeginFrame();
+
 
         VK::CommandBuffer cb = core->GetFrameCommandBuffer();
 
@@ -278,16 +285,21 @@ namespace worlds
         timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 2 + 1);
         bindlessTextureManager->UpdateDescriptorsIfNecessary();
 
-        if (this->xrPresentManager && xrRendered)
+        debugStats.cmdBufWriteTime = cmdBufWrite.stopGetMs();
+
+        if (this->xrPresentManager && needsCompositorWait)
         {
             xrPresentManager->beginFrame();
         }
+
         core->EndFrame();
 
-        swapchain->Present();
-
-        if (this->xrPresentManager && xrRendered)
+        if (this->xrPresentManager && needsCompositorWait)
+        {
             xrPresentManager->endFrame();
+        }
+
+        swapchain->Present();
     }
 
     float VKRenderer::getLastGPUTime() const
