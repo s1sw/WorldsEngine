@@ -1389,6 +1389,12 @@ namespace worlds
                     transform.rotation = px2glm(dpa.actor->getGlobalPose().q);
                 }
             );
+            registry.view<RigidBody, ChildComponent, Transform>().each(
+                [&](entt::entity ent, RigidBody& dpa, ChildComponent& cc, Transform& t)
+                {
+                    cc.offset = t.transformByInverse(registry.get<Transform>(cc.parent));
+                }
+            );
         }
 
         return ran;
