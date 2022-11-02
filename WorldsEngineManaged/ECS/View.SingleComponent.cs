@@ -11,7 +11,7 @@ public readonly struct View<T>
     public int Count => _storage.Count;
     public Entity First => _storage.PackedEntities[0];
 
-    internal View(ComponentStorage<T> storage)
+    public View(ComponentStorage<T> storage)
     {
         _storage = storage;
         _enumerator = new(storage);
@@ -26,7 +26,7 @@ public readonly struct View<T>
 public struct ViewEnumerator<T>
 {
     private readonly ComponentStorage<T> _storage;
-    private int _index = 0;
+    private int _index = -1;
     
     internal ViewEnumerator(ComponentStorage<T> storage)
     {

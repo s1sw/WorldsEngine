@@ -25,7 +25,7 @@ public readonly struct View
 public struct ViewEnumerator : IEnumerator<Entity>
 {
     private readonly IComponentStorage _storage;
-    private int _index = 0;
+    private int _index = -1;
     
     internal ViewEnumerator(IComponentStorage storage)
     {

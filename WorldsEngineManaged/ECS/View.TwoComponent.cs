@@ -24,7 +24,7 @@ public struct ViewEnumerator<T1, T2>
 {
     private readonly ComponentStorage<T1> _storage1;
     private readonly ComponentStorage<T2> _storage2;
-    private int _index = 0;
+    private int _index = -1;
     
     internal ViewEnumerator(ComponentStorage<T1> storage1, ComponentStorage<T2> storage2)
     {
