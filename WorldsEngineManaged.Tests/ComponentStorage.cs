@@ -65,5 +65,24 @@ namespace WorldsEngine.Tests
             cs.RunSimulate();
             Assert.True(cs.Get(new Entity()).HasThought);
         }
+
+        [Fact]
+        public void TestView()
+        {
+            ComponentStorage<TestComponent> cs = new();
+            cs.Set(new Entity(0), new TestComponent() { Value = 5 });
+            cs.Set(new Entity(1), new TestComponent() { Value = 6 });
+
+            int numFound = 0;
+            foreach (var (ent, comp) in new View<TestComponent>(cs))
+            {
+                if (ent.ID == 0)
+                    Assert.True(comp.Value == 5);
+                if (ent.ID == 1)
+                    Assert.True(comp.Value == 6);
+                numFound++;
+            }
+            Assert.Equal(2, numFound);
+        }
     }
 }
