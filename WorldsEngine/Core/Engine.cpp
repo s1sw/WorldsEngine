@@ -656,6 +656,7 @@ namespace worlds
                 .msaaLevel = 4,
                 .numViews = screenPassIsVR ? 2 : 1,
                 .outputToXR = screenPassIsVR,
+                .setViewsFromXR = screenPassIsVR
             };
 
             screenRTTPass = renderer->createRTTPass(screenRTTCI);
