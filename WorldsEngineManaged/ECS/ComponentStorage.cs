@@ -94,6 +94,12 @@ namespace WorldsEngine.ECS
 
         public void Set(Entity entity, T component)
         {
+            if (Contains(entity))
+            {
+                Components[GetIndexOf(entity)] = component;
+                return;
+            }
+            
             int index = PackedEntities.Count;
 
             _sparseStorage[entity] = index;
@@ -105,6 +111,12 @@ namespace WorldsEngine.ECS
 
         public void SetFromObject(Entity entity, object component)
         {
+            if (Contains(entity))
+            {
+                Components[GetIndexOf(entity)] = (T)component;
+                return;
+            }
+            
             int index = PackedEntities.Count;
 
             _sparseStorage[entity] = index;
