@@ -1266,11 +1266,15 @@ namespace worlds
 
     robin_hood::unordered_map<entt::entity, physx::PxTransform> currentState;
     robin_hood::unordered_map<entt::entity, physx::PxTransform> previousState;
+    ConVar pauseSimulation { "sim_pause", "0", "Pauses the simulation (physics and Simulate() methods)." };
 
     bool WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime)
     {
         ZoneScoped;
         bool ran = false;
+
+        if (pauseSimulation) return false;
+
         if (lockSimToRefresh.getInt() || disableSimInterp.getInt() EDITORONLY(|| (editor && !editor->isPlaying())))
         {
             registry.view<RigidBody, Transform>().each(
