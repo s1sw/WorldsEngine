@@ -28,7 +28,7 @@ namespace R2::VK
         return VK_FALSE;
     }
 
-    void Core::createInstance(bool enableValidation)
+    void Core::createInstance(bool enableValidation, const char** instanceExts)
     {
         VKCHECK(volkInitialize());
         VkApplicationInfo appInfo{VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -52,6 +52,16 @@ namespace R2::VK
 
         extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
         extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+
+        if (instanceExts != nullptr)
+        {
+            const char** exts = instanceExts;
+            while (*exts != nullptr)
+            {
+                extensions.push_back(*exts);
+                exts++;
+            }
+        }
 
         ici.enabledExtensionCount = (uint32_t)extensions.size();
         ici.enabledLayerCount = (uint32_t)layers.size();
@@ -169,7 +179,7 @@ namespace R2::VK
         return true;
     }
 
-    void Core::createDevice()
+    void Core::createDevice(const char** deviceExts)
     {
         VkDeviceCreateInfo dci{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 
@@ -225,6 +235,16 @@ namespace R2::VK
         // extensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
         // extensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
         extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+        if (deviceExts != nullptr)
+        {
+            const char** exts = deviceExts;
+            while (*exts != nullptr)
+            {
+                extensions.push_back(*exts);
+                exts++;
+            }
+        }
 
         dci.enabledExtensionCount = (uint32_t)extensions.size();
         dci.ppEnabledExtensionNames = extensions.data();

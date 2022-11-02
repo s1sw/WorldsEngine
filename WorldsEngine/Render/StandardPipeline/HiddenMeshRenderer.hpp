@@ -22,15 +22,17 @@ namespace worlds
     class HiddenMeshRenderer
     {
         const EngineInterfaces& interfaces;
-        UniquePtr<R2::VK::Buffer> vertBuffer;
-        UniquePtr<R2::VK::Pipeline> pipeline;
-        UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
+        UniquePtr<R2::VK::Buffer> vertexBuffer;
+        UniquePtr<R2::VK::Buffer> indexBuffer;
         UniquePtr<R2::VK::DescriptorSetLayout> dsl;
         UniquePtr<R2::VK::DescriptorSet> ds;
-        uint32_t totalVertexCount;
-        uint32_t viewOffset;
+        UniquePtr<R2::VK::Pipeline> pipeline;
+        UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
+        uint32_t leftIndexCount;
+        uint32_t rightIndexCount;
+        uint32_t leftVertCount;
     public:
-        HiddenMeshRenderer(const EngineInterfaces& interfaces, int sampleCount);
+        HiddenMeshRenderer(const EngineInterfaces& interfaces, int sampleCount, R2::VK::Buffer* vpBuffer);
         void Execute(R2::VK::CommandBuffer& cb);
     };
 }

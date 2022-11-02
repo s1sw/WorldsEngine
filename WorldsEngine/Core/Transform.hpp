@@ -1,6 +1,7 @@
 #pragma once
-#include <glm/glm.hpp>
+#include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/mat4x4.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 
 struct Transform
@@ -57,5 +58,22 @@ struct Transform
         glm::vec3 skew;
         glm::vec4 perspective;
         glm::decompose(mat, scale, rotation, position, skew, perspective);
+    }
+};
+
+struct UnscaledTransform
+{
+    glm::vec3 position;
+    glm::quat rotation;
+
+    UnscaledTransform()
+        : position(0.0f)
+        , rotation(1.0f, 0.0f, 0.0f, 0.0f)
+    {
+    }
+
+    glm::mat4 getMatrix() const
+    {
+        return glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(rotation);
     }
 };

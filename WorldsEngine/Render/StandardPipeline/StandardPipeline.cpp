@@ -279,7 +279,7 @@ namespace worlds
         createSizeDependants();
 
         if (settings.outputToXR)
-            hiddenMeshRenderer = new HiddenMeshRenderer(engineInterfaces, settings.msaaLevel);
+            hiddenMeshRenderer = new HiddenMeshRenderer(engineInterfaces, settings.msaaLevel, multiVPBuffer.Get());
         
         computeSkinner = new ComputeSkinner(renderer);
         particleRenderer = new ParticleRenderer(renderer, settings.msaaLevel, getViewMask(settings.numViews), multiVPBuffer.Get());

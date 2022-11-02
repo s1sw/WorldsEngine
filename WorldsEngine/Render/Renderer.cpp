@@ -19,6 +19,8 @@
 #include <Render/StandardPipeline/RenderMaterialManager.hpp>
 #include <SDL_vulkan.h>
 #include <Tracy.hpp>
+#include <VR/OpenXRInterface.hpp>
+#include <Util/TimingUtil.hpp>
 
 namespace R2::VK
 {
@@ -52,7 +54,23 @@ namespace worlds
         enableValidation = !EngineArguments::hasArgument("no-validation-layers");
 #endif
 
-        core = new VK::Core(new LogDebugOutputReceiver, enableValidation);
+        std::vector<const char*> instanceExts;
+
+        for (const std::string& s : initInfo.additionalInstanceExtensions)
+        {
+            instanceExts.push_back(s.c_str());
+        }
+        instanceExts.push_back(nullptr);
+
+        std::vector<const char*> deviceExts;
+
+        for (const std::string& s : initInfo.additionalDeviceExtensions)
+        {
+            deviceExts.push_back(s.c_str());
+        }
+        deviceExts.push_back(nullptr);
+
+        core = new VK::Core(new LogDebugOutputReceiver, enableValidation, instanceExts.data(), deviceExts.data());
         VK::SwapchainCreateInfo sci{};
 
         SDL_Vulkan_CreateSurface(initInfo.window, core->GetHandles()->Instance, &sci.surface);
@@ -130,9 +148,15 @@ namespace worlds
         debugStats.numActiveRTTPasses = 0;
         debugStats.numTriangles = 0;
 
+        frameFence->WaitFor();
+        frameFence->Reset();
+
+        VK::Texture* swapchainImage;
+        swapchainImage = swapchain->Acquire(frameFence);
+
+        bool needsCompositorWait = false;
         if (xrPresentManager)
         {
-            bool needsCompositorWait = false;
             for (VKRTTPass *pass: rttPasses)
             {
                 if (pass->settings.outputToXR)
@@ -141,13 +165,12 @@ namespace worlds
 
             if (needsCompositorWait)
             {
-                interfaces.vrInterface->waitGetPoses();
+                xrPresentManager->waitFrame();
             }
         }
 
-        frameFence->WaitFor();
-        frameFence->Reset();
-        VK::Texture* swapchainImage = swapchain->Acquire(frameFence);
+        PerfTimer cmdBufWrite{};
+
         ImGui_ImplR2_NewFrame();
 
         currentDebugLines = swapDebugLineBuffer(currentDebugLineCount);
@@ -158,6 +181,7 @@ namespace worlds
         swapchain->GetSize(width, height);
 
         core->BeginFrame();
+
 
         VK::CommandBuffer cb = core->GetFrameCommandBuffer();
 
@@ -179,9 +203,8 @@ namespace worlds
             {
                 if (pass->settings.setViewsFromXR)
                 {
-                    float predictAmount = interfaces.vrInterface->getPredictAmount();
-                    glm::mat4 ht = interfaces.vrInterface->getHeadTransform(predictAmount);
-                    shadowViewMatrix = glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::LeftEye));
+                    // TODO
+                    shadowViewMatrix = pass->cam->getViewMatrix();
                 }
                 else
                 {
@@ -205,17 +228,15 @@ namespace worlds
             // and frame-pacing issues :(
             if (pass->settings.setViewsFromXR)
             {
-                float predictAmount = interfaces.vrInterface->getPredictAmount();
-                glm::mat4 ht = interfaces.vrInterface->getHeadTransform(predictAmount);
-                setVRUsedPose(ht);
+                const UnscaledTransform& leftEye = interfaces.vrInterface->getEyeTransform(Eye::LeftEye);
+                const UnscaledTransform& rightEye = interfaces.vrInterface->getEyeTransform(Eye::RightEye);
+                pass->setView(
+                        0, glm::inverse(leftEye.getMatrix()),
+                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::LeftEye));
 
                 pass->setView(
-                        0, glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::LeftEye)),
-                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::LeftEye, interfaces.mainCamera->near));
-
-                pass->setView(
-                        1, glm::inverse(ht * interfaces.vrInterface->getEyeViewMatrix(Eye::RightEye)),
-                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::RightEye, interfaces.mainCamera->near));
+                        1, glm::inverse(rightEye.getMatrix()),
+                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::RightEye));
             }
 
             cb.BeginDebugLabel("RTT Pass", 0.0f, 0.0f, 0.0f);
@@ -264,16 +285,21 @@ namespace worlds
         timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 2 + 1);
         bindlessTextureManager->UpdateDescriptorsIfNecessary();
 
-        if (this->xrPresentManager && xrRendered)
+        debugStats.cmdBufWriteTime = cmdBufWrite.stopGetMs();
+
+        if (this->xrPresentManager && needsCompositorWait)
         {
-            xrPresentManager->preSubmit();
+            xrPresentManager->beginFrame();
         }
+
         core->EndFrame();
 
-        swapchain->Present();
+        if (this->xrPresentManager && needsCompositorWait)
+        {
+            xrPresentManager->endFrame();
+        }
 
-        if (this->xrPresentManager && xrRendered)
-            xrPresentManager->submit(vrUsedPose);
+        swapchain->Present();
     }
 
     float VKRenderer::getLastGPUTime() const

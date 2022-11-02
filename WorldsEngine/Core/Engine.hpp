@@ -25,8 +25,7 @@ namespace worlds
     class InputManager;
     class Editor;
     class DotNetScriptEngine;
-    class OpenVRInterface;
-    class IVRInterface;
+    class OpenXRInterface;
     class RTTPass;
     class Console;
     class IGameEventHandler;
@@ -80,7 +79,7 @@ namespace worlds
     struct EngineInterfaces
     {
         WorldsEngine* engine;
-        IVRInterface* vrInterface;
+        OpenXRInterface* vrInterface;
         Renderer* renderer;
         Camera* mainCamera;
         InputManager* inputManager;
@@ -180,7 +179,7 @@ namespace worlds
         UniquePtr<Editor> editor;
 #endif
         UniquePtr<DotNetScriptEngine> scriptEngine;
-        UniquePtr<IVRInterface> vrInterface;
+        UniquePtr<OpenXRInterface> vrInterface;
         UniquePtr<PhysicsSystem> physicsSystem;
 
         std::vector<ISystem*> systems;

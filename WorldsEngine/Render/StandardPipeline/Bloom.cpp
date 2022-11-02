@@ -55,7 +55,7 @@ namespace worlds
         for (int i = 0; i < tci.NumMips; i++)
         {
             VK::TextureSubset texSubset{};
-            texSubset.Dimension = VK::TextureDimension::Dim2D;
+            texSubset.Dimension = tci.Layers > 1 ? VK::TextureDimension::Array2D : VK::TextureDimension::Dim2D;
             texSubset.LayerCount = tci.Layers;
             texSubset.LayerStart = 0;
             texSubset.MipCount = 1;

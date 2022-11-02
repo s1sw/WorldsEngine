@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.15)
 
 include(FetchContent)
 option(WORLDS_USE_ASSIMP "Build with Assimp to import models." ON)
-option(WORLDS_USE_OPENVR "Build with OpenVR for VR support." ON)
 option(WORLDS_USE_OPENXR "Build with OpenXR for VR support." ON)
 option(WORLDS_BUILD_EDITOR "Build the editor." ON)
 
@@ -82,9 +81,7 @@ include("Render/CMakeLists.txt")
 include("Scripting/CMakeLists.txt")
 include("Serialization/CMakeLists.txt")
 include("Util/CMakeLists.txt")
-if(WORLDS_USE_OPENVR)
-    include("VR/CMakeLists.txt")
-endif()
+include("VR/CMakeLists.txt")
 
 if(WORLDS_BUILD_EDITOR)
     include("AssetCompilation/CMakeLists.txt")
@@ -112,10 +109,6 @@ if(WORLDS_USE_ASSIMP)
     target_link_libraries(${PROJECT_NAME} assimp::assimp)
 endif()
 
-if(WORLDS_USE_OPENVR)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_OPENVR)
-endif()
-
 if(WORLDS_USE_OPENXR)
     target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_OPENXR)
 endif()
@@ -127,7 +120,7 @@ endif()
 if(WIN32)
     set(LIB_PATH ../External/Lib/windows64$<IF:$<CONFIG:Debug>,dbg,rel>)
     target_compile_definitions(${PROJECT_NAME} PUBLIC PX_PHYSX_STATIC_LIB)
-    target_link_libraries(${PROJECT_NAME} dbghelp gdiplus dwmapi "${LIB_PATH}/openvr_api" "${LIB_PATH}/freetype")
+    target_link_libraries(${PROJECT_NAME} dbghelp gdiplus dwmapi "${LIB_PATH}/freetype")
     target_link_libraries(${PROJECT_NAME}
         "${LIB_PATH}/PhysXCommon_static_64"
         "${LIB_PATH}/PhysXCooking_static_64"
@@ -139,10 +132,6 @@ if(WIN32)
     )
     target_link_libraries(${PROJECT_NAME} "${FMOD_DIR}/core/lib/x64/fmod_vc.lib" "${FMOD_DIR}/studio/lib/x64/fmodstudio_vc.lib")
     target_link_libraries(${PROJECT_NAME} "../External/Lib/phonon")
-
-    if(WORLDS_USE_OPENVR)
-        target_link_libraries(${PROJECT_NAME} "${LIB_PATH}/openvr_api")
-    endif()
 
     if(WORLDS_USE_OPENXR)
         target_link_libraries(${PROJECT_NAME} "${LIB_PATH}/openxr_loader")
