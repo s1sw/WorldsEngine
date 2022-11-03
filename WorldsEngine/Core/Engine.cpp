@@ -771,6 +771,12 @@ namespace worlds
         if (window->shouldQuit())
             running = false;
 
+        if (vrInterface)
+        {
+            vrInterface->waitFrame(); 
+            vrInterface->beginFrame(); 
+        }
+
         if (!dedicatedServer)
         {
             ImGui_ImplSDL2_NewFrame(window->getWrappedHandle());
@@ -962,6 +968,8 @@ namespace worlds
             PerfTimer rpt{};
             tickRenderer(interFrameInfo.deltaTime, true);
             interFrameInfo.lastTickRendererTime = rpt.stopGetMs();
+            if (vrInterface)
+                vrInterface->endFrame();
         }
 
         interFrameInfo.frameCounter++;

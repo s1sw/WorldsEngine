@@ -154,20 +154,6 @@ namespace worlds
         VK::Texture* swapchainImage;
         swapchainImage = swapchain->Acquire(frameFence);
 
-        bool needsCompositorWait = false;
-        if (xrPresentManager)
-        {
-            for (VKRTTPass *pass: rttPasses)
-            {
-                if (pass->settings.outputToXR)
-                    needsCompositorWait = true;
-            }
-
-            if (needsCompositorWait)
-            {
-                xrPresentManager->waitFrame();
-            }
-        }
 
         PerfTimer cmdBufWrite{};
 
@@ -287,18 +273,7 @@ namespace worlds
 
         debugStats.cmdBufWriteTime = cmdBufWrite.stopGetMs();
 
-        if (this->xrPresentManager && needsCompositorWait)
-        {
-            xrPresentManager->beginFrame();
-        }
-
         core->EndFrame();
-
-        if (this->xrPresentManager && needsCompositorWait)
-        {
-            xrPresentManager->endFrame();
-        }
-
         swapchain->Present();
     }
 
