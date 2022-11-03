@@ -339,9 +339,17 @@ namespace worlds
                 "Play"
             });
 
-        EditorActions::addAction({"editor.unpause",
-                                  [](Editor* ed, entt::registry& reg) { g_console->executeCommandStr("unpause"); },
-                                  "Unpause"});
+        EditorActions::addAction({
+            "editor.togglePause",
+            [](Editor* ed, entt::registry& reg) { 
+                GameState state = ed->getCurrentState();
+                if (state == GameState::Paused)
+                    g_console->executeCommandStr("unpause"); 
+                else if (state == GameState::Playing)
+                    g_console->executeCommandStr("pause");
+            },
+            "Toggle Pause"
+        });
 
         EditorActions::addAction({"editor.toggleImGuiMetrics",
                                   [](Editor* ed, entt::registry&) { ed->imguiMetricsOpen = !ed->imguiMetricsOpen; },
@@ -460,7 +468,7 @@ namespace worlds
         EditorActions::bindAction("editor.redo",
                                   ActionKeybind{SDL_SCANCODE_Z, ModifierFlags::Control | ModifierFlags::Shift});
         EditorActions::bindAction("editor.togglePlay", ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control});
-        EditorActions::bindAction("editor.unpause",
+        EditorActions::bindAction("editor.togglePause",
                                   ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control | ModifierFlags::Shift});
         EditorActions::bindAction("editor.openActionSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control});
         EditorActions::bindAction("editor.openAssetSearch",
