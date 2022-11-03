@@ -828,8 +828,16 @@ namespace worlds
         {
             for (auto ent : selectedEntities)
             {
-                auto& msTransform = reg.get<Transform>(ent);
-                msTransform.fromMatrix(deltaMatrix * msTransform.getMatrix());
+                if (!reg.has<ChildComponent>(ent))
+                {
+                    auto& msTransform = reg.get<Transform>(ent);
+                    msTransform.fromMatrix(deltaMatrix * msTransform.getMatrix());
+                }
+                else
+                {
+                    auto& cc = reg.get<ChildComponent>(ent);
+                    cc.offset.fromMatrix(deltaMatrix * cc.offset.getMatrix());
+                }
             }
         }
     }
