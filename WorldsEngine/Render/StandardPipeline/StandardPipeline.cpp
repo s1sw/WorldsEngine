@@ -657,10 +657,6 @@ namespace worlds
                 const Transform& t = reg.get<Transform>(*it);
                 const RenderMeshInfo& rmi = renderer->getMeshManager()->loadOrGet(wo.mesh);
 
-                // Cull against frustum
-                if (!cullMesh(rmi, t, frustums, numViews))
-                    continue;
-
                 uint32_t modelMatrixIdx = modelMatrices->Append(t.getMatrix());
 
                 for (int i = 0; i < rmi.numSubmeshes; i++)
