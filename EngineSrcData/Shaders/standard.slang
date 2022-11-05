@@ -230,13 +230,13 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                     int blockCount = 0;
 
                     const bool jitterSamples = false;
-                    int sampleCount = 6;
-                    float penumbraSize = 0.5;
+                    int sampleCount = 4;
+                    float penumbraSize = 2.25;
 
                     [[loop]]
                     for (int t = 0; t < sampleCount; t++)
                     {
-                        float2 offset = ((PoissonKernel[t] * 2.0) - 1.0) * (1.0 / 512.0) * penumbraSize;
+                        float2 offset = (PoissonKernel[(int(random(fragCoord) * 24.0) + t) % 24]) * (1.0 / 512.0) * penumbraSize;
                         if (jitterSamples)
                         {
                             float2 rotationComponents = getRotationComponents((random(fragCoord) * 2.0 - 1.0) * 1.5);
