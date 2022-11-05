@@ -54,7 +54,7 @@ namespace worlds
         void (*editorUpdateFunc)(float deltaTime);
         void (*nativeEntityDestroyFunc)(uint32_t id);
         void (*serializeComponentsFunc)(void* serializationContext, uint32_t entity);
-        void (*deserializeComponentFunc)(const char* id, const char* componentJson, uint32_t entity);
+        void (*deserializeComponentFunc)(const char* id, const nlohmann::json* componentJson, uint32_t entity);
         void (*physicsContactFunc)(uint32_t id, PhysicsContactInfo* contactInfo);
         void (*copyManagedComponentsFunc)(entt::entity from, entt::entity to);
         void (*sceneStartFunc)();

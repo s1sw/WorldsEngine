@@ -413,8 +413,8 @@ namespace worlds
     void JsonSceneSerializer::loadScene(PHYSFS_File* file, entt::registry& reg)
     {
         PerfTimer timer;
-        try
-        {
+        //try
+        //{
             prefabCache.clear();
             idRemap.clear();
             std::string str;
@@ -422,14 +422,15 @@ namespace worlds
             PHYSFS_readBytes(file, str.data(), str.size());
 
             nlohmann::json j = nlohmann::json::parse(str);
+            j.type();
             deserializeJsonScene(j, reg);
 
             logMsg("loaded json scene in %.3fms", timer.stopGetMs());
-        }
-        catch (nlohmann::detail::exception& ex)
-        {
-            logErr("Failed to load scene: %s", ex.what());
-        }
+        //}
+        //catch (nlohmann::detail::exception& ex)
+        //{
+        //    logErr("Failed to load scene: %s", ex.what());
+        //}
     }
 
     void MessagePackSceneSerializer::loadScene(PHYSFS_File* file, entt::registry& reg)
@@ -446,8 +447,8 @@ namespace worlds
             return;
         }
 
-        try
-        {
+        //try
+        //{
             prefabCache.clear();
 
             std::vector<uint8_t> dat;
@@ -459,11 +460,11 @@ namespace worlds
             deserializeJsonScene(j, reg);
 
             logMsg("loaded msgpack scene in %.3fms", timer.stopGetMs());
-        }
-        catch (nlohmann::detail::exception& ex)
-        {
-            logErr("Failed to load scene: %s", ex.what());
-        }
+        //}
+        //catch (nlohmann::detail::exception& ex)
+        //{
+        //    logErr("Failed to load scene: %s", ex.what());
+        //}
     }
 
     void JsonSceneSerializer::saveEntity(PHYSFS_File* file, entt::registry& reg, entt::entity ent)

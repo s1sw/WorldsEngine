@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using WorldsEngine.ComponentMeta;
+using WorldsEngine.NativeInterop;
 
 namespace WorldsEngine.ECS;
 
@@ -129,14 +130,8 @@ public static class Registry
     private static void DeserializeManagedComponent(IntPtr idPtr, IntPtr jsonPtr, uint entityId)
     {
         var entity = new Entity(entityId);
-        var serializerOptions = new JsonSerializerOptions()
-        {
-            IncludeFields = true,
-            IgnoreReadOnlyProperties = true
-        };
 
         string idStr = Marshal.PtrToStringAnsi(idPtr)!;
-        string jsonStr = Marshal.PtrToStringAnsi(jsonPtr)!;
 
         Type? type = Engine.AssemblyLoadManager.GetTypeFromAssemblies(idStr);
 
@@ -169,7 +164,7 @@ public static class Registry
 
         try
         {
-            var deserialized = JsonSerializer.Deserialize(jsonStr, type, serializerOptions)!;
+            var deserialized = NmJson.Deserialize(type, jsonPtr);
             SetComponent(entity, type, deserialized);
         }
         catch (JsonException e)

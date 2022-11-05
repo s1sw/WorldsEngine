@@ -75,6 +75,7 @@ EngineInterfaces const* csharpInterfaces;
 #include "WorldLightBindings.hpp"
 #include "WorldObjectBindings.hpp"
 #include "WorldTextBindings.hpp"
+#include "NMJsonBindings.hpp"
 
 #ifdef BUILD_EDITOR
 #include "EditorBindings.hpp"
@@ -256,7 +257,7 @@ namespace worlds
     {
         ZoneScoped;
         std::string cJsonStr = componentJson.dump();
-        deserializeComponentFunc(id, cJsonStr.c_str(), (uint32_t)entity);
+        deserializeComponentFunc(id, &componentJson, (uint32_t)entity);
     }
 
     void DotNetScriptEngine::copyManagedComponents(entt::entity from, entt::entity to)
