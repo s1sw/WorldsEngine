@@ -81,13 +81,15 @@ namespace worlds
         uint32_t x = texInfo.m_width;
         uint32_t y = texInfo.m_height;
 
+        uint32_t startingMip = 0;//texInfo.m_levels - 1;//texInfo.m_levels > 5 ? 5 : texInfo.m_levels - 1;
+
         size_t totalDataSize = 0;
-        for (uint32_t i = 0; i < texInfo.m_levels; i++)
+        for (uint32_t i = startingMip; i < texInfo.m_levels; i++)
             totalDataSize += getCrunchTextureSize(texInfo, i);
 
         char* data = (char*)std::malloc(totalDataSize);
         size_t currOffset = 0;
-        for (uint32_t i = 0; i < texInfo.m_levels; i++)
+        for (uint32_t i = startingMip; i < texInfo.m_levels; i++)
         {
             char* dataOffs = &data[currOffset];
             uint32_t dataSize = getCrunchTextureSize(texInfo, i);
@@ -97,7 +99,7 @@ namespace worlds
                 fatalErr("Failed to unpack texture");
         }
 
-        uint32_t numMips = texInfo.m_levels;
+        uint32_t numMips = texInfo.m_levels - startingMip;
 
         crnd::crnd_unpack_end(context);
 
@@ -105,8 +107,8 @@ namespace worlds
 
         td.data = (uint8_t*)data;
         td.numMips = numMips;
-        td.width = x;
-        td.height = y;
+        td.width = x >> startingMip;
+        td.height = y >> startingMip;
         td.format = format;
         td.name = AssetDB::idToPath(id);
         td.totalDataSize = (uint32_t)totalDataSize;
