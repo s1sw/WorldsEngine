@@ -390,14 +390,14 @@ float3 ComputeAmbient(ShadeInfo shadeInfo, float2 fragCoord, float3 worldPos, ui
             Cubemap c = lbl.GetCubemap(int(realIndex));
             float blendWeight = calcBlendWeight(c, worldPos) / weightSum;
             specularAmbient += sampleCubemap(c, R, specMipLevel, worldPos) * blendWeight;
-            diffuseAmbient += sampleCubemap(c, R, 12.0, worldPos) * blendWeight;
+            diffuseAmbient += sampleCubemap(c, shadeInfo.normal, 12.0, worldPos) * blendWeight;
         }
     }
 
     if (weightSum == 0.0)
     {
         specularAmbient = sampleCubemap(lbl.GetCubemap(0), R, specMipLevel, worldPos);
-        diffuseAmbient = sampleCubemap(lbl.GetCubemap(0), R, 12.0, worldPos);
+        diffuseAmbient = sampleCubemap(lbl.GetCubemap(0), shadeInfo.normal, 12.0, worldPos);
     }
 
     float3 F = SchlickFresnelWithRoughness(saturate(dot(shadeInfo.normal, shadeInfo.viewDir)), f0, shadeInfo.roughness);
