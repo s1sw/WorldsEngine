@@ -40,6 +40,7 @@ namespace worlds
     {
         bool preTransformVerts = false;
         bool removeRedundantMaterials = true;
+        bool combineSubmeshes = false;
         float uniformScale = 1.0f;
     };
 
@@ -906,6 +907,52 @@ namespace worlds
                 return prim.attributes.contains(attribute);
             }
 
+            void combineSubmeshes()
+            {
+                std::vector<std::vector<wmdl::SubmeshInfo>> submeshesByMaterial;
+                uint32_t numMats = model.materials.size();
+                submeshesByMaterial.resize(numMats);
+                for (const wmdl::SubmeshInfo& si : submeshes)
+                {
+                    submeshesByMaterial[si.materialIndex >= numMats ? 0 : si.materialIndex].push_back(si);
+                }
+
+                for (int i = 0; i < submeshesByMaterial.size(); i++)
+                {
+                    logMsg("material %i has %i submeshes", i, submeshesByMaterial[i].size());
+                }
+
+                std::vector<uint32_t> newIndices;
+                newIndices.reserve(indices.size());
+                std::vector<wmdl::SubmeshInfo> newSubmeshInfo;
+
+                int matIdx = 0;
+                for (auto& submeshVec : submeshesByMaterial)
+                {
+                    uint32_t offsetOfIndices = (uint32_t)newIndices.size();
+                    uint32_t numIndices = 0;
+                    uint32_t numVertices = 0;
+                    for (auto& submesh : submeshVec)
+                    {
+                        newIndices.resize(newIndices.size() + submesh.numIndices);
+                        memcpy(newIndices.data() + offsetOfIndices + numIndices, indices.data() + submesh.indexOffset, submesh.numIndices * sizeof(uint32_t));
+                        numIndices += submesh.numIndices;
+                        numVertices += submesh.numVerts;
+                    }
+
+                    wmdl::SubmeshInfo newSubmesh;
+                    newSubmesh.indexOffset = offsetOfIndices;
+                    newSubmesh.materialIndex = matIdx;
+                    newSubmesh.numIndices = numIndices;
+                    newSubmesh.numVerts = numVertices;
+                    newSubmeshInfo.push_back(newSubmesh);
+                    matIdx++;
+                }
+
+                indices = newIndices;
+                submeshes = newSubmeshInfo;
+            }
+
           public:
             ErrorCodes convertGltfModel(AssetCompileOperation* compileOp, PHYSFS_File* outFile, void* data,
                                         size_t dataSize, ConversionSettings settings)
@@ -914,6 +961,24 @@ namespace worlds
                 std::string errString;
                 std::string warnString;
                 gltfContext.LoadBinaryFromMemory(&model, &errString, &warnString, (uint8_t*)data, dataSize);
+
+                if (!warnString.empty())
+                {
+                    logWarn("Warning while importing model: %s", warnString.c_str());
+                }
+
+                if (!errString.empty())
+                {
+                    logErr("Error while importing model: %s", errString.c_str());
+                    return ErrorCodes::ImportFailure;
+                }
+
+                for (int i = 0; i < model.materials.size(); i++)
+                {
+                    const tinygltf::Material& m = model.materials[i];
+                    logMsg("material %i: %s", i, m.name.c_str());
+                }
+
                 isModelSkinned = model.skins.size() > 0;
                 logMsg("skins: %i", model.skins.size());
 
@@ -966,6 +1031,9 @@ namespace worlds
                             b.parentBone = ~0u;
                     }
                 }
+
+                if (settings.combineSubmeshes)
+                    combineSubmeshes();
 
                 size_t vertSkinInfoLength = skinInfo.size() * sizeof(wmdl::VertexSkinningInfo);
                 size_t boneLength = bones.size() * sizeof(wmdl::Bone);
@@ -1069,6 +1137,7 @@ namespace worlds
         settings.preTransformVerts = j.value("preTransformVerts", false);
         settings.removeRedundantMaterials = j.value("removeRedundantMaterials", true);
         settings.uniformScale = j.value("uniformScale", 1.0f);
+        settings.combineSubmeshes = j.value("combineSubmeshes", false);
 
         std::thread([compileOp, outputPath, fullSourcePath, path, result, fileLen, settings]() {
             PHYSFS_File* outFile = PHYSFS_openWrite(outputPath.c_str());

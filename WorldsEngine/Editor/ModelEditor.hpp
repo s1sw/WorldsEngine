@@ -16,6 +16,7 @@ namespace worlds
         AssetID srcModel = INVALID_ASSET;
         bool preTransformVerts = false;
         bool removeRedundantMaterials = true;
+        bool combineSubmeshes = false;
         float uniformScale = 1.0f;
         bool unsavedChanges = false;
     };

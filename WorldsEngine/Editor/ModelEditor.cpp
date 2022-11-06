@@ -21,6 +21,7 @@ namespace worlds
             preTransformVerts = j.value("preTransformVerts", false);
             uniformScale = j.value("uniformScale", 1.0f);
             removeRedundantMaterials = j.value("removeRedundantMaterials", true);
+            combineSubmeshes = j.value("combineSubmeshes", false);
         }
         catch (nlohmann::detail::exception& except)
         {
@@ -39,6 +40,10 @@ namespace worlds
         selectRawAssetPopup("Source Model", srcModel, ImGui::Button("Change##SrcModel"));
         ImGui::Checkbox("Pre-Transform Vertices", &preTransformVerts);
         ImGui::Checkbox("Remove redundant materials", &removeRedundantMaterials);
+        ImGui::Checkbox("Combine submeshes", &combineSubmeshes);
+        tooltipHover("Combines all submeshes with the same material into a single submesh."
+                     "Optimises complex models, but means you lose some control over what parts"
+                     " of the model can be shown.");
         ImGui::DragFloat("Uniform Scaling", &uniformScale);
 
         if (AssetDB::exists(srcModel))
@@ -91,6 +96,9 @@ namespace worlds
 
         if (preTransformVerts)
             j["preTransformVerts"] = true;
+
+        if (combineSubmeshes)
+            j["combineSubmeshes"] = true;
 
         std::string s = j.dump(4);
         std::string path = AssetDB::idToPath(editingID);
