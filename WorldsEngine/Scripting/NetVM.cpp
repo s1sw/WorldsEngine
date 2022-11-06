@@ -109,6 +109,7 @@ namespace worlds
     bool DotNetScriptEngine::initialise(Editor* editor)
     {
         ZoneScoped;
+        // Force the cimgui functions to be compiled in
         igGET_FLT_MAX();
         coreclrLib = new slib::DynamicLibrary(NET_LIBRARY_PATH);
 

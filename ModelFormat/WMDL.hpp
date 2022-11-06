@@ -31,7 +31,7 @@ namespace wmdl
     {
         CountType numVerts;
         CountType numIndices;
-        OffsetType indexOffset;
+        OffsetType indexOffset; // offset of this submesh's indices within the model buffer
         uint16_t materialIndex;
 
         void *getRelPtr(size_t offset)
