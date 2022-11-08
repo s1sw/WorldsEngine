@@ -35,7 +35,7 @@ extern "C"
 
     EXPORT const char* nmjson_getAsString(nlohmann::json* j)
     {
-        return j->get<std::string>().c_str();
+        return strdup(j->get<std::string>().c_str());
     }
 
     EXPORT uint8_t nmjson_getType(nlohmann::json* j)

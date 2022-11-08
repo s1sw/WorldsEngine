@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -55,6 +56,9 @@ public static class NmJson
     [DllImport(Engine.NativeModule)]
     private static extern IntPtr nmjson_getArrayElement(IntPtr nativePtr, int idx);
     
+    [DllImport(Engine.NativeModule)]
+    private static extern void worlds__free(IntPtr nativePtr);
+
     internal struct NativeJsonValue
     {
         public JsonType Type => nmjson_getType(nativePtr);
@@ -63,7 +67,16 @@ public static class NmJson
         public float FloatValue => nmjson_getAsFloat(nativePtr);
         public double DoubleValue => nmjson_getAsDouble(nativePtr);
 
-        public string StringValue => Marshal.PtrToStringUTF8(nmjson_getAsString(nativePtr))!;
+        public string StringValue
+        {
+            get
+            {
+                IntPtr ptr = nmjson_getAsString(nativePtr);
+                string str = Marshal.PtrToStringUTF8(ptr)!;
+                worlds__free(ptr);
+                return str;
+            }
+        }
 
         public bool IsNumber => Type == JsonType.Number_float || Type == JsonType.Number_integer ||
                                 Type == JsonType.Number_unsigned;
