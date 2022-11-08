@@ -47,6 +47,7 @@ namespace worlds
         }
     }
 
+    // PhysFS filesystem implementation for FMOD
     FMOD_RESULT convertPhysFSError(PHYSFS_ErrorCode errCode)
     {
         switch (errCode)
@@ -115,6 +116,7 @@ namespace worlds
 
     AudioSystem* AudioSystem::instance;
 
+    // Function pointers for Steam Audio's FMOD plugin
     typedef void (*PFN_iplFMODInitialize)(IPLContext context);
     typedef void (*PFN_iplFMODSetHRTF)(IPLHRTF hrtf);
     typedef void (*PFN_iplFMODSetSimulationSettings)(IPLSimulationSettings simulationSettings);
@@ -634,7 +636,7 @@ namespace worlds
                                        glm::quat listenerRot)
     {
         IPLSimulationFlags simFlags =
-            (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_DIRECT | IPL_SIMULATIONFLAGS_REFLECTIONS);
+            (IPLSimulationFlags)(IPL_SIMULATIONFLAGS_REFLECTIONS);
 
         IPLSimulationInputs inputs{};
         inputs.flags = simFlags;
@@ -985,6 +987,10 @@ namespace worlds
         if (type != FMOD_STUDIO_EVENT_CALLBACK_CREATED && type != FMOD_STUDIO_EVENT_CALLBACK_DESTROYED)
             return FMOD_OK;
 
+        // available is set to false while shutting down
+        if (!AudioSystem::instance->available)
+            return FMOD_OK;
+
         FMOD::Studio::EventInstance* event = (FMOD::Studio::EventInstance*)cevent;
 
         PhononEventInstanceCallbackData* data;
@@ -1108,6 +1114,7 @@ namespace worlds
         if (!available)
             return;
 
+        available = false;
         worldState.clear<AudioSource>();
 
         if (simThread)
