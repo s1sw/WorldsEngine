@@ -16,11 +16,14 @@
 #include <Render/RenderInternal.hpp>
 #include <Render/ShaderCache.hpp>
 #include <Render/StandardPipeline/StandardPipeline.hpp>
-#include <Render/StandardPipeline/RenderMaterialManager.hpp>
+#include <Render/RenderMaterialManager.hpp>
 #include <SDL_vulkan.h>
 #include <Tracy.hpp>
 #include <VR/OpenXRInterface.hpp>
 #include <Util/TimingUtil.hpp>
+#include <TaskScheduler.h>
+#include <Core/TaskScheduler.hpp>
+#include <readerwriterqueue.h>
 
 namespace R2::VK
 {
@@ -136,6 +139,141 @@ namespace worlds
         delete core;
     }
 
+    template<typename Object>
+    struct ObjectMaterialLoadTask : public enki::ITaskSet
+    {
+        VKRenderer* renderer;
+        entt::registry& reg;
+
+        ObjectMaterialLoadTask(VKRenderer* renderer, entt::registry& reg) : renderer(renderer), reg(reg)
+        {
+        }
+
+        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
+        {
+            auto view = reg.view<Object>();
+
+            auto begin = view.begin();
+            auto end = view.begin();
+            std::advance(begin, range.start);
+            std::advance(end, range.end);
+
+            for (auto it = begin; it != end; it++)
+            {
+                Object& wo = reg.get<Object>(*it);
+                RenderMeshInfo* rmi;
+                if (!renderer->getMeshManager()->get(wo.mesh, &rmi))
+                    continue;
+
+                for (int i = 0; i < rmi->numSubmeshes; i++)
+                {
+                    const RenderSubmeshInfo& rsi = rmi->submeshInfo[i];
+                    uint8_t materialIndex = rsi.materialIndex;
+
+                    if (!wo.presentMaterials[materialIndex])
+                        materialIndex = 0;
+
+                    if (RenderMaterialManager::IsMaterialLoaded(wo.materials[materialIndex]))
+                        continue;
+
+                    RenderMaterialManager::LoadOrGetMaterial(wo.materials[materialIndex]);
+                }
+            }
+        }
+    };
+
+    extern moodycamel::ReaderWriterQueue<AssetID> convoluteQueue;
+
+    struct AddCubemapToQueueTask : public enki::ITaskSet
+    {
+        enki::Dependency dependency;
+        TaskDeleter td;
+        AssetID id;
+        enki::ITaskSet* loadTask;
+
+        AddCubemapToQueueTask(AssetID id, enki::ITaskSet* loadTask)
+            : id(id)
+            , loadTask(loadTask)
+        {
+            td.SetDependency(td.dependency, this);
+        }
+
+        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
+        {
+            convoluteQueue.enqueue(id);
+            delete loadTask;
+        }
+    };
+
+    struct LoadSingleCubemapTask : public enki::ITaskSet
+    {
+        VKTextureManager* textureManager;
+        AssetID id;
+
+        LoadSingleCubemapTask(VKTextureManager* textureManager, AssetID id)
+            : textureManager(textureManager)
+            , id(id)
+        {}
+
+        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
+        {
+            auto loadTask = textureManager->loadAsync(id);
+            auto addToQueueTask = new AddCubemapToQueueTask(id, loadTask);
+            addToQueueTask->SetDependency(addToQueueTask->dependency, loadTask);
+
+            TasksFinished finisher{};
+            finisher.SetDependenciesVec<decltype(finisher.dependencies), enki::ITaskSet>(
+                    finisher.dependencies, { loadTask, addToQueueTask });
+            g_taskSched.AddTaskSetToPipe(loadTask);
+            g_taskSched.WaitforTask(&finisher);
+        }
+    };
+
+    struct LoadCubemapsTask : public enki::ITaskSet
+    {
+        entt::registry& registry;
+        VKTextureManager* textureManager;
+
+        LoadCubemapsTask(entt::registry& registry, VKTextureManager* textureManager)
+                : registry(registry), textureManager(textureManager)
+        {
+        }
+
+        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
+        {
+            ZoneScoped;
+
+            auto cubemapView = registry.view<WorldCubemap>();
+
+            auto begin = cubemapView.begin();
+            auto end = cubemapView.begin();
+            std::advance(begin, range.start);
+            std::advance(end, range.end);
+
+            for (auto it = begin; it != end; it++)
+            {
+                WorldCubemap& wc = registry.get<WorldCubemap>(*it);
+                if (wc.loadedId != wc.cubemapId)
+                {
+                    if (!textureManager->isLoaded(wc.cubemapId))
+                    {
+                        auto loadTask = textureManager->loadAsync(wc.cubemapId);
+                        auto addToQueueTask = new AddCubemapToQueueTask(wc.cubemapId, loadTask);
+                        addToQueueTask->SetDependency(addToQueueTask->dependency, loadTask);
+
+                        TasksFinished finisher{};
+                        finisher.SetDependenciesVec<decltype(finisher.dependencies), enki::ITaskSet>(
+                                finisher.dependencies, {loadTask, addToQueueTask});
+
+                        g_taskSched.AddTaskSetToPipe(loadTask);
+                        g_taskSched.WaitforTask(&finisher);
+                    }
+                    wc.loadedId = wc.cubemapId;
+                }
+            }
+        }
+    };
+
     void VKRenderer::frame(entt::registry& registry, float deltaTime)
     {
         ZoneScoped;
@@ -181,6 +319,39 @@ namespace worlds
 
         timestampPool->Reset(cb, core->GetFrameIndex() * 2, 2);
         timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 2);
+
+        registry.view<WorldObject>().each([&](WorldObject& wo) {
+            renderMeshManager->loadOrGet(wo.mesh);
+        });
+
+        registry.view<SkinnedWorldObject>().each([&](WorldObject& wo) {
+            renderMeshManager->loadOrGet(wo.mesh);
+        });
+
+        auto& sceneSettings = registry.ctx<SceneSettings>();
+        if (!textureManager->isLoaded(sceneSettings.skybox))
+        {
+            LoadSingleCubemapTask lsct{textureManager, sceneSettings.skybox};
+            g_taskSched.AddTaskSetToPipe(&lsct);
+            g_taskSched.WaitforTask(&lsct);
+        }
+
+        // Load materials and stuff
+        ObjectMaterialLoadTask<WorldObject> woLoadTask{ this, registry };
+        woLoadTask.m_SetSize = registry.view<WorldObject>().size();
+        ObjectMaterialLoadTask<SkinnedWorldObject> swoLoadTask{ this, registry };
+        swoLoadTask.m_SetSize = registry.view<SkinnedWorldObject>().size();
+        LoadCubemapsTask cubemapsTask{ registry, textureManager };
+        cubemapsTask.m_SetSize = registry.view<WorldCubemap>().size();
+
+        TasksFinished finisher;
+        finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
+                finisher.dependencies, { &woLoadTask, &swoLoadTask, &cubemapsTask });
+
+        g_taskSched.AddTaskSetToPipe(&woLoadTask);
+        g_taskSched.AddTaskSetToPipe(&swoLoadTask);
+        g_taskSched.AddTaskSetToPipe(&cubemapsTask);
+        g_taskSched.WaitforTask(&finisher);
 
         glm::mat4 shadowViewMatrix = interfaces.mainCamera->getViewMatrix();
         for (VKRTTPass* pass : rttPasses)

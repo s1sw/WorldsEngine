@@ -4,10 +4,12 @@
 #include <Render/Loaders/WMDLLoader.hpp>
 #include <Render/RenderInternal.hpp>
 #include <Tracy.hpp>
+#include <mutex>
 
 namespace worlds
 {
     AssetID missingModel;
+    std::mutex modelMutex;
 
     RenderMeshManager::RenderMeshManager(R2::VK::Core* core) : core(core)
     {
@@ -85,6 +87,7 @@ namespace worlds
     RenderMeshInfo& RenderMeshManager::loadOrGet(AssetID asset)
     {
         ZoneScoped;
+        std::lock_guard lg{modelMutex};
         if (meshes.contains(asset))
         {
             return meshes.at(asset);
@@ -94,9 +97,17 @@ namespace worlds
 
         loadToRMI(asset, meshInfo);
 
-        meshes.insert({asset, std::move(meshInfo)});
+        auto it = meshes.insert({asset, std::move(meshInfo)}).first;
 
         return meshes.at(asset);
+    }
+
+    bool RenderMeshManager::get(AssetID id, RenderMeshInfo** rmi)
+    {
+        auto it = meshes.find(id);
+        if (it == meshes.end()) return false;
+        *rmi = &it->second;
+        return true;
     }
 
     uint64_t RenderMeshManager::getSkinnedVertsOffset() const
@@ -175,4 +186,5 @@ namespace worlds
             );
         }
     }
+
 }

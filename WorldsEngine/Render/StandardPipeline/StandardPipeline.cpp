@@ -19,7 +19,7 @@
 #include <Render/StandardPipeline/HiddenMeshRenderer.hpp>
 #include <Render/StandardPipeline/SkyboxRenderer.hpp>
 #include <Render/StandardPipeline/Tonemapper.hpp>
-#include <Render/StandardPipeline/RenderMaterialManager.hpp>
+#include <Render/RenderMaterialManager.hpp>
 #include <Render/StandardPipeline/ParticleRenderer.hpp>
 #include <entt/entity/registry.hpp>
 #include <Util/AABB.hpp>
@@ -28,8 +28,9 @@
 #include <Util/JsonUtil.hpp>
 #include <Tracy.hpp>
 
-#include <deque>
+#include <readerwriterqueue.h>
 #include <new>
+#include <Core/Fatal.hpp>
 #include "PoissonDisk.hpp"
 
 using namespace R2;
@@ -70,7 +71,7 @@ namespace worlds
 
     robin_hood::unordered_flat_map<AssetID, int> materialRefCount;
     robin_hood::unordered_set<AssetID> allCubemaps;
-    std::deque<AssetID> convoluteQueue;
+    moodycamel::ReaderWriterQueue<AssetID> convoluteQueue;
 
     const VK::TextureFormat colorBufferFormat = VK::TextureFormat::B10G11R11_UFLOAT_PACK32;
 
@@ -299,44 +300,6 @@ namespace worlds
         return mix(higher, lower, cutoff);
     }
 
-    struct LoadCubemapsTask : public enki::ITaskSet
-    {
-        LightUB* lightUB;
-        entt::registry& registry;
-        VKTextureManager* textureManager;
-
-        LoadCubemapsTask(LightUB* lightUB, entt::registry& registry, VKTextureManager* textureManager)
-            : lightUB(lightUB), registry(registry), textureManager(textureManager)
-        {
-        }
-
-        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
-        {
-            ZoneScoped;
-
-            auto cubemapView = registry.view<WorldCubemap>();
-
-            auto begin = cubemapView.begin();
-            auto end = cubemapView.begin();
-            std::advance(begin, range.start);
-            std::advance(end, range.end);
-
-            for (auto it = begin; it != end; it++)
-            {
-                WorldCubemap& wc = registry.get<WorldCubemap>(*it);
-                if (wc.loadedId != wc.cubemapId)
-                {
-                    lightUB->cubemaps[wc.renderIdx].texture = textureManager->loadAndGet(wc.cubemapId);
-                    wc.loadedId = wc.cubemapId;
-                }
-                else
-                {
-                    lightUB->cubemaps[wc.renderIdx].texture = textureManager->get(wc.cubemapId);
-                }
-            }
-        }
-    };
-
     struct FillLightBufferTask : public enki::ITaskSet
     {
         LightUB* lightUB;
@@ -345,8 +308,7 @@ namespace worlds
         ShadowmapManager* shadowmapManager;
 
         FillLightBufferTask(LightUB* lightUB, entt::registry& registry, VKTextureManager* textureManager)
-            : lightUB(lightUB), registry(registry), textureManager(textureManager),
-              lcTask(lightUB, registry, textureManager)
+            : lightUB(lightUB), registry(registry), textureManager(textureManager)
         {
         }
 
@@ -400,11 +362,9 @@ namespace worlds
 
             AssetID skybox = registry.ctx<SceneSettings>().skybox;
 
-            if (!textureManager->isLoaded(skybox))
+            if (!allCubemaps.contains(skybox))
             {
-                convoluteQueue.push_back(skybox);
                 allCubemaps.insert(skybox);
-                textureManager->loadAndGet(skybox);
             }
 
             uint32_t cubemapIdx = 1;
@@ -418,98 +378,18 @@ namespace worlds
                 gc.blendDistance = wc.blendDistance;
                 if (!textureManager->isLoaded(wc.cubemapId))
                 {
-                    convoluteQueue.push_back(wc.cubemapId);
                     allCubemaps.insert(wc.cubemapId);
                 }
+                if (textureManager->isLoaded(wc.cubemapId))
+                    gc.texture = textureManager->get(wc.cubemapId);
+                else
+                    gc.texture = textureManager->get(skybox);
                 lightUB->cubemaps[cubemapIdx] = gc;
                 wc.renderIdx = cubemapIdx;
                 cubemapIdx++;
             });
 
             lightUB->cubemapCount = cubemapIdx;
-
-            lcTask.m_SetSize = registry.view<WorldCubemap>().size();
-            g_taskSched.AddTaskSetToPipe(&lcTask);
-            g_taskSched.WaitforTask(&lcTask);
-        }
-
-    private:
-        LoadCubemapsTask lcTask;
-    };
-
-    struct WorldObjectMaterialLoadTask : public enki::ITaskSet
-    {
-        VKRenderer* renderer;
-        entt::registry& reg;
-
-        WorldObjectMaterialLoadTask(VKRenderer* renderer, entt::registry& reg) : renderer(renderer), reg(reg)
-        {
-        }
-
-        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
-        {
-            auto view = reg.view<WorldObject>();
-
-            auto begin = view.begin();
-            auto end = view.begin();
-            std::advance(begin, range.start);
-            std::advance(end, range.end);
-
-            for (auto it = begin; it != end; it++)
-            {
-                WorldObject& wo = reg.get<WorldObject>(*it);
-                const RenderMeshInfo& rmi = renderer->getMeshManager()->loadOrGet(wo.mesh);
-
-                for (int i = 0; i < rmi.numSubmeshes; i++)
-                {
-                    const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
-                    uint8_t materialIndex = rsi.materialIndex;
-
-                    if (!wo.presentMaterials[materialIndex])
-                        materialIndex = 0;
-
-                    if (RenderMaterialManager::IsMaterialLoaded(wo.materials[materialIndex]))
-                        continue;
-
-                    RenderMaterialManager::LoadOrGetMaterial(wo.materials[materialIndex]);
-                }
-            }
-        }
-    };
-
-    struct SkinnedWorldObjectMaterialLoadTask : public enki::ITaskSet
-    {
-        VKRenderer* renderer;
-        entt::registry& reg;
-
-        SkinnedWorldObjectMaterialLoadTask(VKRenderer* renderer, entt::registry& reg) : renderer(renderer), reg(reg)
-        {
-        }
-
-        void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
-        {
-            auto view = reg.view<SkinnedWorldObject>();
-
-            auto begin = view.begin();
-            auto end = view.begin();
-            std::advance(begin, range.start);
-            std::advance(end, range.end);
-
-            for (auto it = begin; it != end; it++)
-            {
-                WorldObject& wo = reg.get<SkinnedWorldObject>(*it);
-
-                for (int i = 0; i < NUM_SUBMESH_MATS; i++)
-                {
-                    if (!wo.presentMaterials[i])
-                        continue;
-
-                    if (RenderMaterialManager::IsMaterialLoaded(wo.materials[i]))
-                        continue;
-
-                    RenderMaterialManager::LoadOrGetMaterial(wo.materials[i]);
-                }
-            }
         }
     };
 
@@ -546,19 +426,21 @@ namespace worlds
                     continue;
 
                 const Transform& t = reg.get<Transform>(*it);
-                const RenderMeshInfo& rmi = renderer->getMeshManager()->loadOrGet(wo.mesh);
+                RenderMeshInfo* rmi;
+                if (!renderer->getMeshManager()->get(wo.mesh, &rmi))
+                    continue;
 
                 // Cull against frustum
-                if (!cullMesh(rmi, t, frustums, numViews))
+                if (!cullMesh(*rmi, t, frustums, numViews))
                     continue;
 
                 uint32_t modelMatrixIdx = modelMatrices->Append(t.getMatrix());
 
-                for (int i = 0; i < rmi.numSubmeshes; i++)
+                for (int i = 0; i < rmi->numSubmeshes; i++)
                 {
                     if (!wo.drawSubmeshes[i]) continue;
 
-                    const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
+                    const RenderSubmeshInfo& rsi = rmi->submeshInfo[i];
 
                     AssetID material = wo.materials[rsi.materialIndex];
 
@@ -578,10 +460,10 @@ namespace worlds
 
                     VK::DrawIndexedIndirectCommand drawCmd{};
                     drawCmd.indexCount = rsi.indexCount;
-                    drawCmd.firstIndex = rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t));
+                    drawCmd.firstIndex = rsi.indexOffset + (rmi->indexOffset / sizeof(uint32_t));
                     drawCmd.firstInstance = 0;
                     drawCmd.instanceCount = 1;
-                    drawCmd.vertexOffset = rmi.vertsOffset / sizeof(Vertex);
+                    drawCmd.vertexOffset = rmi->vertsOffset / sizeof(Vertex);
 
                     drawCmds[drawId] = drawCmd;
                     gpuDrawInfos[drawId] = di;
@@ -693,17 +575,6 @@ namespace worlds
         }
     };
 
-    struct GCResources : public enki::ITaskSet
-    {
-        VKRenderer* renderer;
-        entt::registry& reg;
-    };
-
-    struct TasksFinished : public enki::ICompletable
-    {
-        std::vector<enki::Dependency> dependencies;
-    };
-
     extern ConVar r_shadowmapRes;
 
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
@@ -724,13 +595,14 @@ namespace worlds
 
         // If there's anything in the convolution queue, convolute 1 cubemap
         // per frame (convolution is slow!)
-        if (convoluteQueue.size() > 0)
+        AssetID convoluteID;
+        while (convoluteQueue.try_dequeue(convoluteID))
         {
             cb.BeginDebugLabel("Cubemap Convolution", 0.1f, 0.1f, 0.1f);
 
-            AssetID convoluteID = convoluteQueue.front();
-            convoluteQueue.pop_front();
-            uint32_t convoluteHandle = textureManager->loadAndGet(convoluteID);
+            if (!textureManager->isLoaded(convoluteID))
+                fatalErr("Can't convolute an unloaded cubemap");
+            uint32_t convoluteHandle = textureManager->get(convoluteID);
             VK::Texture* tex = btm->GetTextureAt(convoluteHandle);
             cubemapConvoluter->Convolute(cb, tex);
 
@@ -744,22 +616,14 @@ namespace worlds
         FillLightBufferTask fillTask{lightUB, reg, textureManager};
         fillTask.shadowmapManager = renderer->getShadowmapManager();
 
-        WorldObjectMaterialLoadTask woLoadTask{renderer, reg};
-        woLoadTask.m_SetSize = reg.view<WorldObject>().size();
-
-        SkinnedWorldObjectMaterialLoadTask swoLoadTask{renderer, reg};
-        swoLoadTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
-
         AllocatedSkinnedStorageTask allocSkinnedStorageTask{renderer, reg};
         allocSkinnedStorageTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
         allocSkinnedStorageTask.m_MinRange = 10;
 
         finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
-            finisher.dependencies, {&fillTask, &woLoadTask, &swoLoadTask, &allocSkinnedStorageTask});
+            finisher.dependencies, {&fillTask, &allocSkinnedStorageTask});
 
         g_taskSched.AddTaskSetToPipe(&fillTask);
-        g_taskSched.AddTaskSetToPipe(&woLoadTask);
-        g_taskSched.AddTaskSetToPipe(&swoLoadTask);
         g_taskSched.AddTaskSetToPipe(&allocSkinnedStorageTask);
         g_taskSched.WaitforTask(&finisher);
 

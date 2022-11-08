@@ -1,4 +1,4 @@
-#include "RenderMaterialManager.hpp"
+#include "Render/RenderMaterialManager.hpp"
 #include <Core/AssetDB.hpp>
 #include <Core/MaterialManager.hpp>
 #include <entt/entity/registry.hpp>
@@ -93,20 +93,20 @@ namespace worlds
 
         StandardPBRMaterial material{};
         mai.albedoID = AssetDB::pathToId(j.value("albedoPath", "Textures/missing.wtex"));
-        material.albedoTexture = tm->loadAndGet(mai.albedoID);
+        material.albedoTexture = tm->loadAndGetAsync(mai.albedoID);
         material.normalTexture = ~0u;
         material.mraTexture = ~0u;
 
         if (j.contains("normalMapPath"))
         {
             mai.normalID = AssetDB::pathToId(j["normalMapPath"].get<std::string>());
-            material.normalTexture = tm->loadAndGet(mai.normalID);
+            material.normalTexture = tm->loadAndGetAsync(mai.normalID);
         }
 
         if (j.contains("pbrMapPath"))
         {
             mai.mraID = AssetDB::pathToId(j["pbrMapPath"].get<std::string>());
-            material.mraTexture = tm->loadAndGet(mai.mraID);
+            material.mraTexture = tm->loadAndGetAsync(mai.mraID);
         }
 
         material.defaultMetallic = j.value("metallic", 0.0f);

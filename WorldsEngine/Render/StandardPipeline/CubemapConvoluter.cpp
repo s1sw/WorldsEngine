@@ -67,5 +67,6 @@ namespace worlds
             w /= 2;
             h /= 2;
         }
+        tex->Acquire(cb, VK::ImageLayout::General, VK::AccessFlags::ShaderRead | VK::AccessFlags::ShaderWrite, VK::PipelineStageFlags::ComputeShader);
     }
 }

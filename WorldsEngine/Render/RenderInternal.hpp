@@ -35,6 +35,11 @@ VK_DEFINE_HANDLE(VkPipelineCache)
 VK_DEFINE_HANDLE(VkDevice)
 #undef VK_DEFINE_HANDLE
 
+namespace enki
+{
+    class ITaskSet;
+}
+
 namespace worlds
 {
     class VKRenderer;
@@ -178,10 +183,11 @@ namespace worlds
         R2::VK::Buffer* getSkinInfoBuffer();
 
         RenderMeshInfo& loadOrGet(AssetID id);
+        bool get(AssetID id, RenderMeshInfo** rmi);
         uint64_t getSkinnedVertsOffset() const;
 
     private:
-        robin_hood::unordered_map<AssetID, RenderMeshInfo> meshes;
+        robin_hood::unordered_node_map<AssetID, RenderMeshInfo> meshes;
         R2::SubAllocatedBuffer* vertexBuffer;
         R2::SubAllocatedBuffer* indexBuffer;
         R2::SubAllocatedBuffer* skinInfoBuffer;
@@ -198,7 +204,9 @@ namespace worlds
     public:
         VKTextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager);
         ~VKTextureManager();
-        uint32_t loadAndGet(AssetID id);
+        uint32_t loadAndGetAsync(AssetID id);
+        enki::ITaskSet* loadAsync(AssetID id);
+        uint32_t loadSynchronous(AssetID id);
         uint32_t get(AssetID id);
         bool isLoaded(AssetID id);
         void unload(AssetID id);
@@ -206,6 +214,7 @@ namespace worlds
         void showDebugMenu();
 
     private:
+        struct TextureLoadTask;
         struct TexInfo
         {
             R2::VK::Texture* tex;

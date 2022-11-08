@@ -203,41 +203,45 @@ namespace worlds
             rp.Begin(cb);
 
             registry.view<WorldObject, Transform>().each([&](WorldObject& wo, Transform& woT) {
-                const RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
+                RenderMeshInfo* rmi;
+                if (!meshManager->get(wo.mesh, &rmi))
+                    return;
 
-                if (!cullMesh(rmi, woT, &f, 1))
+                if (!cullMesh(*rmi, woT, &f, 1))
                     return;
 
                 glm::mat4 mvp = vp * woT.getMatrix();
                 cb.PushConstants(mvp, VK::ShaderStage::Vertex, pipelineLayout.Get());
 
-                for (int i = 0; i < rmi.numSubmeshes; i++)
+                for (int i = 0; i < rmi->numSubmeshes; i++)
                 {
                     if (!wo.drawSubmeshes[i]) continue;
-                    const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
+                    const RenderSubmeshInfo& rsi = rmi->submeshInfo[i];
                     cb.DrawIndexed(
                         rsi.indexCount,
                         1,
-                        rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t)),
-                        rmi.vertsOffset / sizeof(Vertex),
+                        rsi.indexOffset + (rmi->indexOffset / sizeof(uint32_t)),
+                        rmi->vertsOffset / sizeof(Vertex),
                         0);
                 }
             });
 
             registry.view<SkinnedWorldObject, Transform>().each([&](SkinnedWorldObject& wo, Transform& woT) {
-                const RenderMeshInfo& rmi = meshManager->loadOrGet(wo.mesh);
+                RenderMeshInfo* rmi;
+                if (!meshManager->get(wo.mesh, &rmi))
+                    return;
 
                 glm::mat4 mvp = vp * woT.getMatrix();
                 cb.PushConstants(mvp, VK::ShaderStage::Vertex, pipelineLayout.Get());
 
-                for (int i = 0; i < rmi.numSubmeshes; i++)
+                for (int i = 0; i < rmi->numSubmeshes; i++)
                 {
                     if (!wo.drawSubmeshes[i]) continue;
-                    const RenderSubmeshInfo& rsi = rmi.submeshInfo[i];
+                    const RenderSubmeshInfo& rsi = rmi->submeshInfo[i];
                     cb.DrawIndexed(
                         rsi.indexCount,
                         1,
-                        rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t)),
+                        rsi.indexOffset + (rmi->indexOffset / sizeof(uint32_t)),
                         wo.skinnedVertexOffset + (meshManager->getSkinnedVertsOffset() / sizeof(Vertex)),
                         0);
                 }
