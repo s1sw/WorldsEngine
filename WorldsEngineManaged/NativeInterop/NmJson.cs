@@ -182,7 +182,6 @@ public static class NmJson
         {
             if (fieldInfo.GetCustomAttribute<NonSerializedAttribute>() != null)
             {
-                Log.Msg($"Ignoring {fieldInfo.Name}");
                 continue;
             }
             
