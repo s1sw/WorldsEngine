@@ -344,6 +344,7 @@ namespace worlds
             splashWindow->changeOverlay("loading assetdb");
 
         AssetDB::load();
+        MeshManager::initialize();
         registry.set<SceneSettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"), 1.0f);
 
         if (!dedicatedServer)

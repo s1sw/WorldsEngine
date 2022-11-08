@@ -4,13 +4,13 @@
 
 namespace worlds
 {
-    void loadWorldsModel(AssetID wmdlId, LoadedMeshData& lmd)
+    bool loadWorldsModel(AssetID wmdlId, LoadedMeshData& lmd)
     {
         PHYSFS_File* f = AssetDB::openAssetFileRead(wmdlId);
 
         if (f == nullptr)
         {
-            return;
+            return false;
         }
 
         size_t fileSize = PHYSFS_fileLength(f);
@@ -25,7 +25,7 @@ namespace worlds
         if (!wHdr->verifyMagic())
         {
             logErr("Failed to load %s: invalid magic", AssetDB::idToPath(wmdlId).c_str());
-            return;
+            return false;
         }
 
         logVrb("loading wmdl: %i submeshes, small indices: %i", wHdr->numSubmeshes, wHdr->useSmallIndices);
@@ -112,5 +112,6 @@ namespace worlds
         }
 
         free(buf);
+        return true;
     }
 }

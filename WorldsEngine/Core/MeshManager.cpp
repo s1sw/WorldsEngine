@@ -1,5 +1,6 @@
 #include "MeshManager.hpp"
 #include "Util/MathsUtil.hpp"
+#include "Fatal.hpp"
 #include <Core/Log.hpp>
 #include <Render/Loaders/WMDLLoader.hpp>
 #include <Render/RenderInternal.hpp>
@@ -9,17 +10,16 @@ namespace worlds
 {
     robin_hood::unordered_node_map<AssetID, LoadedMesh> MeshManager::loadedMeshes;
     LoadedMesh errorMesh{.numSubmeshes = 0};
-    const LoadedMesh& MeshManager::get(AssetID id)
-    {
-        return loadedMeshes.at(id);
-    }
 
-    void loadToLM(LoadedMesh& lm, AssetID id)
+    bool loadToLM(LoadedMesh& lm, AssetID id)
     {
         ZoneScoped;
         LoadedMeshData lmd{};
 
-        loadWorldsModel(id, lmd);
+        if (!loadWorldsModel(id, lmd))
+        {
+            return false;
+        }
 
         if (lmd.indexType == IndexType::Uint16)
         {
@@ -67,6 +67,21 @@ namespace worlds
             lm.aabbMax = glm::max(lm.aabbMax, vtx.position);
             lm.aabbMin = glm::min(lm.aabbMin, vtx.position);
         }
+
+        return true;
+    }
+
+    void MeshManager::initialize()
+    {
+        if (!loadToLM(errorMesh, AssetDB::pathToId("Models/missing.wmdl")))
+        {
+            fatalErr("Missing mesh placeholder was missing.");
+        }
+    }
+
+    const LoadedMesh& MeshManager::get(AssetID id)
+    {
+        return loadedMeshes.at(id);
     }
 
     const LoadedMesh& MeshManager::loadOrGet(AssetID id)
@@ -82,7 +97,10 @@ namespace worlds
         }
 
         LoadedMesh lm;
-        loadToLM(lm, id);
+        if (!loadToLM(lm, id))
+        {
+            return errorMesh;
+        }
 
         loadedMeshes.insert({id, std::move(lm)});
 

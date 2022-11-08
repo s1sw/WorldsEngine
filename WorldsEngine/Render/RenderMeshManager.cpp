@@ -107,7 +107,10 @@ namespace worlds
     void RenderMeshManager::loadToRMI(AssetID asset, RenderMeshInfo& meshInfo)
     {
         LoadedMeshData lmd{};
-        loadWorldsModel(asset, lmd);
+        if (!loadWorldsModel(asset, lmd))
+        {
+            loadWorldsModel(AssetDB::pathToId("Models/missing.wmdl"), lmd);
+        }
 
         if (lmd.vertices.size() == 0)
         {
