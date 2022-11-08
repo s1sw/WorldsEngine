@@ -64,7 +64,7 @@ namespace R2::VK
 
         sci.minLod = 0.0f;
         sci.maxLod = VK_LOD_CLAMP_NONE;
-        sci.anisotropyEnable = true;
+        sci.anisotropyEnable = false;
         sci.maxAnisotropy = 8.0f;
 
         VkSampler vsamp;

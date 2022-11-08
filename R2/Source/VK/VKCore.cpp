@@ -265,14 +265,10 @@ namespace R2::VK
 		{
 			std::unique_lock queueLock{queueMutex};
 			this->dbgOutRecv->DebugMessage("Flushing staged uploads!!! THIS IS A STALL");
-			writeFrameUploadCommands(frameIndex);
+            VkCommandBuffer cb = Utils::AcquireImmediateCommandBuffer();
+			writeFrameUploadCommands(frameIndex, cb);
 
-			VkSubmitInfo uploadSubmitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-
-			uploadSubmitInfo.commandBufferCount = 1;
-			uploadSubmitInfo.pCommandBuffers = &frameResources.UploadCommandBuffer;
-
-			VKCHECK(vkQueueSubmit(handles.Queues.Graphics, 1, &uploadSubmitInfo, VK_NULL_HANDLE));
+            Utils::ExecuteImmediateCommandBuffer();
 			WaitIdle();
 		}
 
@@ -399,14 +395,10 @@ namespace R2::VK
 		{
 			std::unique_lock queueLock{queueMutex};
 			this->dbgOutRecv->DebugMessage("Flushing staged uploads!!! THIS IS A STALL");
-			writeFrameUploadCommands(frameIndex);
+            VkCommandBuffer cb = Utils::AcquireImmediateCommandBuffer();
+			writeFrameUploadCommands(frameIndex, cb);
+            Utils::ExecuteImmediateCommandBuffer();
 
-			VkSubmitInfo uploadSubmitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-
-			uploadSubmitInfo.commandBufferCount = 1;
-			uploadSubmitInfo.pCommandBuffers = &frameResources.UploadCommandBuffer;
-
-			VKCHECK(vkQueueSubmit(handles.Queues.Graphics, 1, &uploadSubmitInfo, VK_NULL_HANDLE));
 			WaitIdle();
 			uploadedOffset = 0;
 			requiredPadding = 0;
@@ -445,7 +437,14 @@ namespace R2::VK
 		VKCHECK(vkEndCommandBuffer(frameResources.CommandBuffer));
 
 		std::unique_lock uploadLock{frameResources.BufferUploadMutex};
-		writeFrameUploadCommands(frameIndex);
+
+        VkCommandBufferBeginInfo cbbi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+        cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        VKCHECK(vkBeginCommandBuffer(frameResources.UploadCommandBuffer, &cbbi));
+
+		writeFrameUploadCommands(frameIndex, frameResources.UploadCommandBuffer);
+
+        VKCHECK(vkEndCommandBuffer(frameResources.UploadCommandBuffer));
 
 		// Submit upload command buffer...
 		VkSubmitInfo uploadSubmitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -519,27 +518,20 @@ namespace R2::VK
         return dbgOutRecv;
     }
 
-	void Core::writeFrameUploadCommands(uint32_t index)
+	void Core::writeFrameUploadCommands(uint32_t index, VkCommandBuffer cb)
 	{
 		PerFrameResources& frameResources = perFrameResources[index];
-
-		VKCHECK(vkResetCommandBuffer(frameResources.UploadCommandBuffer, 0));
-
-		// Record upload command buffer
-		VkCommandBufferBeginInfo cbbi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-		cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		VKCHECK(vkBeginCommandBuffer(frameResources.UploadCommandBuffer, &cbbi));
 
 		// Handle pending buffer uploads
 		for (BufferUpload& bu : frameResources.BufferUploads)
 		{
-			frameResources.StagingBuffer->CopyTo(frameResources.UploadCommandBuffer, 
+			frameResources.StagingBuffer->CopyTo(cb,
 				bu.Buffer, bu.DataSize, bu.StagingOffset, bu.DataOffset);
 		}
 
 		for (BufferToTextureCopy& bttc : frameResources.BufferToTextureCopies)
 		{
-			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite, PipelineStageFlags::Transfer);
+			bttc.Texture->Acquire(cb, ImageLayout::TransferDstOptimal, AccessFlags::TransferWrite, PipelineStageFlags::Transfer);
 
 			uint64_t offset = 0;
 			int w = bttc.Texture->GetWidth();
@@ -555,22 +547,20 @@ namespace R2::VK
 				vbic.imageExtent.depth = 1;
 				vbic.bufferOffset = bttc.BufferOffset + offset;
 
-				vkCmdCopyBufferToImage(frameResources.UploadCommandBuffer, bttc.Buffer->GetNativeHandle(),
+				vkCmdCopyBufferToImage(cb, bttc.Buffer->GetNativeHandle(),
 					bttc.Texture->GetNativeHandle(),
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &vbic);
 
 				offset += calculateTextureByteSize(bttc.Texture->GetFormat(), mipScale(w, i), mipScale(h, i));
 			}
 
-			bttc.Texture->Acquire(frameResources.UploadCommandBuffer, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead, PipelineStageFlags::FragmentShader | PipelineStageFlags::ComputeShader);
+			bttc.Texture->Acquire(cb, ImageLayout::ReadOnlyOptimal, AccessFlags::MemoryRead, PipelineStageFlags::FragmentShader | PipelineStageFlags::ComputeShader);
 		}
 
 		// Reset the queue
 		frameResources.BufferUploads.clear();
 		frameResources.BufferToTextureCopies.clear();
 		frameResources.StagingOffset = 0;
-
-		VKCHECK(vkEndCommandBuffer(frameResources.UploadCommandBuffer));
 	}
 
     DeletionQueue* Core::getCurrentDq()

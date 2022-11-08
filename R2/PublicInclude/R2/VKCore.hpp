@@ -151,7 +151,7 @@ namespace R2::VK
 			char* StagingMapped;
 		};
 
-		void writeFrameUploadCommands(uint32_t index);
+		void writeFrameUploadCommands(uint32_t index, VkCommandBuffer cb);
 
 		void setAllocCallbacks();
 		void createInstance(bool enableValidation, const char** instanceExts);
