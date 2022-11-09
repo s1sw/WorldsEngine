@@ -139,6 +139,11 @@ namespace worlds
         SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     }
 
+    void Window::setBorderless(bool borderless)
+    {
+        SDL_SetWindowBordered(window, borderless ? SDL_FALSE : SDL_TRUE);
+    }
+
     const char* Window::getTitle()
     {
         return SDL_GetWindowTitle(window);

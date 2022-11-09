@@ -192,7 +192,7 @@ public static class Registry
             Type storageType = typeof(ComponentStorage<>).MakeGenericType(type);
 
             int index = (int)storageType.GetField("TypeIndex", BindingFlags.Static | BindingFlags.Public)!.GetValue(null)!;
-            Log.Msg($"Creating storage for {type.FullName}, index {index}");
+            Log.Verbose($"Creating storage for {type.FullName}, index {index}");
 
             if (index >= ComponentPoolCount)
                 throw new ArgumentOutOfRangeException("Out of component pools. Oops.");
@@ -220,7 +220,7 @@ public static class Registry
 
         if (componentStorages[typeIndex] == null)
         {
-            Log.Msg($"Creating storage for {typeof(T).FullName}, index {typeIndex}");
+            Log.Verbose($"Creating storage for {typeof(T).FullName}, index {typeIndex}");
             componentStorages[typeIndex] = new ComponentStorage<T>();
             if (typeof(ICollisionHandler).IsAssignableFrom(typeof(T)))
                 _collisionHandlers.Add(componentStorages[typeIndex]!);

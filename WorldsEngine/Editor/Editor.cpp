@@ -103,80 +103,6 @@ namespace worlds
 
     static int menuButtonsExtent = 0;
 
-    SDL_HitTestResult hitTest(SDL_Window* win, const SDL_Point* p, void* v)
-    {
-        int w, h;
-        SDL_GetWindowSize(win, &w, &h);
-
-        uint32_t windowFlags = SDL_GetWindowFlags(win);
-
-        if (windowFlags & SDL_WINDOW_MAXIMIZED)
-        {
-            return SDL_HITTEST_NORMAL;
-        }
-
-        if (p->x > menuButtonsExtent && p->x < w - 135 && p->y < 20 && p->y > 0)
-        {
-            return SDL_HITTEST_DRAGGABLE;
-        }
-
-        float maximiseXCenter = w - 45.0f - 22.0f;
-        float maximiseRight = maximiseXCenter + 6.0f;
-        float maximiseLeft = maximiseXCenter - 6.0f;
-
-        enum BorderFlags
-        {
-            None = 0,
-            Left = 1,
-            Right = 2,
-            Top = 4,
-            Bottom = 8
-        };
-
-        const int RESIZE_BORDER = 5;
-        int flags = None;
-
-        if (p->x < RESIZE_BORDER && p->x > -RESIZE_BORDER)
-        {
-            flags |= Left;
-        }
-        else if (p->x > w - RESIZE_BORDER && p->x < w + RESIZE_BORDER)
-        {
-            flags |= Right;
-        }
-
-        if (p->y < RESIZE_BORDER && p->y > -RESIZE_BORDER)
-        {
-            flags |= Top;
-        }
-        else if (p->y > h - RESIZE_BORDER && p->y < h + RESIZE_BORDER)
-        {
-            flags |= Bottom;
-        }
-
-        switch (flags)
-        {
-        case Left:
-            return SDL_HITTEST_RESIZE_LEFT;
-        case Right:
-            return SDL_HITTEST_RESIZE_RIGHT;
-        case Top:
-            return SDL_HITTEST_RESIZE_TOP;
-        case Bottom:
-            return SDL_HITTEST_RESIZE_BOTTOM;
-        case Top | Left:
-            return SDL_HITTEST_RESIZE_TOPLEFT;
-        case Top | Right:
-            return SDL_HITTEST_RESIZE_TOPRIGHT;
-        case Bottom | Left:
-            return SDL_HITTEST_RESIZE_BOTTOMLEFT;
-        case Bottom | Right:
-            return SDL_HITTEST_RESIZE_BOTTOMRIGHT;
-        }
-
-        return SDL_HITTEST_NORMAL;
-    }
-
     EntityFolder::EntityFolder(std::string name) : name(name)
     {
         randomId = pcg32_random();
@@ -187,7 +113,6 @@ namespace worlds
           currentSelectedEntity(entt::null), lookX(0.0f), lookY(0.0f), cameraSpeed(5.0f), imguiMetricsOpen(false),
           settings(), interfaces(interfaces), inputManager(*interfaces.inputManager)
     {
-        ComponentMetadataManager::setupLookup(&interfaces);
         interfaces.engine->pauseSim = true;
 
 #define ADD_EDITOR_WINDOW(type) editorWindows.add(std::make_unique<type>(interfaces, this))
@@ -207,12 +132,6 @@ namespace worlds
 #undef ADD_EDITOR_WINDOW
         AssetCompilers::initialise();
         AssetEditors::initialise(interfaces);
-        SDL_Window* window = interfaces.engine->getMainWindow().getWrappedHandle();
-        SDL_SetHint("SDL_BORDERLESS_WINDOWED_STYLE", "1");
-        SDL_SetHint("SDL_BORDERLESS_RESIZABLE_STYLE", "1");
-        SDL_SetWindowBordered(window, SDL_FALSE);
-        SDL_SetWindowResizable(window, SDL_TRUE);
-        SDL_SetWindowHitTest(window, hitTest, nullptr);
         sceneViews.add(new EditorSceneView{interfaces, this});
 
         titleBarIcon = interfaces.renderer->getUITextureManager()->loadOrGet(

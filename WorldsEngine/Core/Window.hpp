@@ -28,6 +28,7 @@ namespace worlds
         void resize(int width, int height);
         void setTitle(const char* title);
         void setFullscreen(bool fullscreen);
+        void setBorderless(bool borderless);
 
         const char* getTitle();
         bool shouldQuit();

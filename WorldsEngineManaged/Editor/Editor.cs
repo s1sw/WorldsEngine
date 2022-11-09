@@ -295,12 +295,9 @@ namespace WorldsEngine.Editor
         {
             GameProject gp = new(nativeProject);
 
-            Log.Msg($"project selected: {gp.Name}");
-            Log.Msg($"root: {gp.Root}");
-
             lastAssemblyPath = gp.Root + "/CompiledCode/Game.dll";
 
-            Log.Msg($"Loading assembly {lastAssemblyPath}");
+            Log.Msg($"Loading project assembly {lastAssemblyPath}");
 
             Engine.AssemblyLoadManager.RegisterAssembly(lastAssemblyPath);
         }

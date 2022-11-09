@@ -119,17 +119,6 @@ namespace worlds
         [[deprecated("Use EngineArguments")]] bool hasCommandLineArg(const char* arg);
 
       private:
-        struct DebugTimeInfo
-        {
-            double deltaTime;
-            double updateTime;
-            double simTime;
-            bool didSimRun;
-            double lastUpdateTime;
-            double lastTickRendererTime;
-            int frameCounter;
-        };
-
         struct InterFrameInfo
         {
             uint64_t lastPerfCounter;
@@ -144,7 +133,6 @@ namespace worlds
         void setupSDL();
         Window* createWindow();
         void setupPhysfs(char* argv0);
-        void drawDebugInfoWindow(DebugTimeInfo timeInfo);
         bool updateSimulation(float& interpAlpha, double deltaTime);
         void doSimStep(float deltaTime);
         void tickRenderer(float deltaTime, bool renderImgui = false);
@@ -154,7 +142,7 @@ namespace worlds
         int windowWidth, windowHeight;
 
         bool running;
-        bool dedicatedServer;
+        bool headless;
         int workerThreadOverride;
         bool enableVR;
         entt::registry registry;

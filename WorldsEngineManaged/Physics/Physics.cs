@@ -157,9 +157,7 @@ namespace WorldsEngine
 
             Engine.AssemblyLoadManager.OnAssemblyLoad += (Assembly asm) =>
             { 
-                Log.Msg("Physics OnAssemblyLoad");
                 if (_lastContactModCallback == null) return;
-                Log.Msg("callback wasn't null");
 
                 OldCallback oc = _lastContactModCallback.Value;
                 var type = asm.GetType(oc.TypeName);

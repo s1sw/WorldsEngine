@@ -20,12 +20,7 @@ namespace WorldsEngine
         public static void LogWithSeverity(MessageSeverity severity, string message)
         {
             logging_log((int)severity, message);
-        }
-
-        public static void Msg(string str)
-        {
-            LogWithSeverity(MessageSeverity.Info, str);
-        }
+        }        
         
         public static void MsgIndented(int indent, string str)
         {
@@ -37,16 +32,11 @@ namespace WorldsEngine
             sb.Append(str);
             LogWithSeverity(MessageSeverity.Info, sb.ToString());
         }
-
-        public static void Warn(string str)
-        {
-            LogWithSeverity(MessageSeverity.Warning, str);
-        }
-
-        public static void Error(string str)
-        {
-            LogWithSeverity(MessageSeverity.Error, str);
-        }
+        
+        public static void Msg(string str) => LogWithSeverity(MessageSeverity.Info, str);
+        public static void Warn(string str) => LogWithSeverity(MessageSeverity.Warning, str);
+        public static void Error(string str) => LogWithSeverity(MessageSeverity.Error, str);
+        public static void Verbose(string str) => LogWithSeverity(MessageSeverity.Verbose, str);
     }
 
     public class Logger

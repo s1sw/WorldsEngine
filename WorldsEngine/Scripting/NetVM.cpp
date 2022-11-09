@@ -139,7 +139,7 @@ namespace worlds
         exePath[readChars] = 0;
 #endif
 
-        logMsg("exePath: %s", exePath);
+        logVrb("exePath: %s", exePath);
 
         const char* propertyKeys[] = {"TRUSTED_PLATFORM_ASSEMBLIES"};
 

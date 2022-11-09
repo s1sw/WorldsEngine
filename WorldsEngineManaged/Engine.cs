@@ -90,7 +90,7 @@ namespace WorldsEngine
 
             if (!editorActive)
                 AssemblyLoadManager.RegisterAssembly(Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName) + @"\GameAssemblies\Game.dll");
-            Log.Msg($".NET initialised, isDebug: {_isDebug}");
+            Log.Verbose($".NET initialised, isDebug: {_isDebug}");
             _editorActive = editorActive;
         }
 

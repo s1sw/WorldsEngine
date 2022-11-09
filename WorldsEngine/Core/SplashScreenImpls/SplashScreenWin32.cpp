@@ -61,6 +61,7 @@ namespace worlds
         Gdiplus::Image* foreground = nullptr;
         std::mutex mutex;
         int width, height;
+        bool isSmall;
     };
 
     SplashScreenImplWin32::State* SplashScreenImplWin32::s;
@@ -107,6 +108,7 @@ namespace worlds
     SplashScreenImplWin32::SplashScreenImplWin32(bool small)
     {
         s = new State;
+        s->isSmall = small;
 
         s->t = new std::thread([this, small] {
             const char* CLASS_NAME = "WorldsSplashScreen";
@@ -163,6 +165,7 @@ namespace worlds
 
     void SplashScreenImplWin32::changeOverlay(const char* overlay)
     {
+        if (s->isSmall) return;
         s->mutex.lock();
 
         char* basePath = SDL_GetBasePath();

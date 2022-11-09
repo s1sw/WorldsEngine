@@ -45,7 +45,7 @@ namespace worlds
 
         if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") == -1)
         {
-            logErr("Failed to load game controller database.");
+            logWarn("Failed to load game controller database.");
         }
 
         for (int i = 0; i < SDL_NumJoysticks(); i++)
