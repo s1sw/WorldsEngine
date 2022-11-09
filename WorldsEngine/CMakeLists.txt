@@ -119,16 +119,15 @@ endif()
 
 if(WIN32)
     set(LIB_PATH ../External/Lib/windows64$<IF:$<CONFIG:Debug>,dbg,rel>)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC PX_PHYSX_STATIC_LIB)
     target_link_libraries(${PROJECT_NAME} dbghelp gdiplus dwmapi "${LIB_PATH}/freetype")
     target_link_libraries(${PROJECT_NAME}
-        "${LIB_PATH}/PhysXCommon_static_64"
-        "${LIB_PATH}/PhysXCooking_static_64"
+        "${LIB_PATH}/PhysX_64"
+        "${LIB_PATH}/PhysXCommon_64"
+        "${LIB_PATH}/PhysXCooking_64"
         "${LIB_PATH}/PhysXExtensions_static_64"
-        "${LIB_PATH}/PhysXFoundation_static_64"
-        "${LIB_PATH}/PhysXPvdSDK_static_64"
-        "${LIB_PATH}/PhysX_static_64"
-        "${LIB_PATH}/PhysXVehicle_static_64"
+        "${LIB_PATH}/PhysXFoundation_64"
+        "${LIB_PATH}/PhysXTask_static_64"
+        "${LIB_PATH}/SceneQuery_static_64"
     )
     target_link_libraries(${PROJECT_NAME} "${FMOD_DIR}/core/lib/x64/fmod_vc.lib" "${FMOD_DIR}/studio/lib/x64/fmodstudio_vc.lib")
     target_link_libraries(${PROJECT_NAME} "../External/Lib/phonon")

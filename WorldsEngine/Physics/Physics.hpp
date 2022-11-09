@@ -7,7 +7,6 @@
 #include <entt/entity/fwd.hpp>
 #include <functional>
 #include <glm/gtx/quaternion.hpp>
-#include <physx/PxFoundation.h>
 #include <physx/PxPhysics.h>
 #include <physx/PxPhysicsAPI.h>
 #include <physx/extensions/PxD6Joint.h>

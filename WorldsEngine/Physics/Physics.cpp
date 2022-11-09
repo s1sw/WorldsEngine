@@ -10,7 +10,6 @@
 #include <SDL_cpuinfo.h>
 #include <Util/MathsUtil.hpp>
 #include <entt/entity/registry.hpp>
-#include <physx/PxFoundation.h>
 #include <physx/PxPhysics.h>
 #include <physx/PxPhysicsAPI.h>
 #include <physx/PxSceneDesc.h>
@@ -433,6 +432,7 @@ namespace worlds
         errorCallback = new PhysErrCallback;
         foundation = PxCreateFoundation(PX_PHYSICS_VERSION, allocator, *errorCallback);
         physScriptEngine = interfaces.scriptEngine;
+        logVrb("PhysX version: %i.%i.%i", PX_PHYSICS_VERSION_MAJOR, PX_PHYSICS_VERSION_MINOR, PX_PHYSICS_VERSION_BUGFIX);
 
         physx::PxPvd* pvd = nullptr;
 #if ENABLE_PVD

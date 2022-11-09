@@ -36,7 +36,7 @@ namespace physx
     inline void to_json(json& j, const PxJointLinearLimit& l)
     {
         j = {{"value", l.value},         {"restitution", l.restitution}, {"bounceThreshold", l.bounceThreshold},
-             {"stiffness", l.stiffness}, {"damping", l.damping},         {"contactDistance", l.contactDistance}};
+             {"stiffness", l.stiffness}, {"damping", l.damping}};
     }
 
     inline void from_json(const json& j, PxJointLinearLimit& l)
@@ -46,7 +46,6 @@ namespace physx
         l.bounceThreshold = j["bounceThreshold"];
         l.stiffness = j["stiffness"];
         l.damping = j["damping"];
-        l.contactDistance = j["contactDistance"];
     }
 }
 
@@ -289,9 +288,6 @@ namespace worlds
                             tooltipHover("If greater than zero, the limit is soft, i.e. a spring pulls the joint back "
                                          "to the limit");
                             ImGui::DragFloat("Damping", &lim.damping);
-                            ImGui::DragFloat("Contact Distance", &lim.contactDistance);
-                            tooltipHover("The distance inside the limit value at which the limit will be considered to "
-                                         "be active by the solver.");
                             ImGui::DragFloat("Bounce Threshold", &lim.bounceThreshold);
                             tooltipHover("The minimum velocity for which the limit will bounce.");
                             ImGui::DragFloat("Restitution", &lim.restitution);
@@ -328,9 +324,6 @@ namespace worlds
                         tooltipHover(
                             "If greater than zero, the limit is soft, i.e. a spring pulls the joint back to the limit");
                         ImGui::DragFloat("Damping", &lim.damping);
-                        ImGui::DragFloat("Contact Distance", &lim.contactDistance);
-                        tooltipHover("The distance inside the limit value at which the limit will be considered to be "
-                                     "active by the solver.");
                         ImGui::DragFloat("Bounce Threshold", &lim.bounceThreshold);
                         tooltipHover("The minimum velocity for which the limit will bounce.");
                         ImGui::DragFloat("Restitution", &lim.restitution);
@@ -358,9 +351,6 @@ namespace worlds
                         tooltipHover(
                             "If greater than zero, the limit is soft, i.e. a spring pulls the joint back to the limit");
                         ImGui::DragFloat("Damping", &lim.damping);
-                        ImGui::DragFloat("Contact Distance", &lim.contactDistance);
-                        tooltipHover("The distance inside the limit value at which the limit will be considered to be "
-                                     "active by the solver.");
                         ImGui::DragFloat("Bounce Threshold", &lim.bounceThreshold);
                         tooltipHover("The minimum velocity for which the limit will bounce.");
                         ImGui::DragFloat("Restitution", &lim.restitution);
@@ -485,8 +475,7 @@ namespace worlds
                                       {"restitution", l.restitution},
                                       {"bounceThreshold", l.bounceThreshold},
                                       {"stiffness", l.stiffness},
-                                      {"damping", l.damping},
-                                      {"contactDistance", l.contactDistance}};
+                                      {"damping", l.damping}};
             }
             j["linearLimits"] = linearLimits;
 
@@ -512,8 +501,7 @@ namespace worlds
                                 {"restitution", swingLimit.restitution},
                                 {"bounceThreshold", swingLimit.bounceThreshold},
                                 {"stiffness", swingLimit.stiffness},
-                                {"damping", swingLimit.damping},
-                                {"contactDistance", swingLimit.contactDistance}};
+                                {"damping", swingLimit.damping}};
 
             j["swingLimit"] = swingLimitJ;
 
@@ -523,8 +511,7 @@ namespace worlds
                                 {"restitution", twistLimit.restitution},
                                 {"bounceThreshold", twistLimit.bounceThreshold},
                                 {"stiffness", twistLimit.stiffness},
-                                {"damping", twistLimit.damping},
-                                {"contactDistance", twistLimit.contactDistance}};
+                                {"damping", twistLimit.damping}};
 
             j["twistLimit"] = twistLimitJ;
         }
@@ -556,7 +543,6 @@ namespace worlds
                 l.bounceThreshold = lJson["bounceThreshold"];
                 l.stiffness = lJson["stiffness"];
                 l.damping = lJson["damping"];
-                l.contactDistance = lJson["contactDistance"];
 
                 px->setLinearLimit(axis, l);
             }
@@ -583,7 +569,6 @@ namespace worlds
                 l.bounceThreshold = twistLJ["bounceThreshold"];
                 l.stiffness = twistLJ["stiffness"];
                 l.damping = twistLJ["damping"];
-                l.contactDistance = twistLJ["contactDistance"];
 
                 px->setTwistLimit(l);
             }
