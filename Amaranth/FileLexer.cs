@@ -4,10 +4,6 @@ namespace Amaranth;
 
 public enum TokenType
 {
-    Include,
-    CppType,
-    CppComponent,
-    CsType,
     StringLiteral,
     Identifier,
     OpenParenthesis,
@@ -17,13 +13,8 @@ public enum TokenType
     Comma,
     Arrow,
     Semicolon,
-    NamespaceSeparator,
-    Method,
-    StaticMethod,
-    Property,
-    Function,
     Period,
-    Field
+    Keyword
 }
 
 public class Token
@@ -71,6 +62,21 @@ public class IdentifierToken : Token
     }
 }
 
+public class KeywordToken : Token
+{
+    public readonly string Keyword;
+
+    public KeywordToken(string keyword) : base(TokenType.Keyword)
+    {
+        Keyword = keyword;
+    }
+
+    public override string ToString()
+    {
+        return $"Keyword Token \"{Keyword}\"";
+    }
+}
+
 public class TokenDef
 {
     public readonly Regex Regex;
@@ -87,10 +93,6 @@ public class BindingFileLexer
 {
     private static TokenDef[] tokenDefs = 
     {
-        new TokenDef("^Include", TokenType.Include),
-        new TokenDef("^CppType", TokenType.CppType),
-        new TokenDef("^CppComponent", TokenType.CppComponent),
-        new TokenDef("^CsType", TokenType.CsType),
         new TokenDef("^\\(", TokenType.OpenParenthesis),
         new TokenDef("^\\)", TokenType.CloseParenthesis),
         new TokenDef("^{", TokenType.OpenBrace),
@@ -98,13 +100,8 @@ public class BindingFileLexer
         new TokenDef("^,", TokenType.Comma),
         new TokenDef("^->", TokenType.Arrow),
         new TokenDef("^;", TokenType.Semicolon),
-        new TokenDef("^::", TokenType.NamespaceSeparator),
-        new TokenDef("^method", TokenType.Method),
-        new TokenDef("^staticmethod", TokenType.StaticMethod),
-        new TokenDef("^property", TokenType.Property),
-        new TokenDef("^function", TokenType.Function),
         new TokenDef("^\\.", TokenType.Period),
-        new TokenDef("^field", TokenType.Field)
+        new TokenDef("^(method|nativebindclass)", TokenType.Keyword)
     };
 
     private string lexingString;
@@ -131,7 +128,15 @@ public class BindingFileLexer
 
                 if (!match.Success) continue;
 
-                tokens.Add(new Token(td.Type));
+                if (td.Type == TokenType.Keyword)
+                {
+                    tokens.Add(new KeywordToken(match.Captures[0].Value));
+                }
+                else
+                {
+                    tokens.Add(new Token(td.Type));
+                }
+
                 str = str.Substring(match.Length);
                 matched = true;
                 break;

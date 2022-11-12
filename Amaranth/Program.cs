@@ -10,38 +10,27 @@ var tokens = bfl.Lex();
 BindingFileParser bfp = new(tokens);
 BindingFile bindingFile = bfp.Parse();
 
-StringBuilder cppFile = new();
-StringBuilder csFile = new();
-
-cppFile.AppendLine("#include \"Export.hpp\"");
-foreach (string include in bindingFile.Includes)
+foreach (NativeBindClass nbc in bindingFile.NativeBindClasses)
 {
-    cppFile.AppendLine($"#include <{include}>");
-}
-
-cppFile.AppendLine();
-
-csFile.AppendLine("using System;");
-csFile.AppendLine("using System.Runtime.InteropServices;");
-csFile.AppendLine("namespace WorldsEngine.Editor;");
-
-foreach (CppType cppType in bindingFile.CppTypes)
-{
-    Console.WriteLine($"CppType: {cppType.Identifier}");
-
-    foreach (var e in cppType.ExposedProperties)
+    Console.WriteLine($"nbc {nbc.Name}");
+    Console.WriteLine("bind methods:");
+    foreach (NativeBindMethod method in nbc.BindMethods)
     {
-        Console.WriteLine($"Exposes {e.NativeMethodName} as {e.ExposedAs}");
+        Console.WriteLine($"{method.NativeReturnType} {method.NativeName} -> {method.ManagedName}");
+    }
+    
+    Console.WriteLine("bind props:");
+    foreach (NativeBindProperty property in nbc.BindProperties)
+    {
+        Console.WriteLine($"{property.NativeType} {property.NativeName} -> {property.ManagedType} {property.ManagedName}");
     }
 
-    CppBindingsGenerator bg = new(cppType);
-    bg.GenerateBindings(cppFile);
-    CsCppBindingsGenerator csbg = new(cppType);
-    csFile.Append(csbg.GenerateBindings());
+    StringBuilder cppBinding = new();
+    foreach (NativeBindMethod method in nbc.BindMethods)
+    {
+        
+    }
 }
-
-File.WriteAllText("cppbindings.cpp", cppFile.ToString());
-File.WriteAllText("csbindings.cs", csFile.ToString());
 
 static class Engine
 {

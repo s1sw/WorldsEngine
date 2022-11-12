@@ -45,7 +45,26 @@ class BindingFileParser
         {
             throw new Exception("unexpected end of token stream");
         }
+        
+        ExpectTokenType(tokens[tokenIdx], types);
 
+        return tokens[tokenIdx];
+    }
+
+    private KeywordToken ConsumeKeyword(params string[] keywords)
+    {
+        var kt = (KeywordToken)ConsumeToken(TokenType.Keyword);
+
+        if (!keywords.Contains(kt.Keyword))
+        {
+            throw new Exception($"expected {keywords}, got {kt.Keyword}");
+        }
+
+        return kt;
+    }
+
+    private void ExpectTokenType(Token token, params TokenType[] types)
+    {
         bool matched = false;
         foreach (TokenType type in types)
         {
@@ -58,8 +77,6 @@ class BindingFileParser
 
         if (!matched)
             throw new Exception($"expected {types}, got {tokens[tokenIdx].Type}");
-
-        return tokens[tokenIdx];
     }
 
     private string ConsumeQualifiedIdentifier()
@@ -74,7 +91,7 @@ class BindingFileParser
             var tok = tokens[tokenIdx];
 
             if ((prevWasSeparator && tok.Type != TokenType.Identifier) || 
-                (!prevWasSeparator && tok.Type != TokenType.NamespaceSeparator && tok.Type != TokenType.Period))
+                (!prevWasSeparator && tok.Type != TokenType.Period))
             {
                 tokenIdx--;
                 break;
@@ -87,7 +104,7 @@ class BindingFileParser
             }
             else
             {
-                identifier += tok.Type == TokenType.NamespaceSeparator ? "::" : ".";
+                identifier += ".";
                 prevWasSeparator = true;
             }
         }
@@ -118,10 +135,10 @@ class BindingFileParser
 
     private TokenType NextTokenType => tokens[tokenIdx + 1].Type;
     
-    private void ParseCppTypeMethod(CppType cppType)
+    private NativeBindMember ParseNativeBindMember()
     {
-        ConsumeToken(TokenType.Method);
-        string returnType = ConsumeQualifiedIdentifier();
+        ConsumeKeyword("method");
+        string methodReturnType = ConsumeQualifiedIdentifier();
 
         var methodName = (IdentifierToken)ConsumeToken(TokenType.Identifier);
 
@@ -131,90 +148,60 @@ class BindingFileParser
 
         ConsumeToken(TokenType.CloseParenthesis);
         ConsumeToken(TokenType.Arrow);
-        ConsumeToken(TokenType.Property);
+
+        string managedType = ConsumeQualifiedIdentifier();
 
         var exposeAs = (IdentifierToken)ConsumeToken(TokenType.Identifier);
 
-        ConsumeToken(TokenType.Semicolon);
-
-        ExposedProperty ep = new(exposeAs.Identifier, methodName.Identifier, returnType);
-        cppType.ExposedProperties.Add(ep);
-    }
-
-    private void ParseCppTypeField(CppType cppType)
-    {
-        ConsumeToken(TokenType.Field);
-        string returnType = ConsumeQualifiedIdentifier();
-
-        var fieldName = (IdentifierToken)ConsumeToken(TokenType.Identifier);
-
-        ConsumeToken(TokenType.Arrow);
-        ConsumeToken(TokenType.Property);
-
-        var exposeAs = (IdentifierToken)ConsumeToken(TokenType.Identifier);
-
-        ConsumeToken(TokenType.Semicolon);
-
-        ExposedField ef = new(exposeAs.Identifier, fieldName.Identifier, returnType);
-        cppType.ExposedFields.Add(ef);
-    }
-
-    private CppType ParseCppType(bool isComponent)
-    {
-        string classIdentifier = ConsumeQualifiedIdentifier();
-        ConsumeToken(TokenType.OpenBrace);
-
-        CppType cppType = new(classIdentifier);
-
-        cppType.IsComponent = isComponent;
-
-        while (true)
+        NativeBindMember member;
+        if (NextTokenType == TokenType.OpenParenthesis)
         {
-            if (NextTokenType == TokenType.CloseBrace) break;
-            
-            switch (NextTokenType)
+            // native bind method
+            member = new NativeBindMethod
             {
-            case TokenType.Method:
-                ParseCppTypeMethod(cppType);
-                break;
-            case TokenType.Field:
-                ParseCppTypeField(cppType);
-                break;
-            }
+                ManagedReturnType = managedType,
+                NativeReturnType = methodReturnType
+            };
+            ConsumeToken(TokenType.OpenParenthesis);
+            ConsumeToken(TokenType.CloseParenthesis);
+        }
+        else
+        {
+            member = new NativeBindProperty
+            {
+                ManagedType = managedType,
+                NativeType = methodReturnType
+            };
         }
 
-        ConsumeToken(TokenType.CloseBrace);
+        member.NativeName = methodName.Identifier;
+        member.ManagedName = exposeAs.Identifier;
 
-        return cppType;
+        ConsumeToken(TokenType.Semicolon);
+
+        return member;
     }
 
-    private void ParseCsType()
+    private NativeBindClass ParseNativeBindClass()
     {
         string classIdentifier = ConsumeQualifiedIdentifier();
         ConsumeToken(TokenType.OpenBrace);
 
+        NativeBindClass nbc = new(classIdentifier);
+
         while (true)
         {
             if (NextTokenType == TokenType.CloseBrace) break;
-
-            ConsumeToken(TokenType.Method, TokenType.StaticMethod);
-
-            ConsumeToken(TokenType.Identifier);
-
-            ConsumeToken(TokenType.OpenParenthesis);
-
-            ConsumeParameterList();
-
-            ConsumeToken(TokenType.CloseParenthesis);
-
-            ConsumeToken(TokenType.Arrow);
-            ConsumeToken(TokenType.Property, TokenType.Function);
-
-            ConsumeQualifiedIdentifier();
-            ConsumeToken(TokenType.Semicolon);
+            var member = ParseNativeBindMember();
+            if (member is NativeBindProperty)
+                nbc.BindProperties.Add((NativeBindProperty)member);
+            else
+                nbc.BindMethods.Add((NativeBindMethod)member);
         }
 
         ConsumeToken(TokenType.CloseBrace);
+
+        return nbc;
     }
 
     public BindingFile Parse()
@@ -225,25 +212,22 @@ class BindingFileParser
         {
             Token currentToken = tokens[tokenIdx];
 
-            switch (currentToken.Type)
+            if (currentToken.Type != TokenType.Keyword)
             {
-            case TokenType.Include:
-                var includeLoc = (StringLiteralToken)ConsumeToken(TokenType.StringLiteral);
-                ConsumeToken(TokenType.Semicolon);
-                bf.Includes.Add(includeLoc.Content);
-                break;
-            case TokenType.CppComponent:
-                bf.CppTypes.Add(ParseCppType(true));
-                break;
-            case TokenType.CppType:
-                bf.CppTypes.Add(ParseCppType(false));
-                break;
-            case TokenType.CsType:
-                ParseCsType();
-                break;
-            default:
-                throw new Exception($"Didn't expect a {currentToken.Type}!");
+                throw new Exception($"expected Keyword, got {currentToken.Type}");
             }
+
+            KeywordToken kt = (KeywordToken)currentToken;
+
+            if (kt.Keyword == "nativebindclass")
+            {
+                bf.NativeBindClasses.Add(ParseNativeBindClass());
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+
             tokenIdx++;
         }
 
