@@ -6,3 +6,6 @@
 	url = https://github.com/recastnavigation/recastnavigation.git
 [submodule "recastnavigation"]
 	url = https://github.com/someonesomewheredev/recastnavigation.git
+[submodule "R2"]
+	path = R2
+	url = https://github.com/someonesomewheredev/R2
