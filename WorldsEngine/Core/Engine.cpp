@@ -139,14 +139,6 @@ namespace worlds
         PHYSFS_permitSymbolicLinks(1);
     }
 
-    ConVar lockSimToRefresh{
-        "sim_lockToRefresh",
-        "0",
-        "Instead of using a simulation timestep, run the simulation in lockstep with the rendering."};
-    ConVar disableSimInterp{
-        "sim_disableInterp", "0", "Disables interpolation and uses the results of the last run simulation step."};
-    ConVar simStepTime{"sim_stepTime", "0.01"};
-
     bool inFrame = false;
 
     int WorldsEngine::eventFilter(void* enginePtr, SDL_Event* evt)
@@ -199,7 +191,7 @@ namespace worlds
     }
 
     WorldsEngine::WorldsEngine(EngineInitOptions initOptions, char* argv0)
-        : pauseSim{false}, running{true}, simAccumulator{0.0}, interfaces{this}
+        : pauseSim{false}, running{true}, interfaces{this}
     {
         ZoneScoped;
         PerfTimer startupTimer;
@@ -376,6 +368,8 @@ namespace worlds
         physicsSystem = new PhysicsSystem(interfaces, registry);
         interfaces.physics = physicsSystem.Get();
 
+        simLoop = new SimulationLoop(interfaces, evtHandler, registry);
+
         ComponentMetadataManager::setupLookup(&interfaces);
 
         if (runAsEditor)
@@ -515,9 +509,6 @@ namespace worlds
             {
                 evtHandler->onSceneStart(registry);
 
-                for (auto* system : systems)
-                    system->onSceneStart(registry);
-
                 scriptEngine->onSceneStart();
             }
         }
@@ -651,9 +642,6 @@ namespace worlds
         if (!runAsEditor EDITORONLY(|| editor->isPlaying()))
         {
             evtHandler->preSimUpdate(registry, interFrameInfo.deltaTime);
-
-            for (auto* system : systems)
-                system->preSimUpdate(registry, interFrameInfo.deltaTime);
         }
 
         double simTime = 0.0;
@@ -661,15 +649,14 @@ namespace worlds
         if (!pauseSim)
         {
             PerfTimer perfTimer;
-            didSimRun = updateSimulation(interpAlpha, interFrameInfo.deltaTime);
+            bool physicsOnly = false EDITORONLY(|| (editor && !editor->isPlaying()));
+            didSimRun = simLoop->updateSimulation(interpAlpha, timeScale, interFrameInfo.deltaTime,
+                                                  physicsOnly);
             simTime = perfTimer.stopGetMs();
         }
 
         if (!runAsEditor EDITORONLY(|| editor->isPlaying()))
         {
-            for (auto* system : systems)
-                system->update(registry, interFrameInfo.deltaTime * timeScale, interpAlpha);
-
             evtHandler->update(registry, interFrameInfo.deltaTime * timeScale, interpAlpha);
             scriptEngine->onUpdate(interFrameInfo.deltaTime * timeScale, interpAlpha);
         }
@@ -793,9 +780,6 @@ namespace worlds
             {
                 evtHandler->onSceneStart(registry);
 
-                for (auto* system : systems)
-                    system->onSceneStart(registry);
-
                 scriptEngine->onSceneStart();
             }
 
@@ -823,7 +807,7 @@ namespace worlds
 
         if (headless)
         {
-            double waitTime = simStepTime.getFloat() - completeUpdateTime;
+            double waitTime = g_console->getConVar("sim_stepTime")->getFloat() - completeUpdateTime;
             if (waitTime > 0.0)
                 SDL_Delay(waitTime * 1000);
         }
@@ -866,162 +850,6 @@ namespace worlds
         FrameMark;
     }
 
-    void WorldsEngine::doSimStep(float deltaTime)
-    {
-        ZoneScoped;
-
-        if (!runAsEditor EDITORONLY(|| editor->isPlaying()))
-        {
-            evtHandler->simulate(registry, deltaTime);
-
-            for (auto* system : systems)
-                system->simulate(registry, deltaTime);
-        }
-
-        if (!runAsEditor EDITORONLY(|| editor->isPlaying()))
-        {
-            scriptEngine->onSimulate(deltaTime);
-        }
-
-        physicsSystem->stepSimulation(deltaTime);
-    }
-
-    robin_hood::unordered_map<entt::entity, physx::PxTransform> currentState;
-    robin_hood::unordered_map<entt::entity, physx::PxTransform> previousState;
-    ConVar pauseSimulation { "sim_pause", "0", "Pauses the simulation (physics and Simulate() methods)." };
-
-    bool WorldsEngine::updateSimulation(float& interpAlpha, double deltaTime)
-    {
-        ZoneScoped;
-        bool ran = false;
-
-        if (pauseSimulation) return false;
-
-        if (lockSimToRefresh.getInt() || disableSimInterp.getInt() EDITORONLY(|| (editor && !editor->isPlaying())))
-        {
-            registry.view<RigidBody, Transform>().each(
-                [](RigidBody& dpa, Transform& transform)
-                {
-                    auto curr = dpa.actor->getGlobalPose();
-
-                    if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation))
-                    {
-                        physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
-                        dpa.actor->setGlobalPose(pt);
-                    }
-                }
-            );
-        }
-
-        registry.view<PhysicsActor, Transform>().each(
-            [](PhysicsActor& pa, Transform& transform)
-            {
-                auto curr = pa.actor->getGlobalPose();
-                if (curr.p != glm2px(transform.position) || curr.q != glm2px(transform.rotation))
-                {
-                    physx::PxTransform pt(glm2px(transform.position), glm2px(transform.rotation));
-                    pa.actor->setGlobalPose(pt);
-                }
-            }
-        );
-
-        if (!lockSimToRefresh.getInt())
-        {
-            simAccumulator += deltaTime;
-
-            if (registry.view<RigidBody>().size() != currentState.size())
-            {
-                currentState.clear();
-                previousState.clear();
-
-                currentState.reserve(registry.view<RigidBody>().size());
-                previousState.reserve(registry.view<RigidBody>().size());
-
-                registry.view<RigidBody>().each(
-                    [&](auto ent, RigidBody& dpa)
-                    {
-                        auto startTf = dpa.actor->getGlobalPose();
-                        currentState.insert({ent, startTf});
-                        previousState.insert({ent, startTf});
-                    }
-                );
-            }
-
-            while (simAccumulator >= simStepTime.getFloat())
-            {
-                ran = true;
-                ZoneScopedN("Simulation step");
-                previousState = currentState;
-                simAccumulator -= simStepTime.getFloat();
-
-                PerfTimer timer;
-
-                doSimStep(simStepTime.getFloat() * timeScale);
-
-                double realTime = timer.stopGetMs() / 1000.0;
-
-                // avoid spiral of death if simulation is taking too long
-                if (realTime > simStepTime.getFloat())
-                    simAccumulator = 0.0;
-            }
-
-            registry.view<RigidBody>().each([&](auto ent, RigidBody& dpa)
-                                            { currentState[ent] = dpa.actor->getGlobalPose(); });
-
-            float alpha = simAccumulator / simStepTime.getFloat();
-
-            if (disableSimInterp.getInt() || simStepTime.getFloat() < deltaTime)
-                alpha = 1.0f;
-
-            registry.view<RigidBody, Transform>().each(
-                [&](entt::entity ent, RigidBody& dpa, Transform& transform)
-                {
-                    if (!previousState.contains(ent))
-                    {
-                        transform.position = px2glm(currentState[ent].p);
-                        transform.rotation = px2glm(currentState[ent].q);
-                    }
-                    else
-                    {
-                        transform.position =
-                            glm::mix(px2glm(previousState[ent].p), px2glm(currentState[ent].p), (float)alpha);
-                        transform.rotation =
-                            glm::slerp(px2glm(previousState[ent].q), px2glm(currentState[ent].q), (float)alpha);
-                    }
-                }
-            );
-
-            registry.view<RigidBody, ChildComponent, Transform>().each(
-                [&](entt::entity ent, RigidBody& dpa, ChildComponent& cc, Transform& t)
-                {
-                    cc.offset = t.transformByInverse(registry.get<Transform>(cc.parent));
-                }
-            );
-            interpAlpha = alpha;
-        }
-        else if (deltaTime < 0.05f)
-        {
-            doSimStep(deltaTime);
-            ran = true;
-
-            registry.view<RigidBody, Transform>().each(
-                [&](entt::entity, RigidBody& dpa, Transform& transform)
-                {
-                    transform.position = px2glm(dpa.actor->getGlobalPose().p);
-                    transform.rotation = px2glm(dpa.actor->getGlobalPose().q);
-                }
-            );
-            registry.view<RigidBody, ChildComponent, Transform>().each(
-                [&](entt::entity ent, RigidBody& dpa, ChildComponent& cc, Transform& t)
-                {
-                    cc.offset = t.transformByInverse(registry.get<Transform>(cc.parent));
-                }
-            );
-        }
-
-        return ran;
-    }
-
     void WorldsEngine::loadScene(AssetID scene)
     {
         if (!AssetDB::exists(scene))
@@ -1034,11 +862,6 @@ namespace worlds
         queuedSceneID = scene;
     }
 
-    void WorldsEngine::addSystem(ISystem* system)
-    {
-        systems.push_back(system);
-    }
-
     bool WorldsEngine::hasCommandLineArg(const char* arg)
     {
         return EngineArguments::hasArgument(arg);
@@ -1046,11 +869,6 @@ namespace worlds
 
     WorldsEngine::~WorldsEngine()
     {
-        for (auto* system : systems)
-        {
-            delete system;
-        }
-
         audioSystem->shutdown(registry);
         if (evtHandler != nullptr && !runAsEditor)
             evtHandler->shutdown(registry);

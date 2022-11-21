@@ -88,6 +88,23 @@ namespace worlds
         Editor* editor;
     };
 
+    class SimulationLoop
+    {
+    public:
+        SimulationLoop(const EngineInterfaces& interfaces, IGameEventHandler* evtHandler,
+                       entt::registry& registry);
+        // returns true if the simulation actually ran
+        bool updateSimulation(float& interpAlpha, double timeScale, double deltaTime,
+                              bool physicsOnly);
+    private:
+        void doSimStep(float deltaTime, bool physicsOnly);
+        double simAccumulator;
+        PhysicsSystem* physics;
+        DotNetScriptEngine* scriptEngine;
+        entt::registry& registry;
+        IGameEventHandler* evtHandler;
+    };
+
     class WorldsEngine
     {
     public:
@@ -97,7 +114,6 @@ namespace worlds
         void run();
         void loadScene(AssetID scene);
         void createStartupScene();
-        void addSystem(ISystem* system);
         Window& getMainWindow() const
         {
             return *window;
@@ -133,8 +149,6 @@ namespace worlds
         void setupSDL();
         Window* createWindow();
         void setupPhysfs(char* argv0);
-        bool updateSimulation(float& interpAlpha, double deltaTime);
-        void doSimStep(float deltaTime);
         void tickRenderer(float deltaTime, bool renderImgui = false);
         void runSingleFrame(bool processEvents);
 
@@ -156,7 +170,6 @@ namespace worlds
 
         double timeScale = 1.0;
         double gameTime = 0.0;
-        double simAccumulator;
 
         EngineInterfaces interfaces;
         UniquePtr<Renderer> renderer;
@@ -169,8 +182,8 @@ namespace worlds
         UniquePtr<DotNetScriptEngine> scriptEngine;
         UniquePtr<OpenXRInterface> vrInterface;
         UniquePtr<PhysicsSystem> physicsSystem;
+        UniquePtr<SimulationLoop> simLoop;
 
-        std::vector<ISystem*> systems;
         std::vector<entt::entity> nextFrameKillList;
 
         InterFrameInfo interFrameInfo;
