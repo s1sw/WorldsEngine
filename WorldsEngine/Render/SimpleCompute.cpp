@@ -109,6 +109,7 @@ namespace worlds
 
         for (const BoundDescriptor& bd : descriptorBindings)
         {
+            if (bd.pointTo == nullptr) continue;
             if (bd.type == VK::DescriptorType::StorageBuffer || bd.type == VK::DescriptorType::UniformBuffer)
             {
                 dsu.AddBuffer(bd.binding, 0, bd.type, (VK::Buffer*)bd.pointTo);
