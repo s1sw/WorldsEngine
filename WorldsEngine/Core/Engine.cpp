@@ -161,20 +161,6 @@ namespace worlds
         return 1;
     }
 
-    template <typename T> void cloneComponent(entt::registry& src, entt::registry& dst)
-    {
-        auto view = src.view<T>();
-
-        if constexpr (std::is_empty<T>::value)
-        {
-            dst.insert<T>(view.data(), view.data() + view.size());
-        }
-        else
-        {
-            dst.insert<T>(view.data(), view.data() + view.size(), view.raw(), view.raw() + view.size());
-        }
-    }
-
     void handleDestroyedChild(entt::registry& r, entt::entity ent)
     {
         auto& cc = r.get<ChildComponent>(ent);
