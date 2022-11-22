@@ -348,6 +348,9 @@ namespace worlds
         finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
                 finisher.dependencies, { &woLoadTask, &swoLoadTask, &cubemapsTask });
 
+        if (!RenderMaterialManager::IsInitialized())
+            RenderMaterialManager::Initialize(this);
+
         g_taskSched.AddTaskSetToPipe(&woLoadTask);
         g_taskSched.AddTaskSetToPipe(&swoLoadTask);
         g_taskSched.AddTaskSetToPipe(&cubemapsTask);
