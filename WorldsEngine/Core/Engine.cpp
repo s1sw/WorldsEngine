@@ -848,11 +848,6 @@ namespace worlds
         queuedSceneID = scene;
     }
 
-    bool WorldsEngine::hasCommandLineArg(const char* arg)
-    {
-        return EngineArguments::hasArgument(arg);
-    }
-
     WorldsEngine::~WorldsEngine()
     {
         audioSystem->shutdown(registry);

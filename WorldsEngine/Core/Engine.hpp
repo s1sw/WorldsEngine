@@ -132,7 +132,6 @@ namespace worlds
         {
             return gameTime;
         }
-        [[deprecated("Use EngineArguments")]] bool hasCommandLineArg(const char* arg);
 
       private:
         struct InterFrameInfo
