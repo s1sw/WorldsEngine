@@ -113,7 +113,6 @@ namespace worlds
 
         void run();
         void loadScene(AssetID scene);
-        void createStartupScene();
         Window& getMainWindow() const
         {
             return *window;

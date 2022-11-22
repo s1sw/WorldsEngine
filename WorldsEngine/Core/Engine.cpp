@@ -467,11 +467,6 @@ namespace worlds
             "Sets size of the window."
         );
 
-        if (runAsEditor)
-        {
-            createStartupScene();
-        }
-
         if (!headless)
         {
             if (runAsEditor)
@@ -524,31 +519,6 @@ namespace worlds
 
         SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
         logMsg("Engine startup took about %.3fms", startupTimer.stopGetMs());
-    }
-
-    void WorldsEngine::createStartupScene()
-    {
-        registry.clear();
-        AssetID grassMatId = AssetDB::pathToId("Materials/DevTextures/dev_green.json");
-        AssetID devMatId = AssetDB::pathToId("Materials/DevTextures/dev_blue.json");
-
-        AssetID modelId = AssetDB::pathToId("Models/cube.wmdl");
-        AssetID monkeyId = AssetDB::pathToId("Models/monkey.wmdl");
-        entt::entity ground = createModelObject(
-            registry, glm::vec3(0.0f, -2.0f, 0.0f), glm::quat(), modelId, grassMatId, glm::vec3(5.0f, 1.0f, 5.0f)
-        );
-        entt::entity monkey = createModelObject(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::quat(), monkeyId, devMatId);
-
-        entt::entity dirLightEnt = registry.create();
-        registry.emplace<WorldLight>(dirLightEnt, LightType::Directional);
-        registry.emplace<Transform>(
-            dirLightEnt, glm::vec3(0.0f), glm::angleAxis(glm::radians(90.01f), glm::vec3(1.0f, 0.0f, 0.0f))
-        );
-        registry.set<SceneInfo>("Untitled", INVALID_ASSET);
-
-        registry.emplace<NameComponent>(dirLightEnt, "Light");
-        registry.emplace<NameComponent>(ground, "Ground");
-        registry.emplace<NameComponent>(monkey, "Monkey");
     }
 
     void WorldsEngine::run()

@@ -230,11 +230,13 @@ namespace worlds
             {
                 "scene.new",
                 [](Editor* ed, entt::registry& reg) {
+                    entt::registry* regPtr = &reg;
                     messageBoxModal("New Scene", "Are you sure you want to clear the current scene and create a new one?",
-                        [=](bool result) {
+                        [ed, regPtr](bool result) {
                             if (result)
                             {
-                                ed->interfaces.engine->createStartupScene();
+                                regPtr->clear();
+                                regPtr->set<SceneInfo>("Untitled", INVALID_ASSET);
                                 ed->updateWindowTitle();
                             }
                         });
@@ -1162,7 +1164,8 @@ namespace worlds
                     project->unmountPaths();
                     project.reset();
 
-                    interfaces.engine->createStartupScene();
+                    reg.clear();
+                    reg.set<SceneInfo>("Untitled", INVALID_ASSET);
                     // interfaces.renderer->reloadContent(worlds::ReloadFlags::All);
 
                     if (dotnetWatchProcess)
