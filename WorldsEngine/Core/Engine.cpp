@@ -553,7 +553,7 @@ namespace worlds
         else if (deltaTime > 0.017f)
             col = ImColor{0.75f, 0.75f, 0.0f};
 
-        drawList->AddText(pos, ImColor(1.0f, 1.0f, 1.0f), buf);
+        drawList->AddText(topLeftCorner, ImColor(1.0f, 1.0f, 1.0f), buf);
     }
 
     void WorldsEngine::runSingleFrame(bool processEvents)
