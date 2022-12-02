@@ -842,7 +842,7 @@ namespace worlds
     // Draws a box shape using lines.
     void drawPhysicsBox(const Transform& actorTransform, const PhysicsShape& ps)
     {
-        Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
+        Transform shapeTransform{ps.pos, ps.rot};
         shapeTransform = shapeTransform.transformBy(actorTransform);
         drawBox(
             shapeTransform.position, shapeTransform.rotation, ps.box.halfExtents * actorTransform.scale, physShapeColor
@@ -851,14 +851,14 @@ namespace worlds
 
     void drawPhysicsSphere(const Transform& actorTransform, const PhysicsShape& ps)
     {
-        Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
+        Transform shapeTransform{ps.pos, ps.rot};
         shapeTransform = shapeTransform.transformBy(actorTransform);
         drawSphere(shapeTransform.position, shapeTransform.rotation, ps.sphere.radius, physShapeColor);
     }
 
     void drawPhysicsCapsule(const Transform& actorTransform, const PhysicsShape& ps)
     {
-        Transform shapeTransform{ps.pos * actorTransform.scale, ps.rot};
+        Transform shapeTransform{ps.pos, ps.rot};
         shapeTransform = shapeTransform.transformBy(actorTransform);
         drawCapsule(
             shapeTransform.position,
@@ -877,11 +877,11 @@ namespace worlds
         for (size_t i = 0; i < lm.indices.size(); i += 3)
         {
             glm::vec3 p0 =
-                actorTransform.transformPoint(lm.vertices[lm.indices[i + 0]].position * actorTransform.scale);
+                actorTransform.transformPoint(lm.vertices[lm.indices[i + 0]].position);
             glm::vec3 p1 =
-                actorTransform.transformPoint(lm.vertices[lm.indices[i + 1]].position * actorTransform.scale);
+                actorTransform.transformPoint(lm.vertices[lm.indices[i + 1]].position);
             glm::vec3 p2 =
-                actorTransform.transformPoint(lm.vertices[lm.indices[i + 2]].position * actorTransform.scale);
+                actorTransform.transformPoint(lm.vertices[lm.indices[i + 2]].position);
 
             drawLine(p0, p1, physShapeColor);
             drawLine(p1, p2, physShapeColor);
