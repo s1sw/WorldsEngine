@@ -103,6 +103,7 @@ cbuffer SceneGlobals
 {
     float time;
     float shadowmapResolution;
+    uint blueNoiseTexture;
     float2 PoissonKernel[64];
 };
 
@@ -231,12 +232,14 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
 
                     const bool jitterSamples = false;
                     int sampleCount = 4;
-                    float penumbraSize = 2.25;
+                    float penumbraSize = 1.0;
+                    uint blueNoise = NonUniformResourceIndex(blueNoiseTexture);
 
                     [[loop]]
                     for (int t = 0; t < sampleCount; t++)
                     {
-                        float2 offset = (PoissonKernel[(int(random(fragCoord) * 24.0) + t) % 24]) * (1.0 / 512.0) * penumbraSize;
+                        float blueNoiseValue = Textures[blueNoise].SampleLevel(fragCoord / float2(128.0), 0.0).x;
+                        float2 offset = (PoissonKernel[(int(blueNoiseValue * 24.0) + t) % 24]) * (1.0 / 512.0) * penumbraSize;
                         if (jitterSamples)
                         {
                             float2 rotationComponents = getRotationComponents((random(fragCoord) * 2.0 - 1.0) * 1.5);
@@ -252,7 +255,7 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                             //float d = Textures[shadowTexIdx].SampleLevel(offsetCoord, 0).x;
                             float dist = (d - shadowPos.z);
 
-                            float bias = 0.000025;
+                            float bias = 0.00025;
                             occlusions[i] = step(dist, bias);
 
                             avgBlockDist += dist * occlusions[i];
@@ -461,12 +464,19 @@ uint GetLightTileCount(float2 fragCoord)
 
 float3 GetHeatmapColor(uint number, float2 fragCoord)
 {
-    float3 heatmapCol = float3(saturate((number - 8.0) / 4.0), saturate(number / 4.0), saturate((number - 4.0) / 4.0));
+    if (number > 5) return float3(1.0, 0.0, 1.0);
+    float3 heatmapCol = lerp(float3(0.0, 1.0, 0.0), float3(1.0, 0.0, 0.0), float(number) / 5.0);
 
     if (int(fragCoord.x) % 32 == 0 || int(fragCoord.y) % int(32) == 0)
         heatmapCol.z = 1.0;
 
     return heatmapCol;
+}
+
+float3 BlendColorOnly(float3 base, float3 color)
+{
+    float luminance = dot(base, float3(0.2126, 0.7152, 0.0722));
+    return color * luminance;
 }
 
 [shader("fragment")]
@@ -498,8 +508,12 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position, uint v
     {
         material.EmissiveColor *= shadeInfo.albedoColor;
     }
+    
+    float3 heatmapCol = GetHeatmapColor(GetLightTileCount(fragCoord), fragCoord);
 
-    return float4(ambient * shadeInfo.ao + lo + material.EmissiveColor, 1.0);
+    float3 finalCol = ambient * shadeInfo.ao + lo + material.EmissiveColor;
+    return float4(finalCol, 1.0);
+    //return float4(lerp(BlendColorOnly(finalCol, heatmapCol), heatmapCol, 0.35), 1.0);
     //return float4(ambient * shadeInfo.ao + material.EmissiveColor, 1.0);
     //return float4(GetHeatmapColor(GetCubemapTileCount(fragCoord), fragCoord), 1.0);
     //return float4(GetHeatmapColor(GetLightTileCount(fragCoord), fragCoord), 1.0);

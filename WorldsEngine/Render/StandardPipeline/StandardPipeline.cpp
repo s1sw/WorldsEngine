@@ -66,6 +66,7 @@ namespace worlds
     {
         float time;
         float shadowmapResolution;
+        uint32_t blueNoiseTexture;
         glm::vec2 poissonDisk[64];
     };
 
@@ -96,6 +97,7 @@ namespace worlds
 
     StandardPipeline::~StandardPipeline()
     {
+        ((VKRenderer*)engineInterfaces.renderer)->getTextureManager()->release(AssetDB::pathToId("Textures/bluenoise.png"));
     }
 
     void StandardPipeline::createSizeDependants()
@@ -188,6 +190,9 @@ namespace worlds
         sceneGlobals = core->CreateBuffer(globalsBCI);
         core->QueueBufferUpload(
             sceneGlobals.Get(), poissonDisk, sizeof(glm::vec2) * 64, offsetof(SceneGlobals, poissonDisk));
+        SceneGlobals* globals = (SceneGlobals*)sceneGlobals->Map();
+        globals->blueNoiseTexture = renderer->getTextureManager()->loadSynchronous(AssetDB::pathToId("Textures/bluenoise.png"));
+        sceneGlobals->Unmap();
 
         VK::BufferCreateInfo drawCmdsBCI{
             VK::BufferUsage::Indirect, sizeof(VK::DrawIndexedIndirectCommand) * MAX_DRAWS, true};
