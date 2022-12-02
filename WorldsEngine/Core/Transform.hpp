@@ -9,22 +9,28 @@ struct Transform
     Transform() : position(0.0f), rotation(1.0f, 0.0f, 0.0f, 0.0f), scale(1.0f)
     {
     }
+
     Transform(glm::vec3 position, glm::quat rotation) : position(position), rotation(rotation), scale(1.0f)
     {
     }
+
+    Transform(glm::mat4 mat)
+    {
+        fromMatrix(mat);
+    }
+
     glm::vec3 position;
     glm::quat rotation;
     glm::vec3 scale;
 
     Transform transformBy(const Transform& other) const
     {
-        return Transform{other.position + (other.rotation * position), other.rotation * rotation};
+        return Transform{other.getMatrix() * getMatrix()};
     }
 
     Transform transformByInverse(const Transform& other) const
     {
-        return Transform{glm::inverse(other.rotation) * (position - other.position),
-                         glm::inverse(other.rotation) * rotation};
+        return Transform{glm::inverse(other.getMatrix()) * getMatrix()};
     }
 
     glm::vec3 transformDirection(glm::vec3 v3) const
