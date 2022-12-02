@@ -146,7 +146,7 @@ namespace worlds
         static int windowThread(void* data);
         void setupSDL();
         Window* createWindow();
-        void setupPhysfs(char* argv0);
+        void setupPhysfs(char* argv0, bool mountGameData);
         void tickRenderer(float deltaTime, bool renderImgui = false);
         void runSingleFrame(bool processEvents);
 

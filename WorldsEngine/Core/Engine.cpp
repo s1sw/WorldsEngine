@@ -104,7 +104,7 @@ namespace worlds
     }
 
 
-    void WorldsEngine::setupPhysfs(char* argv0)
+    void WorldsEngine::setupPhysfs(char* argv0, bool mountGameData)
     {
         const char* dataFolder = "GameData";
         const char* engineDataFolder = "EngineData";
@@ -127,14 +127,31 @@ namespace worlds
             dataStr = EngineArguments::argumentValue("dataPath");
         }
 
-        PHYSFS_init(argv0);
-        logVrb("Mounting %s", dataStr.c_str());
-        PHYSFS_mount(dataStr.c_str(), "/", 0);
+        if (PHYSFS_init(argv0) == 0)
+        {
+            const char* err = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+            logErr("Failed to initialise PhysFS: %s", err);
+            fatalErr("Failed to initialise PhysFS");
+        }
+
+        if (mountGameData)
+        {
+            logVrb("Mounting %s", dataStr.c_str());
+            if (PHYSFS_mount(dataStr.c_str(), "/", 0) == 0)
+            {
+                const char *err = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+                logErr("Failed to mount game data: %s", err);
+                fatalErr("Failed to mount game data");
+            }
+        }
+
         logVrb("Mounting %s", engineDataStr.c_str());
-        PHYSFS_mount(engineDataStr.c_str(), "/", 0);
-        logVrb("Mounting %s", srcDataStr.c_str());
-        PHYSFS_mount(srcDataStr.c_str(), "/SrcData", 0);
-        PHYSFS_setWriteDir(dataStr.c_str());
+        if (PHYSFS_mount(engineDataStr.c_str(), "/", 0) == 0)
+        {
+            const char *err = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+            logErr("Failed to mount engine data: %s", err);
+            fatalErr("Failed to mount engine data");
+        }
 
         PHYSFS_permitSymbolicLinks(1);
     }
@@ -224,7 +241,7 @@ namespace worlds
 
         setupSDL();
 
-        setupPhysfs(argv0);
+        setupPhysfs(argv0, !runAsEditor);
         if (splashWindow)
         {
             splashWindow->changeOverlay("starting up");
