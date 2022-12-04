@@ -38,6 +38,14 @@ namespace worlds
     class ParticleRenderer;
     struct EngineInterfaces;
 
+    struct StandardDrawCommand
+    {
+        uint32_t indexCount;
+        uint32_t firstIndex;
+        uint32_t vertexOffset;
+        uint32_t techniqueIdx;
+    };
+
     class StandardPipeline : public IRenderPipeline
     {
         UniquePtr<R2::VK::DescriptorSetLayout> descriptorSetLayout;
@@ -51,7 +59,6 @@ namespace worlds
         UniquePtr<R2::VK::Buffer> lightTileBuffer;
         UniquePtr<R2::VK::Buffer> sceneGlobals;
         UniquePtr<R2::VK::FrameSeparatedBuffer> drawInfoBuffers;
-        UniquePtr<R2::VK::FrameSeparatedBuffer> drawCommandBuffers;
         UniquePtr<R2::VK::Texture> depthBuffer;
         UniquePtr<R2::VK::Texture> colorBuffer;
 
@@ -71,6 +78,7 @@ namespace worlds
         bool useViewOverrides = false;
         std::vector<glm::mat4> overrideViews;
         std::vector<glm::mat4> overrideProjs;
+        std::vector<StandardDrawCommand> drawCmds;
 
         void createSizeDependants();
     public:

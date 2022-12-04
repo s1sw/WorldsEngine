@@ -133,7 +133,7 @@ SamplerCube<float4> Cubemaps[];
 
 
 [shader("vertex")]
-VertexOutput VertexShader(VertexInput input, uint viewIndex : SV_ViewID, uint drawIndex : SV_DrawID)
+VertexOutput VertexShader(VertexInput input, uint viewIndex : SV_ViewID, uint drawIndex : SV_InstanceID)
 {
     VertexOutput output;
     DrawInfo di = DrawInfos[drawIndex];

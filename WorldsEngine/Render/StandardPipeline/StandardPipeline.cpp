@@ -93,6 +93,7 @@ namespace worlds
     StandardPipeline::StandardPipeline(const EngineInterfaces& engineInterfaces)
         : engineInterfaces(engineInterfaces)
     {
+        drawCmds.resize(8192);
     }
 
     StandardPipeline::~StandardPipeline()
@@ -193,10 +194,6 @@ namespace worlds
         SceneGlobals* globals = (SceneGlobals*)sceneGlobals->Map();
         globals->blueNoiseTexture = renderer->getTextureManager()->loadSynchronous(AssetDB::pathToId("Textures/bluenoise.png"));
         sceneGlobals->Unmap();
-
-        VK::BufferCreateInfo drawCmdsBCI{
-            VK::BufferUsage::Indirect, sizeof(VK::DrawIndexedIndirectCommand) * MAX_DRAWS, true};
-        drawCommandBuffers = new VK::FrameSeparatedBuffer(core, drawCmdsBCI);
 
         AssetID vs = AssetDB::pathToId("Shaders/standard.vert.spv");
         AssetID fs = AssetDB::pathToId("Shaders/standard.frag.spv");
@@ -406,7 +403,7 @@ namespace worlds
         Frustum* frustums;
         AtomicBufferWrapper<glm::mat4>* modelMatrices;
         GPUDrawInfo* gpuDrawInfos;
-        VK::DrawIndexedIndirectCommand* drawCmds;
+        StandardDrawCommand* drawCmds;
         std::atomic<uint32_t> drawIdCounter = 0;
         bool onlyStatics = false;
 
@@ -463,11 +460,9 @@ namespace worlds
                     di.textureScale = glm::vec2(wo.texScaleOffset);
                     di.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
 
-                    VK::DrawIndexedIndirectCommand drawCmd{};
+                    StandardDrawCommand drawCmd{};
                     drawCmd.indexCount = rsi.indexCount;
                     drawCmd.firstIndex = rsi.indexOffset + (rmi->indexOffset / sizeof(uint32_t));
-                    drawCmd.firstInstance = 0;
-                    drawCmd.instanceCount = 1;
                     drawCmd.vertexOffset = rmi->vertsOffset / sizeof(Vertex);
 
                     drawCmds[drawId] = drawCmd;
@@ -516,7 +511,7 @@ namespace worlds
         Frustum* frustums;
         AtomicBufferWrapper<glm::mat4>* modelMatrices;
         GPUDrawInfo* gpuDrawInfos;
-        VK::DrawIndexedIndirectCommand* drawCmds;
+        StandardDrawCommand* drawCmds;
         std::atomic<uint32_t>& drawIdCounter;
         bool onlyStatics = false;
 
@@ -566,11 +561,9 @@ namespace worlds
                     di.textureScale = glm::vec2(wo.texScaleOffset);
                     di.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
 
-                    VK::DrawIndexedIndirectCommand drawCmd{};
+                    StandardDrawCommand drawCmd{};
                     drawCmd.indexCount = rsi.indexCount;
                     drawCmd.firstIndex = rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t));
-                    drawCmd.firstInstance = 0;
-                    drawCmd.instanceCount = 1;
                     drawCmd.vertexOffset = wo.skinnedVertexOffset + (renderer->getMeshManager()->getSkinnedVertsOffset() / sizeof(Vertex));
 
                     drawCmds[drawId] = drawCmd;
@@ -674,8 +667,6 @@ namespace worlds
 
         glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrixBuffers->MapCurrent();
         GPUDrawInfo* drawInfosMapped = (GPUDrawInfo*)drawInfoBuffers->MapCurrent();
-        VK::DrawIndexedIndirectCommand* drawCmdsMapped =
-            (VK::DrawIndexedIndirectCommand*)drawCommandBuffers->MapCurrent();
 
         AtomicBufferWrapper<glm::mat4> matrixWrapper{modelMatricesMapped};
 
@@ -684,7 +675,7 @@ namespace worlds
         fdbTask.frustums = frustums;
         fdbTask.modelMatrices = &matrixWrapper;
         fdbTask.gpuDrawInfos = drawInfosMapped;
-        fdbTask.drawCmds = drawCmdsMapped;
+        fdbTask.drawCmds = drawCmds.data();
         fdbTask.onlyStatics = rttPass->getSettings().staticsOnly;
 
         fdbTask.m_SetSize = reg.view<WorldObject>().size();
@@ -694,7 +685,7 @@ namespace worlds
         fdbsTask.frustums = frustums;
         fdbsTask.modelMatrices = &matrixWrapper;
         fdbsTask.gpuDrawInfos = drawInfosMapped;
-        fdbsTask.drawCmds = drawCmdsMapped;
+        fdbsTask.drawCmds = drawCmds.data();
         fdbsTask.onlyStatics = rttPass->getSettings().staticsOnly;
 
         fdbsTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
@@ -709,7 +700,13 @@ namespace worlds
 
         modelMatrixBuffers->UnmapCurrent();
         drawInfoBuffers->UnmapCurrent();
-        drawCommandBuffers->UnmapCurrent();
+
+        std::sort(drawCmds.begin(), drawCmds.begin() + fdbTask.drawIdCounter,
+                  [](const StandardDrawCommand& a, const StandardDrawCommand& b)
+                  {
+                    return a.techniqueIdx < b.techniqueIdx;
+                  });
+        releaseAssert(fdbTask.drawIdCounter < drawCmds.size());
 
         // Depth Pre-Pass
         cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
@@ -733,8 +730,16 @@ namespace worlds
         cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
         cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
 
-        cb.DrawIndexedIndirect(
-            drawCommandBuffers->GetCurrentBuffer(), 0, fdbTask.drawIdCounter, sizeof(VK::DrawIndexedIndirectCommand));
+        uint32_t lastTechniqueIdx = ~0u;
+        for (int i = 0; i < fdbTask.drawIdCounter; i++)
+        {
+            const StandardDrawCommand& drawCmd = drawCmds[i];
+            if (drawCmd.techniqueIdx != lastTechniqueIdx)
+            {
+                // change pipeline to depth pre-pass pipeline for this technique
+            }
+            cb.DrawIndexed(drawCmd.indexCount, 1, drawCmd.firstIndex, drawCmd.vertexOffset, i);
+        }
         depthPass.End(cb);
         renderer->getDebugStats().numDrawCalls = fdbTask.drawIdCounter;
 
@@ -758,8 +763,16 @@ namespace worlds
 
         colorPass.Begin(cb);
 
-        cb.DrawIndexedIndirect(
-            drawCommandBuffers->GetCurrentBuffer(), 0, fdbTask.drawIdCounter, sizeof(VK::DrawIndexedIndirectCommand));
+        lastTechniqueIdx = ~0u;
+        for (int i = 0; i < fdbTask.drawIdCounter; i++)
+        {
+            const StandardDrawCommand& drawCmd = drawCmds[i];
+            if (drawCmd.techniqueIdx != lastTechniqueIdx)
+            {
+                // change pipeline to colour pipeline for this technique
+            }
+            cb.DrawIndexed(drawCmd.indexCount, 1, drawCmd.firstIndex, drawCmd.vertexOffset, i);
+        }
 
         skyboxRenderer->Execute(cb);
 
