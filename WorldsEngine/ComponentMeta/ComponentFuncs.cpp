@@ -602,6 +602,7 @@ namespace worlds
                 {
                     ImGui::DragFloat("Near Plane", &worldLight.shadowNear, 0.1f, 0.001f, FLT_MAX);
                     ImGui::DragFloat("Far Plane", &worldLight.shadowFar, 1.0f, worldLight.shadowNear, FLT_MAX);
+                    ImGui::InputFloat("Shadow Bias", &worldLight.shadowBias, 0.0001f, 0.001f, "%.6f");
                 }
             }
             break;
@@ -755,7 +756,8 @@ namespace worlds
                 {"enabled", wl.enabled},
                 {"maxDistance", wl.maxDistance},
                 {"shadowNear", wl.shadowNear},
-                {"shadowFar", wl.shadowFar}};
+                {"shadowFar", wl.shadowFar},
+                {"shadowBias", wl.shadowBias}};
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
@@ -784,6 +786,7 @@ namespace worlds
 
             wl.shadowNear = j.value("shadowNear", wl.shadowNear);
             wl.shadowFar = j.value("shadowFar", wl.shadowFar);
+            wl.shadowBias = j.value("shadowBias", wl.shadowBias);
         }
     };
 

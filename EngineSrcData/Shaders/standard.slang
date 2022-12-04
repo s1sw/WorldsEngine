@@ -250,12 +250,14 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                     int sampleCount = 4;
                     float penumbraSize = 1.0;
                     uint blueNoise = NonUniformResourceIndex(blueNoiseTexture);
+                    float bias = light.ShadowBias;
 
                     [[loop]]
                     for (int t = 0; t < sampleCount; t++)
                     {
                         float blueNoiseValue = Textures[blueNoise].SampleLevel(fragCoord / float2(128.0), 0.0).x;
-                        float2 offset = (PoissonKernel[(int(blueNoiseValue * 24.0) + t) % 24]) * (1.0 / 512.0) * penumbraSize;
+                        int kernSampleIdx = (int(blueNoiseValue * 24.0) + t) % 24;
+                        float2 offset = (PoissonKernel[kernSampleIdx]) * (1.0 / 512.0) * penumbraSize;
                         if (jitterSamples)
                         {
                             float2 rotationComponents = getRotationComponents((random(fragCoord) * 2.0 - 1.0) * 1.5);
@@ -271,7 +273,6 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
                             //float d = Textures[shadowTexIdx].SampleLevel(offsetCoord, 0).x;
                             float dist = (d - shadowPos.z);
 
-                            float bias = 0.00025;
                             occlusions[i] = step(dist, bias);
 
                             avgBlockDist += dist * occlusions[i];
@@ -502,15 +503,16 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position, uint v
     DrawInfo di = DrawInfos[WaveReadLaneFirst(input.DrawID)];
     PBRMaterial material = MaterialBuffer.Load<PBRMaterial>(int(di.MaterialOffset));
 
-
     float3x3 tbn = ConstructTBN(input);
     float3 normal = material.GetNormal(input.UV, tbn);
 
     ShadeInfo shadeInfo;
+
     if (material.AlbedoTexture != ~0u)
         shadeInfo.albedoColor = Textures[NonUniformResourceIndex(material.AlbedoTexture)].Sample(input.UV).xyz;
     else
         shadeInfo.albedoColor = float3(1.0, 0.0, 1.0);
+
     shadeInfo.normal = normalize(normal);
     shadeInfo.viewDir = normalize(VPBuffer.viewPos[0].xyz - input.WorldPosition.xyz);
     shadeInfo.ao = 1;
@@ -529,10 +531,6 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position, uint v
 
     float3 finalCol = ambient * shadeInfo.ao + lo + material.EmissiveColor;
     return float4(finalCol, 1.0);
-    //return float4(lerp(BlendColorOnly(finalCol, heatmapCol), heatmapCol, 0.35), 1.0);
-    //return float4(ambient * shadeInfo.ao + material.EmissiveColor, 1.0);
-    //return float4(GetHeatmapColor(GetCubemapTileCount(fragCoord), fragCoord), 1.0);
-    //return float4(GetHeatmapColor(GetLightTileCount(fragCoord), fragCoord), 1.0);
 }
 
 [shader("fragment")]

@@ -382,69 +382,6 @@ void cullLights(uint tileIndex, uint groupIndex)
     }
 }
 
-void cullAO(uint tileIndex, uint groupIndex)
-{
-    LightBufferLoader lbl;
-    lbl.rawLightBuffer = rawLightBuffer;
-
-    // Stage 3: Cull AO spheres against the frustum
-    if (groupIndex < lbl.GetAOSphereCount())
-    {
-        int sphereIndex = int(groupIndex);
-        AOSphere sph = lbl.GetAOSphere(sphereIndex);
-        float3 spherePos = sph.Position;
-        float cullRadius = sph.Radius + 1.0;
-
-#ifdef CULL_AABB
-        bool inFrustum = frustumContainsSphere(spherePos, cullRadius) && aabbContainsSphere(spherePos, cullRadius);
-#else
-        bool inFrustum = frustumContainsSphere(spherePos, cullRadius);
-#endif
-
-        uint bucketIdx = sphereIndex / 32;
-        uint bucketBit = sphereIndex % 32;
-        uint maxBucketId = WaveActiveMax(bucketIdx);
-
-        // Subgroup fun again
-        for (int i = 0; i <= maxBucketId; i++)
-        {
-            if (i == bucketIdx)
-            {
-                uint setBits = WaveReadLaneFirst(WaveActiveBitOr(uint(inFrustum) << bucketBit));
-                if (WaveIsFirstLane())
-                    InterlockedOr(buf_LightTiles[tileIndex].aoSphereIdMasks[bucketIdx], setBits);
-            }
-        }
-    }
-
-    // Stage 4: Cull AO boxes against the frustum
-    if (groupIndex < lbl.GetAOBoxCount() && groupIndex < 64)
-    {
-        int boxIdx = int(groupIndex);
-        AOBox box = lbl.GetAOBox(boxIdx);
-
-        float3 scale = box.Scale + float3(0.5);
-        float4x4 transform = box.InverseTransform;
-
-        bool inFrustum = frustumContainsOBB(scale, transform);
-
-        uint bucketIdx = boxIdx / 32;
-        uint bucketBit = boxIdx % 32;
-        uint maxBucketId = WaveActiveMax(bucketIdx);
-
-        // Subgroup fun again
-        for (int i = 0; i <= maxBucketId; i++)
-        {
-            if (i == bucketIdx)
-            {
-                uint setBits = WaveReadLaneFirst(WaveActiveBitOr(uint(inFrustum) << bucketBit));
-                if (WaveIsFirstLane())
-                    InterlockedOr(buf_LightTiles[tileIndex].aoBoxIdMasks[bucketIdx], setBits);
-            }
-        }
-    }
-}
-
 void cullCubemaps(uint tileIndex, uint groupIndex)
 {
     LightBufferLoader lbl;
@@ -576,7 +513,6 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
 
     GroupMemoryBarrierWithGroupSync();
 
-    //cullAO(tileIndex, groupIndex);
     cullCubemaps(tileIndex, groupIndex);
     cullLights(tileIndex, groupIndex);
 }

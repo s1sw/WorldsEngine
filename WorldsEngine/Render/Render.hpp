@@ -59,6 +59,7 @@ namespace worlds
         float spotCutoff;
         glm::vec3 position;   // light position or second tube point
         float distanceCutoff; // distance after which the light isn't visible
+        float shadowBias;
 
         void setLightType(LightType type)
         {

@@ -7,13 +7,14 @@ enum LightType
     Tube = 4
 };
 
-static const int LIGHT_SIZE = 48;
+static const int LIGHT_SIZE = 52;
 struct Light
 {
     float4 pack0;
     float4 pack1;
     float3 pack2;
     float DistanceCutoff;
+    float ShadowBias;
 
     property LightType Type
     {

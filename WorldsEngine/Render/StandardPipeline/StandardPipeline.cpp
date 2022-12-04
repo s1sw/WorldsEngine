@@ -355,6 +355,7 @@ namespace worlds
                     pl.position = tubeP1;
                 }
                 pl.setShadowmapIndex(wl.shadowmapIdx);
+                pl.shadowBias = wl.shadowBias;
 
                 lightUB->lights[lightCount] = pl;
                 lightCount++;

@@ -11,26 +11,16 @@ struct LightBuffer
     // 1024
     uint lightCount;
     // 1028
-    uint aoBoxCount;
-    // 1032
-    uint aoSphereCount;
-    // 1036
     uint cubemapCount;
 
-    // 1040
+    // 1032
     uint shadowmapIds[16];
-    // 1104
+    // 1096
     float4x4 cascadeMatrices[4];
 
-    // 1360
+    // 1352
     Light lights[256];
-    // 13648
-    AOBox aoBox[128];
-    // 21840
-    AOSphere aoSphere[16];
-    // 22096
-    uint sphereIds[16];
-    // 22160
+    // 14664
     Cubemap cubemaps[64];
 }
 
@@ -48,7 +38,7 @@ struct LightBufferLoader
 
     uint GetShadowmapId(int idx)
     {
-        return rawLightBuffer.Load(1040 + idx * 4);
+        return rawLightBuffer.Load(1032 + idx * 4);
     }
 
     uint GetLightCount()
@@ -58,41 +48,16 @@ struct LightBufferLoader
 
     Light GetLight(int lightIndex)
     {
-        return rawLightBuffer.Load<Light>(1360 + LIGHT_SIZE * lightIndex);
-    }
-    
-    uint GetAOBoxCount()
-    {
-        return rawLightBuffer.Load(1028);
-    }
-
-    AOBox GetAOBox(int boxIndex)
-    {
-        return rawLightBuffer.Load<AOBox>(13648+ AOBOX_SIZE * boxIndex);
-    }
-
-    uint GetAOSphereCount()
-    {
-        return rawLightBuffer.Load(1032);
-    }
-
-    AOSphere GetAOSphere(int sphereIndex)
-    {
-        return rawLightBuffer.Load<AOSphere>(21840 + AOSPHERE_SIZE * sphereIndex);
-    }
-
-    uint GetSphereID(int sphereIndex)
-    {
-        return rawLightBuffer.Load(22096 + sphereIndex * 4);
+        return rawLightBuffer.Load<Light>(1352 + LIGHT_SIZE * lightIndex);
     }
 
     uint GetCubemapCount()
     {
-        return rawLightBuffer.Load(1036);
+        return rawLightBuffer.Load(1028);
     }
 
     Cubemap GetCubemap(int cubemapIndex)
     {
-        return rawLightBuffer.Load<Cubemap>(22160 + CUBEMAP_SIZE * cubemapIndex);
+        return rawLightBuffer.Load<Cubemap>(14664 + CUBEMAP_SIZE * cubemapIndex);
     }
 }

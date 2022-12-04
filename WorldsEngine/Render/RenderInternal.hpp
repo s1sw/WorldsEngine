@@ -99,15 +99,10 @@ namespace worlds
         static int LIGHT_TILE_SIZE;
         glm::mat4 additionalShadowMatrices[NUM_SHADOW_LIGHTS];
         uint32_t lightCount;
-        uint32_t aoBoxCount;
-        uint32_t aoSphereCount;
         uint32_t cubemapCount;
         uint32_t shadowmapIds[NUM_SHADOW_LIGHTS];
         glm::mat4 cascadeMatrices[4];
         PackedLight lights[256];
-        AOBox box[128];
-        AOSphere sphere[16];
-        uint32_t sphereIds[16];
         GPUCubemap cubemaps[64];
     };
 
