@@ -35,7 +35,31 @@ namespace worlds
         float defaultRoughness;
         float defaultMetallic;
         glm::vec3 emissiveColor;
-        uint32_t flags;
+        uint32_t cutoffFlags;
+
+        float getCutoff()
+        {
+            return (cutoffFlags & 0xFF) / 255.0f;
+        }
+
+        void setCutoff(float cutoff)
+        {
+            uint32_t flags = cutoffFlags >> 8;
+            cutoff = glm::clamp(cutoff, 0.0f, 1.0f);
+            cutoffFlags = (flags << 8) | (uint32_t)(cutoff * 255);
+        }
+
+        void setFlags(uint32_t flags)
+        {
+            uint32_t cutoff = (cutoffFlags & 0xFF);
+            uint32_t flag = (uint32_t)(flags) << 8;
+            cutoffFlags = cutoff | flag;
+        }
+
+        uint32_t getFlags()
+        {
+            return (cutoffFlags & (0x7FFFFF80)) >> 8;
+        }
     };
 
     bool RenderMaterialManager::IsInitialized()
@@ -118,8 +142,9 @@ namespace worlds
 
         if (j.value("multiplyEmissiveByAlbedo", false))
         {
-            material.flags = 1;
+            material.setFlags(1);
         }
+        material.setCutoff(j.value("alphaCutoff", 0.0));
 
         renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), mai.offset);
         allocedMaterials[id] = mai;

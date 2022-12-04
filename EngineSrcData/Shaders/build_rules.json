@@ -69,7 +69,13 @@
         "path": "standard.slang",
         "outputPath": "standard_empty.frag.spv",
         "stage": "frag",
-        "entryPoint": "FragmentShader"
+        "entryPoint": "EmptyFragShader"
+    },
+    {
+        "path": "standard.slang",
+        "outputPath": "standard_alpha_test.frag.spv",
+        "stage": "frag",
+        "entryPoint": "AlphaTestOnlyFragShader"
     },
     {
         "path": "cubemap_convolute.comp.slang"

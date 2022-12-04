@@ -49,7 +49,23 @@ struct PBRMaterial
     float DefaultRoughness;
     float DefaultMetallic;
     float3 EmissiveColor;
-    uint Flags;
+    uint CutoffFlags;
+
+    property uint Flags
+    {
+        get
+        {
+            return (CutoffFlags & (0x7FFFFF80)) >> 8;
+        }
+    }
+
+    property float AlphaCutoff
+    {
+        get
+        {
+            return (CutoffFlags & 0xFF) / 255.0f;
+        }
+    }
 
     float3 GetNormal(float2 uv, float3x3 tbn)
     {
@@ -522,4 +538,21 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position, uint v
 [shader("fragment")]
 void EmptyFragShader(VertexOutput input)
 {
+}
+
+[shader("fragment")]
+float4 AlphaTestOnlyFragShader(VertexOutput input) : SV_TARGET
+{
+    DrawInfo di = DrawInfos[WaveReadLaneFirst(input.DrawID)];
+    PBRMaterial material = MaterialBuffer.Load<PBRMaterial>(int(di.MaterialOffset));
+    float alphaCutoff = material.AlphaCutoff;
+    float alpha = 1.0;
+
+    if (alphaCutoff > 0.0)
+    {
+        alpha = Textures[NonUniformResourceIndex(material.AlbedoTexture)].Sample(input.UV).x;
+        alpha = (alpha - alphaCutoff) / max(fwidth(alpha), 0.0001) + 0.5;
+    }
+
+    return float4(1.0, 1.0, 1.0, alpha);
 }
