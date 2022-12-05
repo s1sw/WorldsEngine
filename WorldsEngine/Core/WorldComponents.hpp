@@ -112,6 +112,7 @@ namespace worlds
         uint32_t shadowmapIdx = ~0u;
         float shadowNear = 0.05f;
         float shadowFar = 100.0f;
+        float shadowBias = 0.00025f;
 
         float maxDistance = 1.0f;
         // Index of the light in the light buffer
