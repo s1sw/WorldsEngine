@@ -100,7 +100,9 @@ namespace worlds
     {
         windowWidth = 1600;
         windowHeight = 900;
-        return new Window("Loading...", 1600, 900, true);
+        Window* win = new Window("Loading...", 1600, 900, false);
+        win->hide();
+        return win;
     }
 
 
@@ -486,7 +488,7 @@ namespace worlds
 
         if (!headless)
         {
-            if (runAsEditor)
+            if (runAsEditor && splashWindow)
                 splashWindow->changeOverlay("initialising audio");
 
             audioSystem = new AudioSystem();
