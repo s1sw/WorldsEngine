@@ -871,7 +871,7 @@ namespace worlds
 
         for (EditorSceneView* esv : sceneViews)
         {
-            esv->setViewportActive(anyFocused);
+            esv->setViewportActive(anyFocused && project);
         }
 
         if (!isPlaying())
