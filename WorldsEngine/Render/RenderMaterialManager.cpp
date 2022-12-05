@@ -19,6 +19,7 @@ namespace worlds
         AssetID albedoID = ~0u;
         AssetID normalID = ~0u;
         AssetID mraID = ~0u;
+        bool alphaTest;
     };
 
     robin_hood::unordered_map<AssetID, MaterialAllocInfo> allocedMaterials;
@@ -145,6 +146,10 @@ namespace worlds
             material.setFlags(1);
         }
         material.setCutoff(j.value("alphaCutoff", 0.0));
+        if (j.value("alphaCutoff", 0.0) > 1 / 256.f)
+        {
+            mai.alphaTest = true;
+        }
 
         renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), mai.offset);
         allocedMaterials[id] = mai;
@@ -155,6 +160,11 @@ namespace worlds
     uint32_t RenderMaterialManager::GetMaterial(AssetID id)
     {
         return allocedMaterials.at(id).offset;
+    }
+
+    bool RenderMaterialManager::IsMaterialAlphaTest(AssetID id)
+    {
+        return allocedMaterials.at(id).alphaTest;
     }
 
     void RenderMaterialManager::Unload(AssetID id)

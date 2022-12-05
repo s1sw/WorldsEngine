@@ -79,7 +79,7 @@ namespace worlds
             .DepthTest(true)
             .DepthCompareOp(VK::CompareOp::Always)
             .PrimitiveTopology(VK::Topology::TriangleList)
-            .AddVertexBinding(std::move(vb))
+            .AddVertexBinding(vb)
             .MSAASamples(sampleCount)
             .ViewMask(0b11)
             .CullMode(VK::CullMode::None);

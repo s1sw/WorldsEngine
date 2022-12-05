@@ -156,6 +156,36 @@ namespace worlds
             new SkyboxRenderer(core, pipelineLayout.Get(), settings.msaaLevel, getViewMask(settings.numViews));
     }
 
+    void StandardPipeline::setupMainPassPipeline(VK::PipelineBuilder& pb, VK::VertexBinding& vb)
+    {
+        pb.PrimitiveTopology(VK::Topology::TriangleList)
+          .CullMode(VK::CullMode::Back)
+          .Layout(pipelineLayout.Get())
+          .ColorAttachmentFormat(colorBufferFormat)
+          .AddVertexBinding(vb)
+          .DepthTest(true)
+          .DepthWrite(false)
+          .DepthCompareOp(VK::CompareOp::Equal)
+          .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
+          .MSAASamples(rttPass->getSettings().msaaLevel);
+        pb.ViewMask(getViewMask(rttPass->getSettings().numViews));
+    }
+
+    void StandardPipeline::setupDepthPassPipeline(VK::PipelineBuilder& pb, VK::VertexBinding& vb)
+    {
+        pb.PrimitiveTopology(VK::Topology::TriangleList)
+           .CullMode(VK::CullMode::Back)
+           .Layout(pipelineLayout.Get())
+           .AddVertexBinding(vb)
+           .DepthTest(true)
+           .DepthWrite(true)
+           .DepthCompareOp(VK::CompareOp::Greater)
+           .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
+           .MSAASamples(rttPass->getSettings().msaaLevel);
+
+        pb.ViewMask(getViewMask(rttPass->getSettings().numViews));
+    }
+
     void StandardPipeline::setup(VKRTTPass* rttPass)
     {
         ZoneScoped;
@@ -173,6 +203,8 @@ namespace worlds
 
         if (!RenderMaterialManager::IsInitialized())
             RenderMaterialManager::Initialize(renderer);
+
+        techniqueManager = new TechniqueManager;
 
         VK::BufferCreateInfo vpBci{VK::BufferUsage::Uniform, sizeof(MultiVP), true};
         multiVPBuffer = core->CreateBuffer(vpBci);
@@ -194,10 +226,6 @@ namespace worlds
         SceneGlobals* globals = (SceneGlobals*)sceneGlobals->Map();
         globals->blueNoiseTexture = renderer->getTextureManager()->loadSynchronous(AssetDB::pathToId("Textures/bluenoise.png"));
         sceneGlobals->Unmap();
-
-        AssetID vs = AssetDB::pathToId("Shaders/standard.vert.spv");
-        AssetID fs = AssetDB::pathToId("Shaders/standard.frag.spv");
-        AssetID depthFS = AssetDB::pathToId("Shaders/standard_empty.frag.spv");
 
         VK::DescriptorSetLayoutBuilder dslb{core};
         dslb.Binding(0, VK::DescriptorType::UniformBuffer, 1, VK::ShaderStage::AllRaster);
@@ -239,44 +267,39 @@ namespace worlds
         vb.Attributes.emplace_back(3, VK::TextureFormat::R32_SFLOAT, (uint32_t)offsetof(Vertex, bitangentSign));
         vb.Attributes.emplace_back(4, VK::TextureFormat::R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
 
+        AssetID vs = AssetDB::pathToId("Shaders/standard.vert.spv");
+        AssetID fs = AssetDB::pathToId("Shaders/standard.frag.spv");
+        AssetID depthFS = AssetDB::pathToId("Shaders/standard_empty.frag.spv");
+        AssetID depthAlphaTestFS = AssetDB::pathToId("Shaders/standard_alpha_test.frag.spv");
+
         VK::ShaderModule& stdVert = ShaderCache::getModule(vs);
         VK::ShaderModule& stdFrag = ShaderCache::getModule(fs);
         VK::ShaderModule& depthFrag = ShaderCache::getModule(depthFS);
+        VK::ShaderModule& depthAlphaTestFrag = ShaderCache::getModule(depthAlphaTestFS);
+
+        standardTechnique = techniqueManager->createTechnique();
 
         VK::PipelineBuilder pb{core};
-        pb.PrimitiveTopology(VK::Topology::TriangleList)
-            .CullMode(VK::CullMode::Back)
-            .Layout(pipelineLayout.Get())
-            .ColorAttachmentFormat(colorBufferFormat)
-            .AddVertexBinding(std::move(vb))
-            .AddShader(VK::ShaderStage::Vertex, stdVert)
-            .AddShader(VK::ShaderStage::Fragment, stdFrag)
-            .DepthTest(true)
-            .DepthWrite(false)
-            .DepthCompareOp(VK::CompareOp::Equal)
-            .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
-            .MSAASamples(rttPass->getSettings().msaaLevel);
+        setupMainPassPipeline(pb, vb);
+        pb.AddShader(VK::ShaderStage::Vertex, stdVert)
+          .AddShader(VK::ShaderStage::Fragment, stdFrag);
 
-        pb.ViewMask(getViewMask(settings.numViews));
-
-        pipeline = pb.Build();
+        techniqueManager->registerVariant(standardTechnique, pb.Build(), VariantFlags::None);
+        techniqueManager->registerVariant(standardTechnique, pb.Build(), VariantFlags::AlphaTest);
 
         VK::PipelineBuilder pb2{core};
-        pb2.PrimitiveTopology(VK::Topology::TriangleList)
-            .CullMode(VK::CullMode::Back)
-            .Layout(pipelineLayout.Get())
-            .AddVertexBinding(std::move(vb))
-            .AddShader(VK::ShaderStage::Vertex, stdVert)
-            .AddShader(VK::ShaderStage::Fragment, depthFrag)
-            .DepthTest(true)
-            .DepthWrite(true)
-            .DepthCompareOp(VK::CompareOp::Greater)
-            .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
-            .MSAASamples(rttPass->getSettings().msaaLevel);
+        setupDepthPassPipeline(pb2, vb);
+        pb2.AddShader(VK::ShaderStage::Vertex, stdVert)
+           .AddShader(VK::ShaderStage::Fragment, depthFrag);
 
-        pb2.ViewMask(getViewMask(settings.numViews));
+        techniqueManager->registerVariant(standardTechnique, pb2.Build(), VariantFlags::DepthPrepass);
 
-        depthPrePipeline = pb2.Build();
+        VK::PipelineBuilder pb3{core};
+        setupDepthPassPipeline(pb3, vb);
+        pb3.AddShader(VK::ShaderStage::Vertex, stdVert)
+           .AddShader(VK::ShaderStage::Fragment, depthAlphaTestFrag)
+           .AlphaToCoverage(true);
+        techniqueManager->registerVariant(standardTechnique, pb3.Build(), VariantFlags::DepthPrepass | VariantFlags::AlphaTest);
 
         cubemapConvoluter = new CubemapConvoluter(core);
         createSizeDependants();
@@ -465,6 +488,7 @@ namespace worlds
                     drawCmd.indexCount = rsi.indexCount;
                     drawCmd.firstIndex = rsi.indexOffset + (rmi->indexOffset / sizeof(uint32_t));
                     drawCmd.vertexOffset = rmi->vertsOffset / sizeof(Vertex);
+                    drawCmd.variantFlags = RenderMaterialManager::IsMaterialAlphaTest(material) ? VariantFlags::AlphaTest : VariantFlags::None;
 
                     drawCmds[drawId] = drawCmd;
                     gpuDrawInfos[drawId] = di;
@@ -566,6 +590,7 @@ namespace worlds
                     drawCmd.indexCount = rsi.indexCount;
                     drawCmd.firstIndex = rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t));
                     drawCmd.vertexOffset = wo.skinnedVertexOffset + (renderer->getMeshManager()->getSkinnedVertsOffset() / sizeof(Vertex));
+                    drawCmd.variantFlags = RenderMaterialManager::IsMaterialAlphaTest(material) ? VariantFlags::AlphaTest : VariantFlags::None;
 
                     drawCmds[drawId] = drawCmd;
                     gpuDrawInfos[drawId] = di;
@@ -725,19 +750,23 @@ namespace worlds
         if (rttPass->getSettings().outputToXR)
             hiddenMeshRenderer->Execute(cb);
 
-        cb.BindPipeline(depthPrePipeline.Get());
         cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), descriptorSets[core->GetFrameIndex()].Get(), 0);
         cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), &btm->GetTextureDescriptorSet(), 1);
         cb.BindVertexBuffer(0, meshManager->getVertexBuffer(), 0);
         cb.BindIndexBuffer(meshManager->getIndexBuffer(), 0, VK::IndexType::Uint32);
 
         uint32_t lastTechniqueIdx = ~0u;
+        VariantFlags lastVariantFlags = VariantFlags::None;
         for (int i = 0; i < fdbTask.drawIdCounter; i++)
         {
             const StandardDrawCommand& drawCmd = drawCmds[i];
-            if (drawCmd.techniqueIdx != lastTechniqueIdx)
+            if (drawCmd.techniqueIdx != lastTechniqueIdx || drawCmd.variantFlags != lastVariantFlags)
             {
                 // change pipeline to depth pre-pass pipeline for this technique
+                VariantFlags finalFlags = drawCmd.variantFlags | VariantFlags::DepthPrepass;
+                cb.BindPipeline(techniqueManager->getPipelineVariant(drawCmd.techniqueIdx, finalFlags));
+                lastTechniqueIdx = drawCmd.techniqueIdx;
+                lastVariantFlags = lastVariantFlags;
             }
             cb.DrawIndexed(drawCmd.indexCount, 1, drawCmd.firstIndex, drawCmd.vertexOffset, i);
         }
@@ -753,7 +782,6 @@ namespace worlds
 
         // Actual "opaque" pass
         cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
-        cb.BindPipeline(pipeline.Get());
 
         VK::RenderPass colorPass;
         colorPass.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
@@ -765,12 +793,17 @@ namespace worlds
         colorPass.Begin(cb);
 
         lastTechniqueIdx = ~0u;
+        lastVariantFlags = VariantFlags::None;
         for (int i = 0; i < fdbTask.drawIdCounter; i++)
         {
             const StandardDrawCommand& drawCmd = drawCmds[i];
-            if (drawCmd.techniqueIdx != lastTechniqueIdx)
+            if (drawCmd.techniqueIdx != lastTechniqueIdx || drawCmd.variantFlags != lastVariantFlags)
             {
-                // change pipeline to colour pipeline for this technique
+                // change pipeline to main pipeline for this technique
+                VariantFlags finalFlags = drawCmd.variantFlags;
+                cb.BindPipeline(techniqueManager->getPipelineVariant(drawCmd.techniqueIdx, finalFlags));
+                lastTechniqueIdx = drawCmd.techniqueIdx;
+                lastVariantFlags = lastVariantFlags;
             }
             cb.DrawIndexed(drawCmd.indexCount, 1, drawCmd.firstIndex, drawCmd.vertexOffset, i);
         }

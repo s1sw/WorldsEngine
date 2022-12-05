@@ -66,7 +66,7 @@ namespace worlds
         VK::PipelineBuilder pb{core};
         pb
             .Layout(pickPipelineLayout.Get())
-            .AddVertexBinding(std::move(vertBinding))
+            .AddVertexBinding(vertBinding)
             .Layout(pickPipelineLayout.Get())
             .DepthTest(true)
             .DepthWrite(true)

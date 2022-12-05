@@ -30,6 +30,7 @@ namespace worlds
         static bool IsMaterialLoaded(AssetID id);
         static unsigned int LoadOrGetMaterial(AssetID id);
         static unsigned int GetMaterial(AssetID id);
+        static bool IsMaterialAlphaTest(AssetID id);
         static void Unload(AssetID id);
         static void UnloadUnusedMaterials(entt::registry& reg);
         static void ShowDebugMenu();

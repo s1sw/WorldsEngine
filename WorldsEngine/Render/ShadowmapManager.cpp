@@ -27,7 +27,7 @@ namespace worlds
         VK::PipelineBuilder pb{renderer->getCore()};
         pb.AddShader(VK::ShaderStage::Vertex, ShaderCache::getModule(AssetDB::pathToId("Shaders/shadowmap.vert.spv")))
             .AddShader(VK::ShaderStage::Fragment, ShaderCache::getModule(AssetDB::pathToId("Shaders/blank.frag.spv")))
-            .AddVertexBinding(std::move(vertBinding))
+            .AddVertexBinding(vertBinding)
             .Layout(pipelineLayout.Get())
             .DepthTest(true)
             .DepthWrite(true)

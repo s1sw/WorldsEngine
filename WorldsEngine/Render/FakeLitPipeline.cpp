@@ -67,7 +67,7 @@ namespace worlds
             .CullMode(VK::CullMode::Back)
             .Layout(pipelineLayout)
             .ColorAttachmentFormat(VK::TextureFormat::R8G8B8A8_SRGB)
-            .AddVertexBinding(std::move(vb))
+            .AddVertexBinding(vb)
             .AddShader(VK::ShaderStage::Vertex, stdVert)
             .AddShader(VK::ShaderStage::Fragment, stdFrag)
             .DepthTest(true)

@@ -11,15 +11,16 @@ namespace R2
 
 namespace R2::VK
 {
+    class Core;
+    class Buffer;
     class DescriptorSetLayout;
     class DescriptorSet;
-    class Pipeline;
-    class PipelineLayout;
-    class Buffer;
     class FrameSeparatedBuffer;
-    class SubAllocatedBuffer;
+    class Pipeline;
+    class PipelineBuilder;
+    class PipelineLayout;
     class Texture;
-    class Core;
+    struct VertexBinding;
 }
 
 namespace worlds
@@ -38,20 +39,48 @@ namespace worlds
     class ParticleRenderer;
     struct EngineInterfaces;
 
+    enum class VariantFlags : uint16_t
+    {
+        None = 0,
+        AlphaTest = 1,
+        DepthPrepass = 2
+    };
+
+    inline VariantFlags operator|(VariantFlags l, VariantFlags r)
+    {
+        return (VariantFlags)((uint16_t)l | (uint16_t)r);
+    }
+
     struct StandardDrawCommand
     {
         uint32_t indexCount;
         uint32_t firstIndex;
         uint32_t vertexOffset;
-        uint32_t techniqueIdx;
+        uint16_t techniqueIdx;
+        VariantFlags variantFlags;
+    };
+
+    class TechniqueManager
+    {
+        struct Technique
+        {
+            uint16_t id;
+            R2::VK::Pipeline* pipelineVariants[4];
+        };
+        std::vector<Technique> techniques;
+    public:
+        TechniqueManager();
+        ~TechniqueManager();
+        uint16_t createTechnique();
+        // Registers a variant of a technique. Takes ownership of pipeline
+        void registerVariant(uint16_t id, R2::VK::Pipeline* pipeline, VariantFlags flags);
+        R2::VK::Pipeline* getPipelineVariant(uint16_t techniqueId, VariantFlags flags);
     };
 
     class StandardPipeline : public IRenderPipeline
     {
         UniquePtr<R2::VK::DescriptorSetLayout> descriptorSetLayout;
         UniquePtr<R2::VK::DescriptorSet> descriptorSets[2];
-        UniquePtr<R2::VK::Pipeline> pipeline;
-        UniquePtr<R2::VK::Pipeline> depthPrePipeline;
         UniquePtr<R2::VK::PipelineLayout> pipelineLayout;
         UniquePtr<R2::VK::Buffer> multiVPBuffer;
         UniquePtr<R2::VK::FrameSeparatedBuffer> modelMatrixBuffers;
@@ -71,6 +100,7 @@ namespace worlds
         UniquePtr<HiddenMeshRenderer> hiddenMeshRenderer;
         UniquePtr<ComputeSkinner> computeSkinner;
         UniquePtr<ParticleRenderer> particleRenderer;
+        UniquePtr<TechniqueManager> techniqueManager;
 
         const EngineInterfaces& engineInterfaces;
         VKRTTPass* rttPass;
@@ -79,8 +109,11 @@ namespace worlds
         std::vector<glm::mat4> overrideViews;
         std::vector<glm::mat4> overrideProjs;
         std::vector<StandardDrawCommand> drawCmds;
+        uint16_t standardTechnique;
 
         void createSizeDependants();
+        void setupMainPassPipeline(R2::VK::PipelineBuilder& pb, R2::VK::VertexBinding& vb);
+        void setupDepthPassPipeline(R2::VK::PipelineBuilder& pb, R2::VK::VertexBinding& vb);
     public:
         StandardPipeline(const EngineInterfaces& engineInterfaces);
         ~StandardPipeline();

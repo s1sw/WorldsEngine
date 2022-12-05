@@ -44,7 +44,7 @@ namespace worlds
             .Layout(pipelineLayout.Get())
             .ColorAttachmentFormat(VK::TextureFormat::B10G11R11_UFLOAT_PACK32)
             .CullMode(VK::CullMode::None)
-            .AddVertexBinding(std::move(vb))
+            .AddVertexBinding(vb)
             .AddShader(VK::ShaderStage::Vertex, vert)
             .AddShader(VK::ShaderStage::Fragment, frag)
             .DepthTest(true)
