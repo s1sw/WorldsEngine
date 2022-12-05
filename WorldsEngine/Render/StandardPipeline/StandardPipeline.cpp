@@ -93,7 +93,7 @@ namespace worlds
     StandardPipeline::StandardPipeline(const EngineInterfaces& engineInterfaces)
         : engineInterfaces(engineInterfaces)
     {
-        drawCmds.resize(8192);
+        drawCmds.resize(MAX_DRAWS);
     }
 
     StandardPipeline::~StandardPipeline()
