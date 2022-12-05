@@ -10,11 +10,9 @@ namespace worlds
     {
         for (Technique& t : techniques)
         {
-            for (int i = 0; i < 4; i++)
+            for (auto& pipelineVariant : t.pipelineVariants)
             {
-                logMsg("deleting variant %i", i);
-                delete t.pipelineVariants[i];
-                logMsg("deleted variant %i", i);
+                delete pipelineVariant;
             }
         }
         techniques.clear();
