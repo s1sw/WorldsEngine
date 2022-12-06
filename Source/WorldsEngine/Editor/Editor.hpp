@@ -212,7 +212,6 @@ namespace worlds
         float lookY = 0.0f;
         bool shadowsEnabled = true;
         bool viewportActive = true;
-        float drawerAnimationProgress = 0.0f;
         ImTextureID audioSourceIcon;
         ImTextureID worldLightIcon;
         ImTextureID worldCubemapIcon;
