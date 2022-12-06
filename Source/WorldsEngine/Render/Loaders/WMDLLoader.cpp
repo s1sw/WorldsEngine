@@ -15,6 +15,12 @@ namespace worlds
 
         size_t fileSize = PHYSFS_fileLength(f);
 
+        if (fileSize < sizeof(wmdl::Header))
+        {
+            logErr("Failed to load %s: file too short", AssetDB::idToPath(wmdlId).c_str());
+            return false;
+        }
+
         void* buf = malloc(fileSize);
 
         PHYSFS_readBytes(f, buf, fileSize);
@@ -24,7 +30,9 @@ namespace worlds
 
         if (!wHdr->verifyMagic())
         {
-            logErr("Failed to load %s: invalid magic", AssetDB::idToPath(wmdlId).c_str());
+            char magicPrintBuf[5] = { 0 };
+            memcpy(magicPrintBuf, wHdr->magic, 4);
+            logErr("Failed to load %s: invalid magic \"%s\"", AssetDB::idToPath(wmdlId).c_str(), wHdr->magic);
             return false;
         }
 
