@@ -11,16 +11,41 @@
 
 namespace worlds
 {
+    struct ComponentIcon
+    {
+        uint32_t typeId;
+        const char* iconPath;
+    };
+
+    ComponentIcon icons[] = {
+            { entt::type_id<AudioSource>().hash(), "UI/Editor/Images/Audio Source.png" },
+            { entt::type_id<WorldLight>().hash(), "UI/Editor/Images/WorldLight.png" },
+            { entt::type_id<WorldCubemap>().hash(), "UI/Editor/Images/Cubemap.png" }
+    };
+
     EditorSceneView::EditorSceneView(EngineInterfaces interfaces, Editor* ed) : interfaces(interfaces), ed(ed)
     {
         currentWidth = 256;
         currentHeight = 256;
         cam = *interfaces.mainCamera;
         recreateRTT();
-        IUITextureManager* texMan = interfaces.renderer->getUITextureManager();
-        audioSourceIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/Audio Source.png"));
-        worldLightIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/WorldLight.png"));
-        worldCubemapIcon = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/Cubemap.png"));
+    }
+
+    glm::vec2 convertPositionToScreenSpace(glm::vec2 viewportSize, glm::vec3 position, glm::mat4 vp, bool* behind)
+    {
+        glm::vec4 ndcObjPosPreDivide = vp * glm::vec4(position, 1.0f);
+
+        glm::vec2 ndcObjectPosition = ndcObjPosPreDivide;
+        ndcObjectPosition /= ndcObjPosPreDivide.w;
+        ndcObjectPosition *= 0.5f;
+        ndcObjectPosition += 0.5f;
+        ndcObjectPosition *= (glm::vec2)viewportSize;
+        // Not sure why flipping Y is necessary?
+        ndcObjectPosition.y = viewportSize.y - ndcObjectPosition.y;
+
+        *behind = (ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f;
+
+        return ndcObjectPosition;
     }
 
     void EditorSceneView::drawWindow(int uniqueId)
@@ -47,7 +72,6 @@ namespace worlds
             }
             cam.verticalFOV = interfaces.mainCamera->verticalFOV;
 
-            auto wSize = ImGui::GetContentRegionAvail();
             ImGui::Image(sceneViewPass->getUITextureID(), ImVec2(currentWidth, currentHeight));
 
             ImGui::SetCursorPos(ImGui::GetCursorStartPos());
@@ -61,7 +85,7 @@ namespace worlds
             mouseOverToggleArea = mousePos.x > ImGui::GetCursorScreenPos().x &&
                                   mousePos.y > ImGui::GetCursorScreenPos().y &&
                                   mousePos.y < ImGui::GetCursorScreenPos().y + 50.0f &&
-                                  mousePos.x < ImGui::GetCursorScreenPos().x + wSize.x;
+                                  mousePos.x < ImGui::GetCursorScreenPos().x + contentRegion.x;
 
             glm::vec2 wPos = glm::vec2(ImGui::GetWindowPos()) + glm::vec2(ImGui::GetCursorStartPos());
             glm::vec2 mPos = ImGui::GetIO().MousePos;
@@ -72,20 +96,20 @@ namespace worlds
 
             if (ed->handleOverriden)
             {
-                ed->handleTools(*ed->overrideTransform, wPos, wSize, cam);
+                ed->handleTools(*ed->overrideTransform, wPos, contentRegion, cam);
             }
             else if (ed->handleOverrideEntity != entt::null)
             {
                 if (reg.valid(ed->handleOverrideEntity))
                 {
                     auto& t = reg.get<Transform>(ed->handleOverrideEntity);
-                    ed->handleTools(t, wPos, wSize, cam);
+                    ed->handleTools(t, wPos, contentRegion, cam);
                 }
             }
             else if (reg.valid(ed->currentSelectedEntity))
             {
                 auto& selectedTransform = reg.get<Transform>(ed->currentSelectedEntity);
-                ed->handleTools(selectedTransform, wPos, wSize, cam);
+                ed->handleTools(selectedTransform, wPos, contentRegion, cam);
 
                 ChildComponent* childComponent = reg.try_get<ChildComponent>(ed->currentSelectedEntity);
                 if (childComponent)
@@ -174,25 +198,19 @@ namespace worlds
             ImGuiStyle& style = ImGui::GetStyle();
             const ImColor popupBg = style.Colors[ImGuiCol_WindowBg];
 
+            glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
+            glm::mat4 view = cam.getViewMatrix();
+            glm::mat4 vp = proj * view;
             reg.view<EditorLabel, Transform>().each([&](EditorLabel& label, Transform& t) {
-                glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
-                glm::mat4 view = cam.getViewMatrix();
+                bool behind;
+                glm::vec2 screenPos = convertPositionToScreenSpace(contentRegion, t.position, vp, &behind);
 
-                glm::vec4 ndcObjPosPreDivide = proj * view * glm::vec4(t.position, 1.0f);
+                float distanceToObj = glm::distance(t.position, cam.position);
 
-                glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
-                ndcObjectPosition /= ndcObjPosPreDivide.w;
-                ndcObjectPosition *= 0.5f;
-                ndcObjectPosition += 0.5f;
-                ndcObjectPosition *= (glm::vec2)contentRegion;
-                // Not sure why flipping Y is necessary?
-                ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
-
-                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f &&
-                    glm::distance(t.position, cam.position) < ed->settings.sceneIconDrawDistance)
+                if (behind && distanceToObj < ed->settings.sceneIconDrawDistance)
                 {
                     glm::vec2 textSize = ImGui::CalcTextSize(label.label.cStr());
-                    glm::vec2 drawPos = ndcObjectPosition + wPos - (textSize * 0.5f);
+                    glm::vec2 drawPos = screenPos + wPos - (textSize * 0.5f);
 
                     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
@@ -204,104 +222,36 @@ namespace worlds
 
             bool mouseOverIcon = false;
 
-            reg.view<AudioSource, Transform>().each([&](entt::entity ent, AudioSource&, Transform& t) {
-                glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
-                glm::mat4 view = cam.getViewMatrix();
+            for (ComponentIcon& icon : icons) {
+                std::array<uint32_t, 1> t{icon.typeId};
+                reg.runtime_view(t.begin(), t.end()).each([&](entt::entity e) {
+                    const auto& t = reg.get<Transform>(e);
 
-                glm::vec4 ndcObjPosPreDivide = proj * view * glm::vec4(t.position, 1.0f);
+                    bool behind;
+                    glm::vec2 screenPos = convertPositionToScreenSpace(contentRegion, t.position, vp, &behind);
 
-                glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
-                ndcObjectPosition /= ndcObjPosPreDivide.w;
-                ndcObjectPosition *= 0.5f;
-                ndcObjectPosition += 0.5f;
-                ndcObjectPosition *= (glm::vec2)contentRegion;
-                // Not sure why flipping Y is necessary?
-                ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
+                    float distanceToObj = glm::distance(t.position, cam.position);
 
-                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f &&
-                    glm::distance(t.position, cam.position) < ed->settings.sceneIconDrawDistance)
-                {
-                    glm::vec2 imgSize{64.0f, 64.0f};
-                    glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
-
-                    ImDrawList* drawList = ImGui::GetWindowDrawList();
-                    drawList->AddImage(audioSourceIcon, drawPos, drawPos + imgSize);
-                    if (ImGui::IsMouseHoveringRect(drawPos, drawPos + imgSize))
+                    if (behind && distanceToObj < ed->settings.sceneIconDrawDistance)
                     {
-                        mouseOverIcon = true;
+                        glm::vec2 imgSize{64.0f, 64.0f};
+                        glm::vec2 drawPos = screenPos + wPos - (imgSize * 0.5f);
 
-                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                            ed->select(ent);
+                        ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+                        IUITextureManager* texMan = interfaces.renderer->getUITextureManager();
+                        ImTextureID iconId = texMan->loadOrGet(AssetDB::pathToId(icon.iconPath));
+                        drawList->AddImage(iconId, drawPos, drawPos + imgSize);
+                        if (ImGui::IsMouseHoveringRect(drawPos, drawPos + imgSize))
+                        {
+                            mouseOverIcon = true;
+
+                            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver())
+                                ed->select(e);
+                        }
                     }
-                }
-            });
-
-            reg.view<WorldLight, Transform>().each([&](entt::entity ent, WorldLight&, Transform& t) {
-                glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
-                glm::mat4 view = cam.getViewMatrix();
-
-                glm::vec4 ndcObjPosPreDivide = proj * view * glm::vec4(t.position, 1.0f);
-
-                glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
-                ndcObjectPosition /= ndcObjPosPreDivide.w;
-                ndcObjectPosition *= 0.5f;
-                ndcObjectPosition += 0.5f;
-                ndcObjectPosition *= (glm::vec2)contentRegion;
-                // Not sure why flipping Y is necessary?
-                ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
-                float dist = glm::distance(t.position, cam.position);
-
-                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f && dist < ed->settings.sceneIconDrawDistance &&
-                    dist > 0.1f)
-                {
-                    glm::vec2 imgSize{64.0f, 64.0f};
-                    glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
-
-                    ImDrawList* drawList = ImGui::GetWindowDrawList();
-                    drawList->AddImage(worldLightIcon, drawPos, drawPos + (imgSize));
-
-                    if (ImGui::IsMouseHoveringRect(drawPos, drawPos + imgSize))
-                    {
-                        mouseOverIcon = true;
-
-                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                            ed->select(ent);
-                    }
-                }
-            });
-
-            reg.view<WorldCubemap, Transform>().each([&](entt::entity ent, WorldCubemap&, Transform& t) {
-                glm::mat4 proj = cam.getProjectionMatrix(contentRegion.x / contentRegion.y);
-                glm::mat4 view = cam.getViewMatrix();
-
-                glm::vec4 ndcObjPosPreDivide = proj * view * glm::vec4(t.position, 1.0f);
-
-                glm::vec2 ndcObjectPosition(ndcObjPosPreDivide);
-                ndcObjectPosition /= ndcObjPosPreDivide.w;
-                ndcObjectPosition *= 0.5f;
-                ndcObjectPosition += 0.5f;
-                ndcObjectPosition *= (glm::vec2)contentRegion;
-                // Not sure why flipping Y is necessary?
-                ndcObjectPosition.y = wSize.y - ndcObjectPosition.y;
-
-                if ((ndcObjPosPreDivide.z / ndcObjPosPreDivide.w) > 0.0f &&
-                    glm::distance(t.position, cam.position) < ed->settings.sceneIconDrawDistance)
-                {
-                    glm::vec2 imgSize{64.0f, 64.0f};
-                    glm::vec2 drawPos = ndcObjectPosition + wPos - (imgSize * 0.5f);
-
-                    ImDrawList* drawList = ImGui::GetWindowDrawList();
-                    drawList->AddImage(worldCubemapIcon, drawPos, drawPos + (imgSize));
-
-                    if (ImGui::IsMouseHoveringRect(drawPos, drawPos + imgSize))
-                    {
-                        mouseOverIcon = true;
-
-                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                            ed->select(ent);
-                    }
-                }
-            });
+                });
+            }
 
             if (ImGui::IsWindowHovered() && !ImGuizmo::IsUsing() && !mouseOverIcon)
             {
@@ -511,10 +461,6 @@ namespace worlds
 
     EditorSceneView::~EditorSceneView()
     {
-        // auto vkCtx = static_cast<VKRenderer*>(interfaces.renderer)->getHandles();
-
-        // DeletionQueue::queueDescriptorSetFree(vkCtx->descriptorPool, sceneViewDS);
-
         interfaces.renderer->destroyRTTPass(sceneViewPass);
     }
 }
