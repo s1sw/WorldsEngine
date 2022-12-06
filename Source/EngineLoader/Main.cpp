@@ -13,6 +13,18 @@ int _dummy[sizeof(void *) - 7];
 #include <windows.h>
 #include <dbghelp.h>
 #include <winuser.h>
+
+// Taken from https://gist.github.com/statico/6809850727c708f08458
+// Use discrete GPU by default.
+extern "C"
+{
+    // http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
+    __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+
+    // http://developer.amd.com/community/blog/2015/10/02/amd-enduro-system-for-developers/
+    // https://gpuopen.com/amdpowerxpressrequesthighperformance/
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
 LONG unhandledExceptionHandler(LPEXCEPTION_POINTERS exceptionPtrs)
 {
     FILE *f = fopen("crash.txt", "w");
