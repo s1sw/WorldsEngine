@@ -1113,7 +1113,7 @@ namespace worlds
             interfaces.engine->loadScene(sceneId);
         });
 
-        const char* sceneFileExts[2] = {".escn", ".wscn"};
+        const char* sceneFileExts[] = {".wscn"};
 
         openFileModalOffset(
             "Open Scene",
@@ -1122,7 +1122,7 @@ namespace worlds
                 updateWindowTitle();
                 undo.clear();
             },
-            "SourceData/", sceneFileExts, 2);
+            "SourceData/", sceneFileExts, 1);
 
         std::string popupToOpen;
 
