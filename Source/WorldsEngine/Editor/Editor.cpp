@@ -371,6 +371,51 @@ namespace worlds
                 "Set selected object as static"
             });
 
+        EditorActions::addAction({
+           "editor.copy",
+           [](Editor* ed, entt::registry& reg) {
+               if (!reg.valid(ed->currentSelectedEntity)) return;
+               std::vector<entt::entity> allSelectedEntities;
+               allSelectedEntities.push_back(ed->currentSelectedEntity);
+               for (entt::entity e : ed->selectedEntities)
+               {
+                   allSelectedEntities.push_back(e);
+               }
+
+               std::string entityJson =
+                       JsonSceneSerializer::entitiesToJson(reg, allSelectedEntities.data(), allSelectedEntities.size());
+               SDL_SetClipboardText(entityJson.c_str());
+           },
+           "Copy selected entities"
+        });
+
+        EditorActions::addAction({
+            "editor.paste",
+            [](Editor* ed, entt::registry& reg) {
+                if (!SDL_HasClipboardText()) return;
+                const char* txt = SDL_GetClipboardText();
+                try
+                {
+                    auto pastedEnts = JsonSceneSerializer::jsonToEntities(reg, txt);
+                    if (!pastedEnts.empty())
+                    {
+                        ed->select(pastedEnts[0]);
+
+                        for (size_t i = 1; i < pastedEnts.size(); i++)
+                        {
+                            ed->multiSelect(pastedEnts[i]);
+                        }
+                    }
+                    addNotification("Entity pasted! :)");
+                }
+                catch (nlohmann::detail::exception& e)
+                {
+                    logErr("Failed to deserialize clipboard entity: %s", e.what());
+                    addNotification("Sorry, we couldn't paste that into the scene.", NotificationType::Error);
+                }
+            }
+        });
+
         EditorActions::addAction(
             {
                 "assets.refresh",
@@ -394,6 +439,8 @@ namespace worlds
         EditorActions::bindAction("editor.openActionSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control});
         EditorActions::bindAction("editor.openAssetSearch",
                                   ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift});
+        EditorActions::bindAction("editor.copy", ActionKeybind{SDL_SCANCODE_C, ModifierFlags::Control});
+        EditorActions::bindAction("editor.paste", ActionKeybind{SDL_SCANCODE_V, ModifierFlags::Control});
 
         SceneLoader::registerLoadCallback(this, sceneLoadCallback);
     }
@@ -1057,44 +1104,6 @@ namespace worlds
         for (AssetEditorWindow* ae : assetEditors)
         {
             ae->draw(reg);
-        }
-
-        if (inputManager.keyPressed(SDL_SCANCODE_C) && inputManager.ctrlHeld() && reg.valid(currentSelectedEntity))
-        {
-            std::vector<entt::entity> allSelectedEntities;
-            allSelectedEntities.push_back(currentSelectedEntity);
-            for (entt::entity e : selectedEntities)
-            {
-                allSelectedEntities.push_back(e);
-            }
-
-            std::string entityJson =
-                JsonSceneSerializer::entitiesToJson(reg, allSelectedEntities.data(), allSelectedEntities.size());
-            SDL_SetClipboardText(entityJson.c_str());
-        }
-
-        if (inputManager.keyPressed(SDL_SCANCODE_V) && inputManager.ctrlHeld() && SDL_HasClipboardText())
-        {
-            const char* txt = SDL_GetClipboardText();
-            try
-            {
-                auto pastedEnts = JsonSceneSerializer::jsonToEntities(reg, txt);
-                if (pastedEnts.size() > 0)
-                {
-                    select(pastedEnts[0]);
-
-                    for (size_t i = 1; i < pastedEnts.size(); i++)
-                    {
-                        multiSelect(pastedEnts[i]);
-                    }
-                }
-                addNotification("Entity pasted! :)");
-            }
-            catch (nlohmann::detail::exception& e)
-            {
-                logErr("Failed to deserialize clipboard entity: %s", e.what());
-                addNotification("Sorry, we couldn't paste that into the scene.", NotificationType::Error);
-            }
         }
 
         saveFileModal("Save Scene", [this](const char* path) {
