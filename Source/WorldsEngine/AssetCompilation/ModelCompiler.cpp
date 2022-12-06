@@ -139,7 +139,7 @@ namespace worlds
             return 3;
         }
 
-#ifdef USE_ASSIMP
+#ifdef ENABLE_ASSIMP
         struct IntermediateBone
         {
             aiBone* bone;
@@ -1076,6 +1076,8 @@ namespace worlds
                     PHYSFS_writeBytes(outFile, smallIndices.data(), sizeof(uint16_t) * smallIndices.size());
                 }
 
+                logMsg("Converted model with %i vertices", (int)verts.size());
+
                 compileOp->progress = 1.0f;
                 compileOp->complete = true;
                 compileOp->result = CompilationResult::Success;
@@ -1185,10 +1187,11 @@ namespace worlds
             }
             else
             {
-#ifdef USE_ASSIMP
+#ifdef ENABLE_ASSIMP
                 mc_internal::convertAssimpModel(compileOp, outFile, result.value, fileLen, p.fileExtension().cStr(),
                                                 settings);
 #else
+                logErr("File format not supported, Assimp is disabled");
                 compileOp->progress = 1.0f;
                 compileOp->complete = true;
                 compileOp->result = CompilationResult::Error;
