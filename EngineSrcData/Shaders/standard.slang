@@ -548,7 +548,7 @@ float4 AlphaTestOnlyFragShader(VertexOutput input) : SV_TARGET
 
     if (alphaCutoff > 0.0)
     {
-        alpha = Textures[NonUniformResourceIndex(material.AlbedoTexture)].Sample(input.UV).x;
+        alpha = Textures[NonUniformResourceIndex(material.AlbedoTexture)].Sample(input.UV).a;
         alpha = (alpha - alphaCutoff) / max(fwidth(alpha), 0.0001) + 0.5;
     }
 
