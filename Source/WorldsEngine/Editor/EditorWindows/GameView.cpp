@@ -9,11 +9,17 @@ namespace worlds
     uint32_t currentWidth;
     uint32_t currentHeight;
     bool setIgnoreImGui = false;
+    bool playingLast = false;
 
     void GameView::draw(entt::registry& reg)
     {
         ImGui::SetNextWindowSizeConstraints(ImVec2(256.0f, 256.0f), ImVec2(FLT_MAX, FLT_MAX));
         bool isVR = interfaces.vrInterface != nullptr;
+        if (editor->isPlaying() && !playingLast)
+        {
+            ImGui::SetNextWindowFocus();
+        }
+        playingLast = editor->isPlaying();
         if (ImGui::Begin(ICON_FA_GAMEPAD u8" Game View"))
         {
             if (ImGui::IsWindowHovered())
