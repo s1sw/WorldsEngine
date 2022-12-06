@@ -1,4 +1,0 @@
-i really can't be bothered to automate compiling these two tiny shaders so here are the glslang commands to generate the headers
-
-glslangValidator.exe --target-env vulkan1.3 -S vert .\imgui_vs.glsl -o ImGuiVS.h --vn ImGuiVS
-glslangValidator.exe --target-env vulkan1.3 -S frag .\imgui_fs.glsl -o ImGuiFS.h --vn ImGuiFS

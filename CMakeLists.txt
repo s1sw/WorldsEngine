@@ -11,6 +11,4 @@ if (WIN32)
 endif()
 set(FMOD_DIR "C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows/api")
 
-add_subdirectory(R2)
-add_subdirectory(WorldsEngine)
-add_subdirectory(EngineLoader)
+add_subdirectory(Source)

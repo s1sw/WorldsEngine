@@ -1,1 +1,0 @@
-file(GLOB_RECURSE worlds_imgui_src ${CMAKE_CURRENT_LIST_DIR}/*.cpp ${CMAKE_CURRENT_LIST_DIR}/*.cc ${CMAKE_CURRENT_LIST_DIR}/*.c)

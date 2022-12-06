@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
+        <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+        <RootNamespace>WorldsEngine</RootNamespace>
+        <Nullable>enable</Nullable>
+        <OutDir>../NetAssemblies</OutDir>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(IsWindows)' == 'true'">
+        <DefineConstants>Windows</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(IsLinux)' == 'true'">
+        <DefineConstants>Linux</DefineConstants>
+    </PropertyGroup>
+    <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2021.2.0" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(IsLinux)' == 'true'">
+      <PackageReference Include="Mono.Posix.NETStandard" Version="1.0.0" />
+    </ItemGroup>
+</Project>

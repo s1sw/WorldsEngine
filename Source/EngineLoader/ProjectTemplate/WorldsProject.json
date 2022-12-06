@@ -1,0 +1,8 @@
+{
+  "projectName": "{{PROJECT_NAME}}",
+  "copyDirectories": [
+    "Materials",
+    "Prefabs",
+    "Scenes"
+  ]
+}

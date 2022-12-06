@@ -1,0 +1,5 @@
+if(WORLDS_USE_OPENXR)
+    set(worlds_vr_src VR/OpenXRInterface.cpp)
+else()
+    set(worlds_vr_src)
+endif()
