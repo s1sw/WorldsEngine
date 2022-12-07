@@ -6,6 +6,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 file(GLOB lsrc ./**.cpp)
 
 add_executable(${PROJECT_NAME} WIN32 ${lsrc})
+set_target_properties(${PROJECT_NAME}
+    PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/BuildOutput"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/BuildOutput"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/BuildOutput"
+)
+
 target_link_libraries(${PROJECT_NAME} PUBLIC EngineLibrary SDL2::SDL2main)
 
 if (WIN32)
