@@ -1,16 +1,24 @@
 ![logo](EngineData/UI/Editor/Images/logo_no_background.png)
-# WorldsEngine
+# Worlds Engine
 
-![Editor screenshot](Docs/Screenshots/EditorTH.png)
+![Editor screenshot showing a quadcopter firing a selected laser object](Docs/Screenshots/EditorTH.png)
+![Editor screenshot showing gun selected in the editor from multiple different angles](Docs/Screenshots/EditorPR.png)
 
-A C++ and Vulkan game engine that's been my hobby project for the past couple years. Don't count on building anything off of it (or getting it to build for that matter)!
-It's MIT licensed, so if you find something that is in fact useful feel free to take it as long as you include the notice :)
+A C++ and Vulkan game engine that's been my hobby project for the past couple years after originally starting as a
+Minecraft clone.
+
+Currently only Windows is supported as a platform. I hope to support Linux in the future however, pending:
+- fixes to compile on GCC/Clang
+- compiling PhysX 5 on Linux
+- sorting out OS abstractions (mainly open file dialogs)
 
 ## Features
 
 - C# hotloading (even during gameplay)
-- Forward+ Vulkan renderer
-- PhysX integration for physics, FMOD and Steam Audio integration for audio and Recast/Detour integration for AI
+- Tile-based forward+ Vulkan renderer based on a custom abstraction layer
+- Full editor workflow with the ability to edit and inspect the game in realtime
+- Asset pipeline compiling textures+models to a suitable runtime format
+- PhysX integration for physics, FMOD and Steam Audio integration for audio and Recast/Detour integration for navigation
 
 ## Building Instructions (Windows)
 
@@ -19,4 +27,4 @@ It's MIT licensed, so if you find something that is in fact useful feel free to 
 3. Run `ninja` to compile. If you get an error saying "A required privilege is not held by the client" enable Developer mode in Windows settings (it's required to make symlinks).
 4. cd to the `WorldsEngineManaged` directory and run `dotnet build`.
 5. cd to `EngineSrcData/Shaders` and run `.\BuildTools\ShaderBuilder.exe`
-6. Run `.\WorldsEngine.exe --novr --editor` to launch the editor.
+6. In the build directory, run `.\BuildOutput\StartEditor.bat` to launch the editor.
