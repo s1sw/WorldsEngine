@@ -17,6 +17,6 @@ It's MIT licensed, so if you find something that is in fact useful feel free to 
 1. Install Cmake, Ninja, VS2022 and [the FMOD engine](https://www.fmod.com/download#fmodstudio).
 2. Create a new directory, cd into it and run `cmake .. -G Ninja`
 3. Run `ninja` to compile. If you get an error saying "A required privilege is not held by the client" enable Developer mode in Windows settings (it's required to make symlinks).
-4. cd to the `WorldsEngineManaged` directory and run `dotnet build`.
+4. cd to the `Source/WorldsEngineManaged` directory and run `dotnet build`.
 5. cd to `EngineSrcData/Shaders` and run `.\BuildTools\ShaderBuilder.exe`
-6. Run `.\WorldsEngine.exe --novr --editor` to launch the editor.
+6. Run `.\BuildOutput\WorldsEngine.exe --novr --editor` to launch the editor.
