@@ -23,20 +23,10 @@ namespace worlds
         Navigation = 4
     };
 
-    enum class UVOverride
-    {
-        None,
-        XY,
-        XZ,
-        ZY,
-        PickBest
-    };
-
     struct WorldObject
     {
         WorldObject(AssetID material, AssetID mesh)
-            : staticFlags(StaticFlags::None), mesh(mesh), texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f),
-              uvOverride(UVOverride::None)
+            : staticFlags(StaticFlags::None), mesh(mesh), texScaleOffset(1.0f, 1.0f, 0.0f, 0.0f)
         {
             for (int i = 0; i < NUM_SUBMESH_MATS; i++)
             {
@@ -52,7 +42,6 @@ namespace worlds
         slib::Bitset<NUM_SUBMESH_MATS> presentMaterials;
         AssetID mesh;
         glm::vec4 texScaleOffset;
-        UVOverride uvOverride;
         bool castShadows = true;
         slib::Bitset<NUM_SUBMESH_MATS> drawSubmeshes;
     };

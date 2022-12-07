@@ -198,8 +198,6 @@ namespace worlds
     const robin_hood::unordered_flat_map<StaticFlags, const char*> flagNames = {
         {StaticFlags::Audio, "Audio"}, {StaticFlags::Rendering, "Rendering"}, {StaticFlags::Navigation, "Navigation"}};
 
-    const char* uvOverrideNames[] = {"None", "XY", "XZ", "ZY", "Pick Best"};
-
     class WorldObjectEditor : public BasicComponentUtil<WorldObject>
     {
     public:
@@ -240,24 +238,6 @@ namespace worlds
                             }
                         }
                         ImGui::TreePop();
-                    }
-
-                    if (ImGui::BeginCombo("UV Override", uvOverrideNames[(int)worldObject.uvOverride]))
-                    {
-                        int i = 0;
-                        for (auto& p : uvOverrideNames)
-                        {
-                            bool isSelected = (int)worldObject.uvOverride == i;
-                            if (ImGui::Selectable(p, &isSelected))
-                            {
-                                worldObject.uvOverride = (UVOverride)i;
-                            }
-
-                            if (isSelected)
-                                ImGui::SetItemDefaultFocus();
-                            i++;
-                        }
-                        ImGui::EndCombo();
                     }
 
                     ImGui::DragFloat2("Texture Scale", &worldObject.texScaleOffset.x);
@@ -378,7 +358,6 @@ namespace worlds
             j = {
                 {"mesh", AssetDB::idToPath(wo.mesh)},
                 {"texScaleOffset", wo.texScaleOffset},
-                {"uvOverride", wo.uvOverride},
                 {"materials", matArray},
                 {"drawnSubmeshes", drawnSubmeshArray},
                 {"staticFlags", wo.staticFlags}};
@@ -391,7 +370,6 @@ namespace worlds
             std::string meshPath = j["mesh"];
             wo.mesh = AssetDB::pathToId(meshPath);
             wo.texScaleOffset = j["texScaleOffset"];
-            wo.uvOverride = j["uvOverride"];
             wo.staticFlags = j["staticFlags"];
 
             uint32_t matIdx = 0;
@@ -461,24 +439,6 @@ namespace worlds
                         ImGui::TreePop();
                     }
 
-                    if (ImGui::BeginCombo("UV Override", uvOverrideNames[(int)worldObject.uvOverride]))
-                    {
-                        int i = 0;
-                        for (auto& p : uvOverrideNames)
-                        {
-                            bool isSelected = (int)worldObject.uvOverride == i;
-                            if (ImGui::Selectable(p, &isSelected))
-                            {
-                                worldObject.uvOverride = (UVOverride)i;
-                            }
-
-                            if (isSelected)
-                                ImGui::SetItemDefaultFocus();
-                            i++;
-                        }
-                        ImGui::EndCombo();
-                    }
-
                     ImGui::DragFloat2("Texture Scale", &worldObject.texScaleOffset.x);
                     ImGui::DragFloat2("Texture Offset", &worldObject.texScaleOffset.z);
 
@@ -538,7 +498,6 @@ namespace worlds
             j = {
                 {"mesh", AssetDB::idToPath(wo.mesh)},
                 {"texScaleOffset", wo.texScaleOffset},
-                {"uvOverride", wo.uvOverride},
                 {"materials", matArray},
                 {"staticFlags", wo.staticFlags}};
         }
@@ -551,7 +510,6 @@ namespace worlds
             auto& wo = reg.emplace<SkinnedWorldObject>(ent, INVALID_ASSET, mesh);
 
             wo.texScaleOffset = j["texScaleOffset"];
-            wo.uvOverride = j["uvOverride"];
             wo.staticFlags = j["staticFlags"];
 
             uint32_t matIdx = 0;
