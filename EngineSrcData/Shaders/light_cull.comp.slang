@@ -419,7 +419,7 @@ float depthBufferLoad(int2 coord, int msaaSample)
     #ifdef MULTIVP
         return depthBuffer.Load(int3(coord, int(eyeIdx)), msaaSample).x;
     #else
-        return depthBuffer.Load(int2(coord), 0).x;
+        return depthBuffer.Load(int2(coord), msaaSample).x;
     #endif
 #else
     #ifdef MULTIVP
@@ -468,7 +468,7 @@ void main(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dis
     float maxDepthAtCurrent = 0.0;
     int2 coord = int2(dispatchID.xy * 2);
 
-    for (int samp = 0; samp < 1; samp++)
+    for (int samp = 0; samp < samples; samp++)
     {
         float d1 = depthBufferLoad(coord, samp);
         float d2 = depthBufferLoad(coord + int2(0, 1), samp);
