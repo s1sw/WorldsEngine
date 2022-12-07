@@ -484,11 +484,12 @@ namespace worlds
                     di.textureScale = glm::vec2(wo.texScaleOffset);
                     di.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
 
+                    const MaterialInfo& materialInfo = RenderMaterialManager::GetMaterialInfo(material);
                     StandardDrawCommand drawCmd{};
                     drawCmd.indexCount = rsi.indexCount;
                     drawCmd.firstIndex = rsi.indexOffset + (rmi->indexOffset / sizeof(uint32_t));
                     drawCmd.vertexOffset = rmi->vertsOffset / sizeof(Vertex);
-                    drawCmd.variantFlags = RenderMaterialManager::IsMaterialAlphaTest(material) ? VariantFlags::AlphaTest : VariantFlags::None;
+                    drawCmd.variantFlags = materialInfo.alphaTest ? VariantFlags::AlphaTest : VariantFlags::None;
 
                     drawCmds[drawId] = drawCmd;
                     gpuDrawInfos[drawId] = di;
@@ -586,11 +587,12 @@ namespace worlds
                     di.textureScale = glm::vec2(wo.texScaleOffset);
                     di.textureOffset = glm::vec2(wo.texScaleOffset.z, wo.texScaleOffset.w);
 
+                    const MaterialInfo& materialInfo = RenderMaterialManager::GetMaterialInfo(material);
                     StandardDrawCommand drawCmd{};
                     drawCmd.indexCount = rsi.indexCount;
                     drawCmd.firstIndex = rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t));
                     drawCmd.vertexOffset = wo.skinnedVertexOffset + (renderer->getMeshManager()->getSkinnedVertsOffset() / sizeof(Vertex));
-                    drawCmd.variantFlags = RenderMaterialManager::IsMaterialAlphaTest(material) ? VariantFlags::AlphaTest : VariantFlags::None;
+                    drawCmd.variantFlags = materialInfo.alphaTest ? VariantFlags::AlphaTest : VariantFlags::None;
 
                     drawCmds[drawId] = drawCmd;
                     gpuDrawInfos[drawId] = di;

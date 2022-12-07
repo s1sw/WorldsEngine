@@ -12,17 +12,7 @@ using namespace R2;
 
 namespace worlds
 {
-    struct MaterialAllocInfo
-    {
-        uint32_t offset;
-        SubAllocationHandle handle;
-        AssetID albedoID = ~0u;
-        AssetID normalID = ~0u;
-        AssetID mraID = ~0u;
-        bool alphaTest;
-    };
-
-    robin_hood::unordered_map<AssetID, MaterialAllocInfo> allocedMaterials;
+    robin_hood::unordered_node_map<AssetID, MaterialInfo> allocedMaterials;
 
     std::mutex RenderMaterialManager::mutex{};
     R2::SubAllocatedBuffer* RenderMaterialManager::materialBuffer = nullptr;
@@ -38,7 +28,7 @@ namespace worlds
         glm::vec3 emissiveColor;
         uint32_t cutoffFlags;
 
-        float getCutoff()
+        float getCutoff() const
         {
             return (cutoffFlags & 0xFF) / 255.0f;
         }
@@ -57,7 +47,7 @@ namespace worlds
             cutoffFlags = cutoff | flag;
         }
 
-        uint32_t getFlags()
+        uint32_t getFlags() const
         {
             return (cutoffFlags & (0x7FFFFF80)) >> 8;
         }
@@ -98,7 +88,7 @@ namespace worlds
 
     uint32_t RenderMaterialManager::LoadOrGetMaterial(AssetID id)
     {
-        MaterialAllocInfo mai{};
+        MaterialInfo materialInfo{};
         {
             std::unique_lock lock{mutex};
 
@@ -107,31 +97,33 @@ namespace worlds
                 return allocedMaterials.at(id).offset;
             }
 
-            mai.offset = (uint32_t)materialBuffer->Allocate(sizeof(StandardPBRMaterial), mai.handle);
-            allocedMaterials.insert({id, mai});
+            materialInfo.offset = (uint32_t)materialBuffer->Allocate(sizeof(StandardPBRMaterial), materialInfo.handle);
+            allocedMaterials.insert({id, materialInfo});
         }
 
-        BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* tm = renderer->getTextureManager();
 
         nlohmann::json& j = MaterialManager::loadOrGet(id);
 
         StandardPBRMaterial material{};
-        mai.albedoID = AssetDB::pathToId(j.value("albedoPath", "Textures/missing.wtex"));
-        material.albedoTexture = tm->loadAndGetAsync(mai.albedoID);
-        material.normalTexture = ~0u;
-        material.mraTexture = ~0u;
+        AssetID albedoID = AssetDB::pathToId(j.value("albedoPath", "Textures/missing.wtex"));
+        materialInfo.referencedTextures.push_back(albedoID);
+        material.albedoTexture = tm->loadAndGetAsync(albedoID);
+        material.normalTexture = INVALID_ASSET;
+        material.mraTexture = INVALID_ASSET;
 
         if (j.contains("normalMapPath"))
         {
-            mai.normalID = AssetDB::pathToId(j["normalMapPath"].get<std::string>());
-            material.normalTexture = tm->loadAndGetAsync(mai.normalID);
+            AssetID normalID = AssetDB::pathToId(j["normalMapPath"].get<std::string>());
+            materialInfo.referencedTextures.push_back(normalID);
+            material.normalTexture = tm->loadAndGetAsync(normalID);
         }
 
         if (j.contains("pbrMapPath"))
         {
-            mai.mraID = AssetDB::pathToId(j["pbrMapPath"].get<std::string>());
-            material.mraTexture = tm->loadAndGetAsync(mai.mraID);
+            AssetID mraID = AssetDB::pathToId(j["pbrMapPath"].get<std::string>());
+            materialInfo.referencedTextures.push_back(mraID);
+            material.mraTexture = tm->loadAndGetAsync(mraID);
         }
 
         material.defaultMetallic = j.value("metallic", 0.0f);
@@ -145,16 +137,17 @@ namespace worlds
         {
             material.setFlags(1);
         }
-        material.setCutoff(j.value("alphaCutoff", 0.0));
+
+        material.setCutoff(j.value("alphaCutoff", 0.0f));
         if (j.value("alphaCutoff", 0.0) > 1 / 256.f)
         {
-            mai.alphaTest = true;
+            materialInfo.alphaTest = true;
         }
 
-        renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), mai.offset);
-        allocedMaterials[id] = mai;
+        renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), materialInfo.offset);
+        allocedMaterials[id] = materialInfo;
 
-        return mai.offset;
+        return materialInfo.offset;
     }
 
     uint32_t RenderMaterialManager::GetMaterial(AssetID id)
@@ -162,21 +155,22 @@ namespace worlds
         return allocedMaterials.at(id).offset;
     }
 
-    bool RenderMaterialManager::IsMaterialAlphaTest(AssetID id)
+    const MaterialInfo& RenderMaterialManager::GetMaterialInfo(AssetID id)
     {
-        return allocedMaterials.at(id).alphaTest;
+        return allocedMaterials.at(id);
     }
 
     void RenderMaterialManager::Unload(AssetID id)
     {
-        MaterialAllocInfo mai = allocedMaterials.at(id);
+        MaterialInfo mai = allocedMaterials.at(id);
         materialBuffer->Free(mai.handle);
         allocedMaterials.erase(id);
 
         VKTextureManager* tm = renderer->getTextureManager();
-        if (mai.albedoID != ~0u) tm->release(mai.albedoID);
-        if (mai.normalID != ~0u) tm->release(mai.normalID);
-        if (mai.mraID != ~0u) tm->release(mai.mraID);
+        for (AssetID texId : mai.referencedTextures)
+        {
+            tm->release(texId);
+        }
     }
 
     robin_hood::unordered_map<AssetID, int> materialRefCounts;
