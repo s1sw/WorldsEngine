@@ -64,7 +64,7 @@ if(WORLDS_USE_ASSIMP)
     FetchContent_MakeAvailable(ASSIMP)
 endif()
 
-project(EngineLibrary)
+project(EngineLibrary VERSION 0.2.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 
@@ -103,6 +103,8 @@ endif()
 
 add_library(${PROJECT_NAME} STATIC ${wsrc})
 target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_STEAM_AUDIO)
+configure_file(BuildInfo.hpp.in BuildInfo.hpp @ONLY)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 if(WORLDS_USE_ASSIMP)
     target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_ASSIMP)

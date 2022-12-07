@@ -4,11 +4,11 @@
 #include "Audio/Audio.hpp"
 #include "ImGui/imgui_internal.h"
 #include "Render/Render.hpp"
+#include <BuildInfo.hpp>
 
 namespace worlds
 {
     ImTextureID bgId = nullptr;
-    ImTextureID bradnoId = nullptr;
     ImTextureID someoneId = nullptr;
 
     void AboutWindow::setActive(bool active)
@@ -16,52 +16,14 @@ namespace worlds
         this->active = active;
         IUITextureManager* texMan = interfaces.renderer->getUITextureManager();
         bgId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/worlds_no_logo.png"));
-        bradnoId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/bradno.png"));
         someoneId = texMan->loadOrGet(AssetDB::pathToId("UI/Editor/Images/someone_avatar.png"));
     }
-
-    ImVec2 rotatePoint(ImVec2 p, float angle)
-    {
-        float s = sin(angle);
-        float c = cos(angle);
-
-        float xnew = p.x * c - p.y * s;
-        float ynew = p.x * s + p.y * c;
-
-        return ImVec2(xnew, ynew);
-    }
-
-    const SDL_Scancode bradnoCode[] = {SDL_SCANCODE_B, SDL_SCANCODE_R, SDL_SCANCODE_A,
-                                       SDL_SCANCODE_D, SDL_SCANCODE_N, SDL_SCANCODE_O};
-
-    int bradnoPosition = 0;
-    float lastBradnoTime = 0.0f;
-    bool showBradno = false;
 
     void AboutWindow::draw(entt::registry&)
     {
         // ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
         if (ImGui::Begin("About", &active))
         {
-            if (ImGui::GetTime() - lastBradnoTime > 7.0f)
-            {
-                bradnoPosition = 0;
-                showBradno = false;
-            }
-
-            if (ImGui::GetIO().KeysDownDuration[bradnoCode[bradnoPosition]] == 0.0f)
-            {
-                lastBradnoTime = ImGui::GetTime();
-                bradnoPosition++;
-                if (bradnoPosition >= (int)sizeof(bradnoCode) / (int)sizeof(bradnoCode[0]))
-                {
-                    showBradno = true;
-                    AudioSystem::getInstance()->playOneShotClip(AssetDB::pathToId("Audio/SFX/smooch.ogg"),
-                                                                glm::vec3{0.0f}, false, 0.4f);
-                    bradnoPosition = 0;
-                }
-            }
-
             ImVec2 logoSize{494, 174};
             auto screenCursorPos =
                 ImGui::GetCursorScreenPos() + ImVec2(ImGui::GetWindowWidth() / 2.0f - logoSize.x / 2.0f, 0.0f);
@@ -88,6 +50,7 @@ namespace worlds
             drawList->AddCircleFilled(outerPos, 4.0f, ImColor(1.0f, 1.0f, 1.0f), 32);
 
             ImGui::SetCursorPos(ImGui::GetCursorStartPos() + ImVec2(0, 174 + 5));
+            ImGui::Text("Worlds Engine v%s", WORLDS_VERSION);
             ImGui::Image(someoneId, ImVec2(32.0f, 32.0f));
             ImGui::SameLine();
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.0f);
@@ -98,7 +61,7 @@ namespace worlds
             ImGui::Text(" - PhysX");
             ImGui::Text(" - Dear ImGUI");
             ImGui::Text(" - stb_image");
-            ImGui::Text(" - sajson");
+            ImGui::Text(" - JSON for Modern C++");
             ImGui::Text(" - crunch");
             ImGui::Text(" - VulkanMemoryAllocator");
             ImGui::Text(" - moodycamel readerwriterqueue");
@@ -116,39 +79,16 @@ namespace worlds
 
             {
                 ImGui::SetCursorPosX(cursorX);
-                ImGui::Text(" - PixHammer for the physics hands help");
+                ImGui::Text(" - PixHammer");
                 ImGui::SetCursorPosX(cursorX);
-                ImGui::Text(" - SLZ for making the game that started this mess");
+                ImGui::Text(" - Maranara");
                 ImGui::SetCursorPosX(cursorX);
-                ImGui::Text(" - Maranara for");
+                ImGui::Text(" - Tabloid");
                 ImGui::SetCursorPosX(cursorX);
-                ImGui::Text(" - Tabloid for motivation");
-            }
-
-            if (showBradno)
-            {
-                for (int i = 0; i < 15; i++)
-                {
-                    ImGui::SetCursorPosX(cursorX);
-                    ImGui::Text("- bradno");
-                }
+                ImGui::Text(" - The Graphics Programming Discord server");
             }
 
             ImGui::SetCursorPosX(cursorX);
-            auto bradnoPos = ImGui::GetCursorPos() + ImGui::GetWindowPos() + ImVec2(0, 100);
-            const int BRADNO_HALF_WIDTH = 145;
-            const int BRADNO_HALF_HEIGHT = 115;
-
-            float angle = currTime * 2.0f;
-
-            auto bradnoCenter = bradnoPos + (ImVec2(290, 230) / 2);
-            auto p1 = bradnoCenter + rotatePoint(ImVec2(-BRADNO_HALF_WIDTH, -BRADNO_HALF_HEIGHT), angle);
-            auto p2 = bradnoCenter + rotatePoint(ImVec2(BRADNO_HALF_WIDTH, -BRADNO_HALF_HEIGHT), angle);
-            auto p3 = bradnoCenter + rotatePoint(ImVec2(BRADNO_HALF_WIDTH, BRADNO_HALF_HEIGHT), angle);
-            auto p4 = bradnoCenter + rotatePoint(ImVec2(-BRADNO_HALF_WIDTH, BRADNO_HALF_HEIGHT), angle);
-
-            if (showBradno)
-                drawList->AddImageQuad(bradnoId, p1, p2, p3, p4);
         }
         ImGui::End();
         // ImGui::PopStyleColor();
