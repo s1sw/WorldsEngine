@@ -44,7 +44,7 @@ R2ImplState* getImplState()
     return static_cast<R2ImplState*>(ImGui::GetIO().BackendRendererUserData);
 }
 
-void ImGui_ImplR2_CreateFontTextureAndDS();
+void ImGui_ImplR2_CreateFontTexture();
 
 bool ImGui_ImplR2_Init(VK::Core* renderer, BindlessTextureManager* btm)
 {
@@ -52,7 +52,7 @@ bool ImGui_ImplR2_Init(VK::Core* renderer, BindlessTextureManager* btm)
     io.BackendRendererName = "R2";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
-    R2ImplState* s = new R2ImplState{};
+    auto* s = new R2ImplState{};
     s->core = renderer;
     s->textureManager = btm;
     io.BackendRendererUserData = s;
@@ -64,12 +64,12 @@ bool ImGui_ImplR2_Init(VK::Core* renderer, BindlessTextureManager* btm)
 
     VK::VertexBinding vertexBinding{};
     vertexBinding.Binding = 0;
-    vertexBinding.Attributes.push_back(
-        VK::VertexAttribute{0, VK::TextureFormat::R32G32_SFLOAT, offsetof(ImDrawVert, pos)});
-    vertexBinding.Attributes.push_back(
-        VK::VertexAttribute{1, VK::TextureFormat::R32G32_SFLOAT, offsetof(ImDrawVert, uv)});
-    vertexBinding.Attributes.push_back(
-        VK::VertexAttribute{2, VK::TextureFormat::R8G8B8A8_UNORM, offsetof(ImDrawVert, col)});
+    vertexBinding.Attributes.emplace_back(
+        0, VK::TextureFormat::R32G32_SFLOAT, (uint32_t)offsetof(ImDrawVert, pos));
+    vertexBinding.Attributes.emplace_back(
+        1, VK::TextureFormat::R32G32_SFLOAT, (uint32_t)offsetof(ImDrawVert, uv));
+    vertexBinding.Attributes.emplace_back(
+        2, VK::TextureFormat::R8G8B8A8_UNORM, (uint32_t)offsetof(ImDrawVert, col));
     vertexBinding.Size = sizeof(ImDrawVert);
 
     VK::ShaderModule fsm{renderer->GetHandles(), ImGuiFS, sizeof(ImGuiFS)};
@@ -77,16 +77,16 @@ bool ImGui_ImplR2_Init(VK::Core* renderer, BindlessTextureManager* btm)
 
     VK::PipelineBuilder pb{renderer};
     s->pipeline = pb.PrimitiveTopology(VK::Topology::TriangleList)
-                      .CullMode(VK::CullMode::None)
-                      .Layout(s->pipelineLayout)
-                      .ColorAttachmentFormat(VK::TextureFormat::B8G8R8A8_SRGB)
-                      .AddVertexBinding(vertexBinding)
-                      .AddShader(VK::ShaderStage::Fragment, fsm)
-                      .AddShader(VK::ShaderStage::Vertex, vsm)
-                      .AlphaBlend(true)
-                      .Build();
+                    .CullMode(VK::CullMode::None)
+                    .Layout(s->pipelineLayout)
+                    .ColorAttachmentFormat(VK::TextureFormat::B8G8R8A8_SRGB)
+                    .AddVertexBinding(vertexBinding)
+                    .AddShader(VK::ShaderStage::Fragment, fsm)
+                    .AddShader(VK::ShaderStage::Vertex, vsm)
+                    .AlphaBlend(true)
+                    .Build();
 
-    ImGui_ImplR2_CreateFontTextureAndDS();
+    ImGui_ImplR2_CreateFontTexture();
 
     return true;
 }
@@ -109,7 +109,7 @@ void ImGui_ImplR2_NewFrame()
 {
 }
 
-void ImGui_ImplR2_CreateFontTextureAndDS()
+void ImGui_ImplR2_CreateFontTexture()
 {
     R2ImplState* s = getImplState();
 
@@ -118,7 +118,7 @@ void ImGui_ImplR2_CreateFontTextureAndDS()
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
-    VK::TextureCreateInfo tci = VK::TextureCreateInfo::Texture2D(VK::TextureFormat::R8G8B8A8_SRGB, width, height);
+    auto tci = VK::TextureCreateInfo::Texture2D(VK::TextureFormat::R8G8B8A8_SRGB, width, height);
     s->fontTexture = s->core->CreateTexture(tci);
 
     s->core->QueueTextureUpload(s->fontTexture, pixels, 4 * width * height);
@@ -136,10 +136,9 @@ void ImGui_ImplR2_CreateFontTextureAndDS()
                      .Build();
 }
 
-void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
+void resizeBuffersIfNecessary(ImDrawData* drawData, R2ImplState* s)
 {
-    R2ImplState* s = getImplState();
-    int frameIdx = s->core->GetFrameIndex();
+    uint32_t frameIdx = s->core->GetFrameIndex();
     R2::VK::Buffer*& vertexBuffer = s->vertexBuffers[frameIdx];
     R2::VK::Buffer*& indexBuffer = s->indexBuffers[frameIdx];
 
@@ -178,9 +177,19 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
         s->indexBuffers[frameIdx] = s->core->CreateBuffer(bci);
         indexBuffer->SetDebugName("ImGui Index Buffer");
     }
+}
 
-    ImDrawVert* verts = static_cast<ImDrawVert*>(vertexBuffer->Map());
-    ImDrawIdx* indices = static_cast<ImDrawIdx*>(indexBuffer->Map());
+void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
+{
+    R2ImplState* s = getImplState();
+    uint32_t frameIdx = s->core->GetFrameIndex();
+    R2::VK::Buffer*& vertexBuffer = s->vertexBuffers[frameIdx];
+    R2::VK::Buffer*& indexBuffer = s->indexBuffers[frameIdx];
+
+    resizeBuffersIfNecessary(drawData, s);
+
+    auto* verts = (ImDrawVert*)vertexBuffer->Map();
+    auto* indices = (ImDrawIdx*)indexBuffer->Map();
 
     for (int i = 0; i < drawData->CmdListsCount; i++)
     {
@@ -208,9 +217,9 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
 
     cb.PushConstants(pcs, VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, s->pipelineLayout);
 
-    int global_idx_offset = 0;
-    int global_vtx_offset = 0;
-    ImVec2 clip_off = drawData->DisplayPos;
+    int globalIndexOffset = 0;
+    int globalVertexOffset = 0;
+    ImVec2 clipOffset = drawData->DisplayPos;
     R2::VK::DescriptorSet& ds = s->textureManager->GetTextureDescriptorSet();
     cb.BindGraphicsDescriptorSet(s->pipelineLayout, &ds, 0);
     cb.BindIndexBuffer(indexBuffer, 0, VK::IndexType::Uint16);
@@ -219,48 +228,50 @@ void ImGui_ImplR2_RenderDrawData(ImDrawData* drawData, VK::CommandBuffer& cb)
 
     for (int n = 0; n < drawData->CmdListsCount; n++)
     {
-        const ImDrawList* cmd_list = drawData->CmdLists[n];
-        for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
+        const ImDrawList* cmdList = drawData->CmdLists[n];
+        for (int cmdIndex = 0; cmdIndex < cmdList->CmdBuffer.Size; cmdIndex++)
         {
-            const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
-            if (pcmd->UserCallback != NULL)
+            const ImDrawCmd* pcmd = &cmdList->CmdBuffer[cmdIndex];
+            if (pcmd->UserCallback != nullptr)
             {
-                // User callback, registered via ImDrawList::AddCallback()
-                // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer
-                // to reset render state.)
-                // if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
-                //    ImGui_ImplDX11_SetupRenderState(draw_data, ctx);
-                // else
-                //    pcmd->UserCallback(cmd_list, pcmd);
+                if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
+                {
+                    cb.BindGraphicsDescriptorSet(s->pipelineLayout, &ds, 0);
+                    cb.BindIndexBuffer(indexBuffer, 0, VK::IndexType::Uint16);
+                    cb.BindVertexBuffer(0, vertexBuffer, 0);
+                    cb.BindPipeline(s->pipeline);
+                }
+                else
+                    pcmd->UserCallback(cmdList, pcmd);
             }
             else
             {
                 // Project scissor/clipping rectangles into framebuffer space
-                ImVec2 clip_min(pcmd->ClipRect.x - clip_off.x, pcmd->ClipRect.y - clip_off.y);
-                ImVec2 clip_max(pcmd->ClipRect.z - clip_off.x, pcmd->ClipRect.w - clip_off.y);
-                if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
+                ImVec2 clipMin(pcmd->ClipRect.x - clipOffset.x, pcmd->ClipRect.y - clipOffset.y);
+                ImVec2 clipMax(pcmd->ClipRect.z - clipOffset.x, pcmd->ClipRect.w - clipOffset.y);
+                if (clipMax.x <= clipMin.x || clipMax.y <= clipMin.y)
                     continue;
 
                 // Apply scissor/clipping rectangle
 
                 pcs.textureID = (uint32_t)(uintptr_t)pcmd->GetTexID();
-                cb.PushConstants(pcs, VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, s->pipelineLayout);
+                cb.PushConstants(pcs, VK::ShaderStage::AllRaster, s->pipelineLayout);
 
-                int clipX = (int)clip_min.x;
-                int clipY = (int)clip_min.y;
-                uint32_t clipW = (uint32_t)(clip_max.x - clip_min.x);
-                uint32_t clipH = (uint32_t)(clip_max.y - clip_min.y);
+                int clipX = (int)clipMin.x;
+                int clipY = (int)clipMin.y;
+                auto clipW = (uint32_t)(clipMax.x - clipMin.x);
+                auto clipH = (uint32_t)(clipMax.y - clipMin.y);
 
                 VK::ScissorRect sr{clipX, clipY, clipW, clipH};
 
                 cb.SetScissor(sr);
 
-                cb.DrawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset,
-                               pcmd->VtxOffset + global_vtx_offset, 0);
+                cb.DrawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + globalIndexOffset,
+                               (int)pcmd->VtxOffset + globalVertexOffset, 0);
             }
         }
 
-        global_idx_offset += cmd_list->IdxBuffer.Size;
-        global_vtx_offset += cmd_list->VtxBuffer.Size;
+        globalIndexOffset += cmdList->IdxBuffer.Size;
+        globalVertexOffset += cmdList->VtxBuffer.Size;
     }
 }
