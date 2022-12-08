@@ -86,6 +86,7 @@ namespace worlds
         std::vector<std::string> getRequiredInstanceExtensions();
         std::vector<std::string> getRequiredDeviceExtensions();
         void init();
+        std::string getSystemName();
 
         void getRenderResolution(uint32_t* x, uint32_t* y);
         const UnscaledTransform& getEyeTransform(Eye eye);

@@ -295,7 +295,6 @@ namespace worlds
             // using debug layers, so we just ignore its request
             if (ext.find("debug_marker") == std::string::npos)
             {
-                logMsg("parsed extension %s", ext.c_str());
                 extList.push_back(ext);
             }
             it++;
@@ -436,6 +435,14 @@ namespace worlds
             XRCHECK(xrCreateSwapchain(session, &swapchainCreateInfo, &swapchain));
             swapchains.emplace_back(swapchain);
         }
+    }
+
+    std::string OpenXRInterface::getSystemName()
+    {
+        XrSystemProperties systemProperties{ XR_TYPE_SYSTEM_PROPERTIES };
+        XRCHECK(xrGetSystemProperties(instance, systemId, &systemProperties));
+
+        return { systemProperties.systemName };
     }
 
     OpenXRInterface::~OpenXRInterface()
