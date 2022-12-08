@@ -21,6 +21,7 @@ ConstantBuffer<MultiVP> VPBuffer;
 cbuffer PC
 {
     uint forView;
+    uint mode;
 };
 
 struct VertexOutput
@@ -34,7 +35,10 @@ VertexOutput main(VertexInput input, uint viewId : SV_ViewID)
     VertexOutput output;
 
     float2 vPos = input.Position;
-    output.Position = mul(VPBuffer.ProjectionMatrices[viewId], float4(vPos, -1.0, 1.0));
+    if (mode == 0)
+        output.Position = mul(VPBuffer.ProjectionMatrices[viewId], float4(vPos, -1.0, 1.0));
+    else
+        output.Position = float4(vPos, 1.0, 1.0);
     output.Position.y = -output.Position.y;
     output.Position.z = 1.0;
 

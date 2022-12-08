@@ -31,6 +31,7 @@ namespace worlds
         uint32_t leftIndexCount;
         uint32_t rightIndexCount;
         uint32_t leftVertCount;
+        bool meshIsNdc = false;
     public:
         HiddenMeshRenderer(const EngineInterfaces& interfaces, int sampleCount, R2::VK::Buffer* vpBuffer);
         void Execute(R2::VK::CommandBuffer& cb);

@@ -5,11 +5,48 @@
 #include <Render/ShaderCache.hpp>
 #include <R2/VK.hpp>
 #include <VR/OpenXRInterface.hpp>
+#include <stdio.h>
+#include <Core/ConVar.hpp>
 
 using namespace R2;
 
 namespace worlds
 {
+    void saveHiddenAreaMesh(HiddenAreaMesh& mesh, const char* path, glm::mat4 proj)
+    {
+        FILE* f = fopen(path, "wb");
+        uint32_t vertexCount = mesh.verts.size();
+        fwrite(&vertexCount, sizeof(vertexCount), 1, f);
+        uint32_t indexCount = mesh.indices.size();
+        fwrite(&indexCount, sizeof(indexCount), 1, f);
+
+        std::vector<glm::vec2> transformedVerts;
+        transformedVerts.resize(mesh.verts.size());
+        for (uint32_t i = 0; i < vertexCount; i++)
+        {
+            transformedVerts[i] = proj * glm::vec4(mesh.verts[i], -1.0, 1.0);
+        }
+
+        fwrite(transformedVerts.data(), sizeof(glm::vec2), transformedVerts.size(), f);
+        fwrite(mesh.indices.data(), sizeof(uint32_t), mesh.indices.size(), f);
+        fclose(f);
+    }
+
+    void loadHiddenAreaMesh(HiddenAreaMesh& mesh, const char* path, glm::mat4 proj)
+    {
+        PHYSFS_File* file = PHYSFS_openRead(path);
+        uint32_t vertexCount, indexCount;
+        PHYSFS_readBytes(file, &vertexCount, sizeof(vertexCount));
+        PHYSFS_readBytes(file, &indexCount, sizeof(indexCount));
+
+        mesh.verts.resize(vertexCount);
+        mesh.indices.resize(indexCount);
+
+        PHYSFS_readBytes(file, mesh.verts.data(), sizeof(glm::vec2) * vertexCount);
+        PHYSFS_readBytes(file, mesh.indices.data(), sizeof(uint32_t) * indexCount);
+        PHYSFS_close(file);
+    }
+
     HiddenMeshRenderer::HiddenMeshRenderer(const EngineInterfaces& interfaces, int sampleCount, VK::Buffer* vpBuffer)
         : interfaces(interfaces)
         , leftIndexCount(0)
@@ -25,7 +62,27 @@ namespace worlds
             !interfaces.vrInterface->getHiddenAreaMesh(Eye::RightEye, rightMesh))
         {
             logWarn(WELogCategoryRender, "VR hidden area mesh was empty");
-            return;
+            if (interfaces.vrInterface->getSystemName() == "SteamVR/OpenXR : oculus")
+            {
+                logMsg(WELogCategoryRender, "Falling back to built-in Q2 mesh...");
+                const auto& projL = interfaces.vrInterface->getEyeProjectionMatrix(Eye::LeftEye);
+                const auto& projR = interfaces.vrInterface->getEyeProjectionMatrix(Eye::RightEye);
+                loadHiddenAreaMesh(leftMesh, "VR/quest2_left_eye_mesh.bin", projL);
+                loadHiddenAreaMesh(rightMesh, "VR/quest2_right_eye_mesh.bin", projR);
+                meshIsNdc = true;
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        if (!meshIsNdc)
+        {
+            const auto &projL = interfaces.vrInterface->getEyeProjectionMatrix(Eye::LeftEye);
+            const auto &projR = interfaces.vrInterface->getEyeProjectionMatrix(Eye::RightEye);
+            saveHiddenAreaMesh(leftMesh, "quest2_left_eye_mesh.bin", projL);
+            saveHiddenAreaMesh(rightMesh, "quest2_right_eye_mesh.bin", projR);
         }
 
         uint64_t totalVerts = leftMesh.verts.size() + rightMesh.verts.size();
@@ -91,9 +148,18 @@ namespace worlds
         leftVertCount = leftMesh.verts.size();
     }
 
+    struct HiddenPushConstants
+    {
+        uint32_t view;
+        uint32_t mode;
+    };
+
+    ConVar enableCullMesh { "r_enableCullMesh", "1" };
+
     void HiddenMeshRenderer::Execute(VK::CommandBuffer& cb)
     {
         if (leftIndexCount == 0 || rightIndexCount == 0) return;
+        if (!enableCullMesh.getInt()) return;
 
         cb.BindVertexBuffer(0, vertexBuffer.Get(), 0);
         cb.BindIndexBuffer(indexBuffer.Get(), 0, VK::IndexType::Uint32);
@@ -101,12 +167,14 @@ namespace worlds
         cb.BindPipeline(pipeline.Get());
         cb.BindGraphicsDescriptorSet(pipelineLayout.Get(), ds.Get(), 0);
 
-        uint32_t view = 0;
-        cb.PushConstants(view, VK::ShaderStage::Vertex, pipelineLayout.Get());
+        HiddenPushConstants pcs{};
+        pcs.mode = meshIsNdc ? 1 : 0;
+        pcs.view = 0;
+        cb.PushConstants(pcs, VK::ShaderStage::Vertex, pipelineLayout.Get());
         cb.DrawIndexed(leftIndexCount, 1, 0, 0, 0);
 
-        view = 1;
-        cb.PushConstants(view, VK::ShaderStage::Vertex, pipelineLayout.Get());
+        pcs.view = 1;
+        cb.PushConstants(pcs, VK::ShaderStage::Vertex, pipelineLayout.Get());
         cb.DrawIndexed(rightIndexCount, 1, leftIndexCount, (int)leftVertCount, 0);
     }
 }
