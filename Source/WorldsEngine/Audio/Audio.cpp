@@ -298,21 +298,26 @@ namespace worlds
     FMOD_RESULT audioSourcePhononEventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE* cevent,
                                                void* param)
     {
-        if (type != FMOD_STUDIO_EVENT_CALLBACK_CREATED)
-            return FMOD_OK;
-
         auto* event = (FMOD::Studio::EventInstance*)cevent;
 
         IPLSource source;
 
         FMCHECK(event->getUserData((void**)&source));
-        FMOD::DSP* dsp;
-        FMCHECK(findSteamAudioDSP(event, &dsp));
+        if (type == FMOD_STUDIO_EVENT_CALLBACK_CREATED)
+        {
+            FMOD::DSP* dsp;
+            FMCHECK(findSteamAudioDSP(event, &dsp));
 
-        // The FMOD plugin says here that it wants the simulation outputs.
-        // However, this is wrong. The code is actually looking for the IPLSource attached
-        // to the Steam Audio source!
-        FMCHECK(dsp->setParameterData(SpatializerEffect::SIMULATION_OUTPUTS, &source, sizeof(IPLSource)));
+            // The FMOD plugin says here that it wants the simulation outputs.
+            // However, this is wrong. The code is actually looking for the IPLSource attached
+            // to the Steam Audio source!
+            FMCHECK(dsp->setParameterData(SpatializerEffect::SIMULATION_OUTPUTS, &source, sizeof(IPLSource)));
+        }
+        else
+        {
+            iplSourceRelease(&source);
+        }
+
 
         return FMOD_OK;
     }
@@ -370,7 +375,7 @@ namespace worlds
             std::unique_lock lock{_this->simThread->commitMutex};
 
             eventInstance->setUserData(phononSource);
-            eventInstance->setCallback(audioSourcePhononEventCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATED);
+            eventInstance->setCallback(audioSourcePhononEventCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATED | FMOD_STUDIO_EVENT_CALLBACK_DESTROYED);
         }
     }
 
