@@ -235,7 +235,7 @@ namespace worlds
         dslb.Binding(4, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
         dslb.UpdateAfterBind();
         dslb.Binding(5, VK::DescriptorType::StorageBuffer, 1, VK::ShaderStage::AllRaster);
-        dslb.Binding(6, VK::DescriptorType::UniformBuffer, 1, VK::ShaderStage::Fragment);
+        dslb.Binding(6, VK::DescriptorType::UniformBuffer, 1, VK::ShaderStage::AllRaster);
         descriptorSetLayout = dslb.Build();
 
         for (int i = 0; i < 2; i++)
@@ -430,6 +430,7 @@ namespace worlds
         StandardDrawCommand* drawCmds;
         std::atomic<uint32_t> drawIdCounter = 0;
         bool onlyStatics = false;
+        robin_hood::unordered_map<uint32_t, uint32_t>* customShaderTechniques;
 
         FillDrawBufferTask(VKRenderer* renderer, entt::registry& reg) : renderer(renderer), reg(reg)
         {
@@ -491,6 +492,27 @@ namespace worlds
                     drawCmd.vertexOffset = rmi->vertsOffset / sizeof(Vertex);
                     drawCmd.variantFlags = materialInfo.alphaTest ? VariantFlags::AlphaTest : VariantFlags::None;
 
+                    if (materialInfo.fragmentShader != INVALID_ASSET || materialInfo.vertexShader != INVALID_ASSET)
+                    {
+                        AssetID fragShaderID = materialInfo.fragmentShader;
+                        AssetID vertShaderID = materialInfo.vertexShader;
+                        AssetID standardFragID = AssetDB::pathToId("Shaders/standard.frag.spv");
+                        AssetID standardVertID = AssetDB::pathToId("Shaders/standard.vert.spv");
+
+                        if (fragShaderID == INVALID_ASSET)
+                            fragShaderID = standardFragID;
+
+                        if (vertShaderID == INVALID_ASSET)
+                            vertShaderID = standardVertID;
+
+                        // Based on https://stackoverflow.com/a/2595226
+                        uint32_t key = vertShaderID;
+                        key ^= fragShaderID + 0x9e3779b9 + (key << 6) + (key >> 2);
+
+                        releaseAssert(customShaderTechniques->contains(key));
+                        drawCmd.techniqueIdx = customShaderTechniques->at(key);
+                    }
+
                     drawCmds[drawId] = drawCmd;
                     gpuDrawInfos[drawId] = di;
                 }
@@ -540,6 +562,7 @@ namespace worlds
         StandardDrawCommand* drawCmds;
         std::atomic<uint32_t>& drawIdCounter;
         bool onlyStatics = false;
+        robin_hood::unordered_map<uint32_t, uint32_t>* customShaderTechniques;
 
         FillDrawBufferSkinnedTask(VKRenderer* renderer, entt::registry& reg, std::atomic<uint32_t>& drawIdCounter)
             : renderer(renderer), reg(reg), drawIdCounter(drawIdCounter)
@@ -594,6 +617,27 @@ namespace worlds
                     drawCmd.vertexOffset = wo.skinnedVertexOffset + (renderer->getMeshManager()->getSkinnedVertsOffset() / sizeof(Vertex));
                     drawCmd.variantFlags = materialInfo.alphaTest ? VariantFlags::AlphaTest : VariantFlags::None;
 
+                    if (materialInfo.fragmentShader != INVALID_ASSET || materialInfo.vertexShader != INVALID_ASSET)
+                    {
+                        AssetID fragShaderID = materialInfo.fragmentShader;
+                        AssetID vertShaderID = materialInfo.vertexShader;
+                        AssetID standardFragID = AssetDB::pathToId("Shaders/standard.frag.spv");
+                        AssetID standardVertID = AssetDB::pathToId("Shaders/standard.vert.spv");
+
+                        if (fragShaderID == INVALID_ASSET)
+                            fragShaderID = standardFragID;
+
+                        if (vertShaderID == INVALID_ASSET)
+                            vertShaderID = standardVertID;
+
+                        // Based on https://stackoverflow.com/a/2595226
+                        uint32_t key = vertShaderID;
+                        key = fragShaderID + 0x9e3779b9 + (key << 6) + (key >> 2);
+
+                        releaseAssert(customShaderTechniques->contains(key));
+                        drawCmd.techniqueIdx = customShaderTechniques->at(key);
+                    }
+
                     drawCmds[drawId] = drawCmd;
                     gpuDrawInfos[drawId] = di;
                 }
@@ -613,6 +657,80 @@ namespace worlds
         VKTextureManager* textureManager = renderer->getTextureManager();
         uint32_t frameIdx = renderer->getCore()->GetFrameIndex();
         // RenderMaterialManager::UnloadUnusedMaterials(reg);
+
+        // Load necessary material techniques
+        reg.view<WorldObject>().each([&](WorldObject& wo) {
+            for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+            {
+                if (!wo.presentMaterials[i]) continue;
+                AssetID material = wo.materials[i];
+                if (!RenderMaterialManager::IsMaterialLoaded(material)) continue;
+                const MaterialInfo& info = RenderMaterialManager::GetMaterialInfo(material);
+
+                if (info.fragmentShader != INVALID_ASSET || info.vertexShader != INVALID_ASSET)
+                {
+                    AssetID fragShaderID = info.fragmentShader;
+                    AssetID vertShaderID = info.vertexShader;
+                    AssetID standardFragID = AssetDB::pathToId("Shaders/standard.frag.spv");
+                    AssetID standardVertID = AssetDB::pathToId("Shaders/standard.vert.spv");
+
+                    if (fragShaderID == INVALID_ASSET)
+                        fragShaderID = standardFragID;
+
+                    if (vertShaderID == INVALID_ASSET)
+                        vertShaderID = standardVertID;
+
+                    // Based on https://stackoverflow.com/a/2595226
+                    uint32_t key = vertShaderID;
+                    key ^= fragShaderID + 0x9e3779b9 + (key << 6) + (key >> 2);
+
+                    if (customShaderTechniques.contains(key)) continue;
+
+                    VK::VertexBinding vb;
+                    vb.Size = sizeof(Vertex);
+                    vb.Binding = 0;
+                    vb.Attributes.emplace_back(0, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+                    vb.Attributes.emplace_back(1, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, normal));
+                    vb.Attributes.emplace_back(2, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, tangent));
+                    vb.Attributes.emplace_back(3, VK::TextureFormat::R32_SFLOAT, (uint32_t)offsetof(Vertex, bitangentSign));
+                    vb.Attributes.emplace_back(4, VK::TextureFormat::R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
+
+                    AssetID depthFS = AssetDB::pathToId("Shaders/standard_empty.frag.spv");
+                    AssetID depthAlphaTestFS = AssetDB::pathToId("Shaders/standard_alpha_test.frag.spv");
+
+                    VK::ShaderModule& mainFragModule = ShaderCache::getModule(fragShaderID);
+                    VK::ShaderModule& mainVertModule = ShaderCache::getModule(vertShaderID);
+                    VK::ShaderModule& depthFragModule = ShaderCache::getModule(depthFS);
+                    VK::ShaderModule& depthAlphaTestModule = ShaderCache::getModule(depthAlphaTestFS);
+
+                    uint32_t techniqueId = techniqueManager->createTechnique();
+
+                    VK::PipelineBuilder pb{core};
+                    setupMainPassPipeline(pb, vb);
+                    pb.AddShader(VK::ShaderStage::Vertex, mainVertModule)
+                      .AddShader(VK::ShaderStage::Fragment, mainFragModule);
+
+                    techniqueManager->registerVariant(techniqueId, pb.Build(), VariantFlags::None);
+                    techniqueManager->registerVariant(techniqueId, pb.Build(), VariantFlags::AlphaTest);
+
+                    VK::PipelineBuilder pb2{core};
+                    setupDepthPassPipeline(pb2, vb);
+                    pb2.AddShader(VK::ShaderStage::Vertex, mainVertModule)
+                       .AddShader(VK::ShaderStage::Fragment, fragShaderID == standardFragID ? depthFragModule : mainFragModule);
+
+                    techniqueManager->registerVariant(techniqueId, pb2.Build(), VariantFlags::DepthPrepass);
+
+                    VK::PipelineBuilder pb3{core};
+                    setupDepthPassPipeline(pb3, vb);
+                    pb3.AddShader(VK::ShaderStage::Vertex, mainVertModule)
+                       .AddShader(VK::ShaderStage::Fragment, fragShaderID == standardFragID ? depthAlphaTestModule : mainFragModule)
+                       .AlphaToCoverage(true);
+                    techniqueManager->registerVariant(techniqueId, pb3.Build(), VariantFlags::DepthPrepass | VariantFlags::AlphaTest);
+
+                    customShaderTechniques.insert({ key, techniqueId });
+                }
+            }
+        });
 
         SceneGlobals* globals = (SceneGlobals*)sceneGlobals->Map();
         globals->time = renderer->getTime();
@@ -705,6 +823,7 @@ namespace worlds
         fdbTask.gpuDrawInfos = drawInfosMapped;
         fdbTask.drawCmds = drawCmds.data();
         fdbTask.onlyStatics = rttPass->getSettings().staticsOnly;
+        fdbTask.customShaderTechniques = &customShaderTechniques;
 
         fdbTask.m_SetSize = reg.view<WorldObject>().size();
 
@@ -715,6 +834,7 @@ namespace worlds
         fdbsTask.gpuDrawInfos = drawInfosMapped;
         fdbsTask.drawCmds = drawCmds.data();
         fdbsTask.onlyStatics = rttPass->getSettings().staticsOnly;
+        fdbsTask.customShaderTechniques = &customShaderTechniques;
 
         fdbsTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
 
@@ -729,11 +849,6 @@ namespace worlds
         modelMatrixBuffers->UnmapCurrent();
         drawInfoBuffers->UnmapCurrent();
 
-        std::sort(drawCmds.begin(), drawCmds.begin() + fdbTask.drawIdCounter,
-                  [](const StandardDrawCommand& a, const StandardDrawCommand& b)
-                  {
-                    return a.techniqueIdx < b.techniqueIdx;
-                  });
         releaseAssert(fdbTask.drawIdCounter < drawCmds.size());
 
         // Depth Pre-Pass
@@ -762,14 +877,14 @@ namespace worlds
         for (int i = 0; i < fdbTask.drawIdCounter; i++)
         {
             const StandardDrawCommand& drawCmd = drawCmds[i];
-            if (drawCmd.techniqueIdx != lastTechniqueIdx || drawCmd.variantFlags != lastVariantFlags)
-            {
+            //if (drawCmd.techniqueIdx != lastTechniqueIdx || drawCmd.variantFlags != lastVariantFlags)
+            //{
                 // change pipeline to depth pre-pass pipeline for this technique
                 VariantFlags finalFlags = drawCmd.variantFlags | VariantFlags::DepthPrepass;
                 cb.BindPipeline(techniqueManager->getPipelineVariant(drawCmd.techniqueIdx, finalFlags));
-                lastTechniqueIdx = drawCmd.techniqueIdx;
-                lastVariantFlags = lastVariantFlags;
-            }
+                //lastTechniqueIdx = drawCmd.techniqueIdx;
+                //lastVariantFlags = lastVariantFlags;
+            //}
             cb.DrawIndexed(drawCmd.indexCount, 1, drawCmd.firstIndex, drawCmd.vertexOffset, i);
         }
         depthPass.End(cb);
@@ -799,14 +914,14 @@ namespace worlds
         for (int i = 0; i < fdbTask.drawIdCounter; i++)
         {
             const StandardDrawCommand& drawCmd = drawCmds[i];
-            if (drawCmd.techniqueIdx != lastTechniqueIdx || drawCmd.variantFlags != lastVariantFlags)
-            {
+            //if (drawCmd.techniqueIdx != lastTechniqueIdx || drawCmd.variantFlags != lastVariantFlags)
+            //{
                 // change pipeline to main pipeline for this technique
                 VariantFlags finalFlags = drawCmd.variantFlags;
                 cb.BindPipeline(techniqueManager->getPipelineVariant(drawCmd.techniqueIdx, finalFlags));
-                lastTechniqueIdx = drawCmd.techniqueIdx;
-                lastVariantFlags = lastVariantFlags;
-            }
+                //lastTechniqueIdx = drawCmd.techniqueIdx;
+                //lastVariantFlags = lastVariantFlags;
+            //}
             cb.DrawIndexed(drawCmd.indexCount, 1, drawCmd.firstIndex, drawCmd.vertexOffset, i);
         }
 

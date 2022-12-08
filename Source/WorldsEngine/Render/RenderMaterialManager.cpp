@@ -89,6 +89,9 @@ namespace worlds
     uint32_t RenderMaterialManager::LoadOrGetMaterial(AssetID id)
     {
         MaterialInfo materialInfo{};
+        materialInfo.fragmentShader = INVALID_ASSET;
+        materialInfo.vertexShader = INVALID_ASSET;
+
         {
             std::unique_lock lock{mutex};
 
@@ -142,6 +145,16 @@ namespace worlds
         if (j.value("alphaCutoff", 0.0) > 1 / 256.f)
         {
             materialInfo.alphaTest = true;
+        }
+
+        if (j.contains("fragmentShader"))
+        {
+            materialInfo.fragmentShader = AssetDB::pathToId(j["fragmentShader"]);
+        }
+
+        if (j.contains("vertexShader"))
+        {
+            materialInfo.vertexShader = AssetDB::pathToId(j["vertexShader"]);
         }
 
         renderer->getCore()->QueueBufferUpload(materialBuffer->GetBuffer(), &material, sizeof(material), materialInfo.offset);

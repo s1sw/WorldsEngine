@@ -27,6 +27,8 @@ namespace worlds
         R2::SubAllocationHandle handle;
         std::vector<AssetID> referencedTextures;
         bool alphaTest;
+        AssetID fragmentShader;
+        AssetID vertexShader;
     };
 
     class RenderMaterialManager

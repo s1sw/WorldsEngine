@@ -3,6 +3,7 @@
 #include <Util/UniquePtr.hpp>
 #include <vector>
 #include <glm/mat4x4.hpp>
+#include <robin_hood.h>
 
 namespace R2
 {
@@ -109,6 +110,7 @@ namespace worlds
         std::vector<glm::mat4> overrideViews;
         std::vector<glm::mat4> overrideProjs;
         std::vector<StandardDrawCommand> drawCmds;
+        robin_hood::unordered_map<uint32_t, uint32_t> customShaderTechniques;
         uint16_t standardTechnique;
 
         void createSizeDependants();
