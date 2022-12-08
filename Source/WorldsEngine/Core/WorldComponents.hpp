@@ -23,6 +23,11 @@ namespace worlds
         Navigation = 4
     };
 
+    inline StaticFlags operator|(StaticFlags a, StaticFlags b)
+    {
+        return (StaticFlags)((uint8_t)a | (uint8_t)b);
+    }
+
     struct WorldObject
     {
         WorldObject(AssetID material, AssetID mesh)

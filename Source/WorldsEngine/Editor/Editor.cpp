@@ -142,17 +142,19 @@ namespace worlds
         reg.set<EntityFolders>(std::move(folders));
         loadOpenWindows();
 
-        inputManager.addKeydownHandler([&](SDL_Scancode scancode) {
-            ModifierFlags flags = ModifierFlags::None;
+        inputManager.addKeydownHandler(
+            [&](SDL_Scancode scancode) {
+                ModifierFlags flags = ModifierFlags::None;
 
-            if (inputManager.ctrlHeld())
-                flags = flags | ModifierFlags::Control;
+                if (inputManager.ctrlHeld())
+                    flags = flags | ModifierFlags::Control;
 
-            if (inputManager.shiftHeld())
-                flags = flags | ModifierFlags::Shift;
+                if (inputManager.shiftHeld())
+                    flags = flags | ModifierFlags::Shift;
 
-            queuedKeydowns.add({scancode, flags});
-        });
+                queuedKeydowns.add({scancode, flags});
+            }
+        );
 
         g_console->registerCommand(
             [&](const char*) {
@@ -165,7 +167,8 @@ namespace worlds
                     interfaces.engine->loadScene(reg.ctx<SceneInfo>().id);
                 currentState = GameState::Playing;
             },
-            "play", "play.");
+            "play", "play."
+        );
 
         g_console->registerCommand(
             [&](const char*) {
@@ -177,7 +180,8 @@ namespace worlds
                 addNotification("Scene paused");
                 currentState = GameState::Paused;
             },
-            "pauseAndEdit", "pause and edit.");
+            "pauseAndEdit", "pause and edit."
+        );
 
         g_console->registerCommand(
             [&](const char*) {
@@ -188,77 +192,83 @@ namespace worlds
                 interfaces.inputManager->lockMouse(false);
                 currentState = GameState::Editing;
             },
-            "reloadAndEdit", "reload and edit.");
+            "reloadAndEdit", "reload and edit."
+        );
 
         g_console->registerCommand(
             [&](const char*) {
                 interfaces.engine->pauseSim = false;
                 currentState = GameState::Playing;
             },
-            "unpause", "unpause and go back to play mode.");
+            "unpause", "unpause and go back to play mode."
+        );
 
-        EditorActions::addAction(
-            {
-                "scene.save",
-                [&](Editor* ed, entt::registry& reg) {
-                    if (reg.ctx<SceneInfo>().id != ~0u && !inputManager.shiftHeld())
-                    {
-                        AssetID sceneId = reg.ctx<SceneInfo>().id;
-                        if (ed_saveAsJson.getInt())
-                            JsonSceneSerializer::saveScene(sceneId, reg);
-                        else
-                            MessagePackSceneSerializer::saveScene(sceneId, reg);
-
-                        lastSaveModificationCount = undo.modificationCount();
-                    }
+        EditorActions::addAction({
+            "scene.save",
+            [&](Editor* ed, entt::registry& reg) {
+                if (reg.ctx<SceneInfo>().id != ~0u && !inputManager.shiftHeld())
+                {
+                    AssetID sceneId = reg.ctx<SceneInfo>().id;
+                    if (ed_saveAsJson.getInt())
+                        JsonSceneSerializer::saveScene(sceneId, reg);
                     else
-                    {
-                        ImGui::OpenPopup("Save Scene");
-                    }
-                },
-                "Save Scene"
-            });
+                        MessagePackSceneSerializer::saveScene(sceneId, reg);
 
-        EditorActions::addAction(
-            {
-                "scene.open",
-                [](Editor* ed, entt::registry& reg) { ImGui::OpenPopup("Open Scene"); },
-                "Open Scene"
-            });
+                    lastSaveModificationCount = undo.modificationCount();
+                }
+                else
+                {
+                    ImGui::OpenPopup("Save Scene");
+                }
+            },
+            "Save Scene"
+        });
 
-        EditorActions::addAction(
-            {
-                "scene.new",
-                [](Editor* ed, entt::registry& reg) {
-                    entt::registry* regPtr = &reg;
-                    messageBoxModal("New Scene", "Are you sure you want to clear the current scene and create a new one?",
-                        [ed, regPtr](bool result) {
-                            if (result)
-                            {
-                                regPtr->clear();
-                                regPtr->set<SceneInfo>("Untitled", INVALID_ASSET);
-                                ed->updateWindowTitle();
-                            }
-                        });
-                },
-                "New Scene"
-            });
+        EditorActions::addAction({
+            "scene.open",
+            [](Editor* ed, entt::registry& reg) { ImGui::OpenPopup("Open Scene"); },
+            "Open Scene"
+        });
 
-        EditorActions::addAction({"editor.undo", [](Editor* ed, entt::registry& reg) { ed->undo.undo(reg); }, "Undo"});
+        EditorActions::addAction({
+            "scene.new",
+            [](Editor* ed, entt::registry& reg) {
+                entt::registry* regPtr = &reg;
+                messageBoxModal("New Scene", "Are you sure you want to clear the current scene and create a new one?",
+                    [ed, regPtr](bool result) {
+                        if (result)
+                        {
+                            regPtr->clear();
+                            regPtr->set<SceneInfo>("Untitled", INVALID_ASSET);
+                            ed->updateWindowTitle();
+                        }
+                    });
+            },
+            "New Scene"
+        });
 
-        EditorActions::addAction({"editor.redo", [](Editor* ed, entt::registry& reg) { ed->undo.redo(reg); }, "Redo"});
+        EditorActions::addAction({
+            "editor.undo",
+            [](Editor* ed, entt::registry& reg) { ed->undo.undo(reg); },
+            "Undo"
+        });
 
-        EditorActions::addAction(
-            {
-                "editor.togglePlay",
-                [](Editor* ed, entt::registry& reg) {
-                    if (ed->isPlaying())
-                        g_console->executeCommandStr("reloadAndEdit");
-                    else
-                        g_console->executeCommandStr("play");
-                },
-                "Play"
-            });
+        EditorActions::addAction({
+            "editor.redo",
+            [](Editor* ed, entt::registry& reg) { ed->undo.redo(reg); },
+            "Redo"
+        });
+
+        EditorActions::addAction({
+            "editor.togglePlay",
+            [](Editor* ed, entt::registry& reg) {
+                if (ed->isPlaying())
+                    g_console->executeCommandStr("reloadAndEdit");
+                else
+                    g_console->executeCommandStr("play");
+            },
+            "Play"
+        });
 
         EditorActions::addAction({
             "editor.togglePause",
@@ -272,104 +282,107 @@ namespace worlds
             "Toggle Pause"
         });
 
-        EditorActions::addAction({"editor.toggleImGuiMetrics",
-                                  [](Editor* ed, entt::registry&) { ed->imguiMetricsOpen = !ed->imguiMetricsOpen; },
-                                  "Toggle ImGUI Metrics"});
+        EditorActions::addAction({
+            "editor.toggleImGuiMetrics",
+            [](Editor* ed, entt::registry&) { ed->imguiMetricsOpen = !ed->imguiMetricsOpen; },
+            "Toggle ImGUI Metrics"
+        });
 
-        EditorActions::addAction(
-            {"editor.openActionSearch", [](Editor* ed, entt::registry&) { ed->actionSearch.show(); }});
+        EditorActions::addAction({
+            "editor.openActionSearch",
+            [](Editor* ed, entt::registry&) { ed->actionSearch.show(); }
+        });
 
-        EditorActions::addAction(
-            {"editor.openAssetSearch", [](Editor* ed, entt::registry&) { ed->assetSearch.show(); }});
+        EditorActions::addAction({
+            "editor.openAssetSearch",
+            [](Editor* ed, entt::registry&) { ed->assetSearch.show(); }
+        });
 
-        EditorActions::addAction(
-            {
-                "editor.addStaticPhysics",
-                [](Editor* ed, entt::registry& reg) {
-                    if (!reg.valid(ed->currentSelectedEntity))
-                    {
-                        addNotification("Nothing selected to add physics to!", NotificationType::Error);
-                        return;
-                    }
+        EditorActions::addAction({
+            "editor.addStaticPhysics",
+            [](Editor* ed, entt::registry& reg) {
+                if (!reg.valid(ed->currentSelectedEntity))
+                {
+                    addNotification("Nothing selected to add physics to!", NotificationType::Error);
+                    return;
+                }
 
-                    if (!reg.has<WorldObject>(ed->currentSelectedEntity))
-                    {
-                        addNotification("Selected object doesn't have a WorldObject!", NotificationType::Error);
-                        return;
-                    }
+                if (!reg.has<WorldObject>(ed->currentSelectedEntity))
+                {
+                    addNotification("Selected object doesn't have a WorldObject!", NotificationType::Error);
+                    return;
+                }
 
-                    WorldObject& wo = reg.get<WorldObject>(ed->currentSelectedEntity);
-                    ComponentMetadataManager::byName["Physics Actor"]->create(ed->currentSelectedEntity, reg);
-                    PhysicsActor& pa = reg.get<PhysicsActor>(ed->currentSelectedEntity);
-                    PhysicsShape ps;
-                    ps.type = PhysicsShapeType::Mesh;
-                    ps.mesh.mesh = wo.mesh;
-                    pa.physicsShapes.push_back(std::move(ps));
-                },
-                "Add static physics"
-            });
+                WorldObject& wo = reg.get<WorldObject>(ed->currentSelectedEntity);
+                ComponentMetadataManager::byName["Physics Actor"]->create(ed->currentSelectedEntity, reg);
+                PhysicsActor& pa = reg.get<PhysicsActor>(ed->currentSelectedEntity);
+                PhysicsShape ps;
+                ps.type = PhysicsShapeType::Mesh;
+                ps.mesh.mesh = wo.mesh;
+                pa.physicsShapes.push_back(std::move(ps));
+            },
+            "Add static physics"
+        });
 
-        EditorActions::addAction(
-            {
-                "editor.createPrefab",
-                [](Editor*, entt::registry& reg) { ImGui::OpenPopup("Save Prefab"); },
-                "Create prefab"
-            });
+        EditorActions::addAction({
+            "editor.createPrefab",
+            [](Editor*, entt::registry& reg) { ImGui::OpenPopup("Save Prefab"); },
+            "Create prefab"
+        });
 
-        EditorActions::addAction(
-            {
-                "editor.roundScale",
-                [](Editor* ed, entt::registry& reg) {
-                    if (!reg.valid(ed->currentSelectedEntity))
-                        return;
-                    Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
+        EditorActions::addAction({
+            "editor.roundScale",
+            [](Editor* ed, entt::registry& reg) {
+                if (!reg.valid(ed->currentSelectedEntity))
+                    return;
+                Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
+                t.scale = glm::round(t.scale);
+
+                for (entt::entity e : ed->selectedEntities)
+                {
+                    Transform& t = reg.get<Transform>(e);
                     t.scale = glm::round(t.scale);
+                }
+            },
+            "Round selection scale"
+        });
 
-                    for (entt::entity e : ed->selectedEntities)
-                    {
-                        Transform& t = reg.get<Transform>(e);
-                        t.scale = glm::round(t.scale);
-                    }
-                },
-                "Round selection scale"
-            });
+        EditorActions::addAction({
+            "editor.clearScale",
+            [](Editor* ed, entt::registry& reg) {
+                if (!reg.valid(ed->currentSelectedEntity))
+                    return;
+                Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
+                t.scale = glm::vec3(1.0f);
 
-        EditorActions::addAction(
-            {
-                "editor.clearScale",
-                [](Editor* ed, entt::registry& reg) {
-                    if (!reg.valid(ed->currentSelectedEntity))
-                        return;
-                    Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
+                for (entt::entity e : ed->selectedEntities)
+                {
+                    Transform& t = reg.get<Transform>(e);
                     t.scale = glm::vec3(1.0f);
+                }
+            },
+            "Clear selection scale"
+        });
 
-                    for (entt::entity e : ed->selectedEntities)
-                    {
-                        Transform& t = reg.get<Transform>(e);
-                        t.scale = glm::vec3(1.0f);
-                    }
-                },
-                "Clear selection scale"
-            });
+        EditorActions::addAction({
+            "editor.setStatic",
+            [](Editor* ed, entt::registry& reg) {
+                if (!reg.valid(ed->currentSelectedEntity))
+                    return;
 
-        EditorActions::addAction(
-            {
-                "editor.setStatic",
-                [](Editor* ed, entt::registry& reg) {
-                    if (!reg.valid(ed->currentSelectedEntity))
-                        return;
-                    StaticFlags allFlags =
-                        (StaticFlags)((int)StaticFlags::Audio | (int)StaticFlags::Rendering |
-                                    (int)StaticFlags::Navigation);
-                    WorldObject& wo = reg.get<WorldObject>(ed->currentSelectedEntity);
-                    wo.staticFlags = allFlags;
-                    for (entt::entity e : ed->getSelectedEntities())
-                    {
-                        reg.get<WorldObject>(e).staticFlags = allFlags;
-                    }
-                },
-                "Set selected object as static"
-            });
+                StaticFlags allFlags =
+                        StaticFlags::Audio |
+                        StaticFlags::Rendering |
+                        StaticFlags::Navigation;
+
+                reg.get<WorldObject>(ed->currentSelectedEntity).staticFlags = allFlags;
+                for (entt::entity e : ed->getSelectedEntities())
+                {
+                    reg.get<WorldObject>(e).staticFlags = allFlags;
+                }
+            },
+            "Set selected object as static"
+        });
 
         EditorActions::addAction({
            "editor.copy",
@@ -416,31 +429,42 @@ namespace worlds
             }
         });
 
-        EditorActions::addAction(
-            {
-                "assets.refresh",
-                [](Editor* ed, entt::registry& reg) {
-                    ed->currentProject().assets().enumerateAssets();
-                    ed->currentProject().assets().checkForAssetChanges();
-                    ed->currentProject().assetCompiler().startCompiling();
-                },
-                "Refresh assets"
-            });
+        EditorActions::addAction({
+            "assets.refresh",
+            [](Editor* ed, entt::registry& reg) {
+                ed->currentProject().assets().enumerateAssets();
+                ed->currentProject().assets().checkForAssetChanges();
+                ed->currentProject().assetCompiler().startCompiling();
+            },
+            "Refresh assets"
+        });
 
-        EditorActions::bindAction("scene.save", ActionKeybind{SDL_SCANCODE_S, ModifierFlags::Control});
-        EditorActions::bindAction("scene.open", ActionKeybind{SDL_SCANCODE_O, ModifierFlags::Control});
-        EditorActions::bindAction("scene.new", ActionKeybind{SDL_SCANCODE_N, ModifierFlags::Control});
-        EditorActions::bindAction("editor.undo", ActionKeybind{SDL_SCANCODE_Z, ModifierFlags::Control});
-        EditorActions::bindAction("editor.redo",
-                                  ActionKeybind{SDL_SCANCODE_Z, ModifierFlags::Control | ModifierFlags::Shift});
-        EditorActions::bindAction("editor.togglePlay", ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control});
-        EditorActions::bindAction("editor.togglePause",
-                                  ActionKeybind{SDL_SCANCODE_P, ModifierFlags::Control | ModifierFlags::Shift});
-        EditorActions::bindAction("editor.openActionSearch", ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control});
-        EditorActions::bindAction("editor.openAssetSearch",
-                                  ActionKeybind{SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift});
-        EditorActions::bindAction("editor.copy", ActionKeybind{SDL_SCANCODE_C, ModifierFlags::Control});
-        EditorActions::bindAction("editor.paste", ActionKeybind{SDL_SCANCODE_V, ModifierFlags::Control});
+        struct ActionBindingPair
+        {
+            const char* actionName;
+            SDL_Scancode scancode;
+            ModifierFlags flags;
+        };
+
+        ActionBindingPair bindingPairs[] = {
+            { "scene.save", SDL_SCANCODE_S, ModifierFlags::Control },
+            { "scene.open", SDL_SCANCODE_O, ModifierFlags::Control },
+            { "scene.new", SDL_SCANCODE_N, ModifierFlags::Control },
+            { "editor.undo", SDL_SCANCODE_Z, ModifierFlags::Control },
+            { "editor.redo", SDL_SCANCODE_Z, ModifierFlags::Control | ModifierFlags::Shift },
+            { "editor.togglePlay", SDL_SCANCODE_P, ModifierFlags::Control },
+            { "editor.togglePause", SDL_SCANCODE_P, ModifierFlags::Control | ModifierFlags::Shift },
+            { "editor.openActionSearch", SDL_SCANCODE_SPACE, ModifierFlags::Control },
+            { "editor.openAssetSearch", SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift },
+            { "editor.copy", SDL_SCANCODE_C, ModifierFlags::Control },
+            { "editor.paste", SDL_SCANCODE_V, ModifierFlags::Control }
+        };
+
+        for (auto& bindPair : bindingPairs)
+        {
+            ActionKeybind kb { bindPair.scancode, bindPair.flags };
+            EditorActions::bindAction(bindPair.actionName, kb);
+        }
 
         SceneLoader::registerLoadCallback(this, sceneLoadCallback);
     }
@@ -520,38 +544,12 @@ namespace worlds
 
     ImVec2 convVec(glm::vec2 gVec)
     {
-        return ImVec2(gVec.x, gVec.y);
+        return {gVec.x, gVec.y};
     }
 
     glm::vec2 convVec(ImVec2 iVec)
     {
-        return glm::vec2(iVec.x, iVec.y);
-    }
-
-    glm::vec2 worldToScreenG(glm::vec3 wPos, glm::mat4 vp)
-    {
-        glm::vec4 preDivPos = vp * glm::vec4(wPos, 1.0f);
-        glm::vec2 screenPos = glm::vec2(preDivPos) / preDivPos.w;
-
-        screenPos += 1.0f;
-        screenPos *= 0.5f;
-        screenPos *= windowSize;
-        screenPos.y = windowSize.y - screenPos.y;
-
-        return screenPos;
-    }
-
-    ImVec2 worldToScreen(glm::vec3 wPos, glm::mat4 vp)
-    {
-        glm::vec2 screenPos = worldToScreenG(wPos, vp);
-        return ImVec2(screenPos.x, screenPos.y);
-    }
-
-    // Guess roughly how many circle segments we'll need for a circle
-    // of the specified radius
-    int getCircleSegments(float radius)
-    {
-        return glm::max((int)glm::pow(radius, 0.8f), 6);
+        return {iVec.x, iVec.y};
     }
 
     void Editor::activateTool(Tool newTool)
