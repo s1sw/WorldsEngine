@@ -33,23 +33,6 @@ namespace worlds
         Count
     };
 
-    struct OldAudioSource
-    {
-        OldAudioSource(AssetID clipId)
-            : clipId(clipId), volume(1.0f), isPlaying(false), playOnSceneOpen(true), loop(false), spatialise(true),
-              channel(MixerChannel::SFX)
-        {
-        }
-
-        AssetID clipId;
-        float volume;
-        bool isPlaying;
-        bool playOnSceneOpen;
-        bool loop;
-        bool spatialise;
-        MixerChannel channel;
-    };
-
     struct AudioSource
     {
         FMOD::Studio::EventInstance* eventInstance = nullptr;

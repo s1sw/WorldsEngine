@@ -758,16 +758,6 @@ namespace worlds
                 scriptEngine->onSceneStart();
             }
 
-            registry.view<OldAudioSource>().each(
-                [](OldAudioSource& as)
-                {
-                    if (as.playOnSceneOpen)
-                    {
-                        as.isPlaying = true;
-                    }
-                }
-            );
-
             registry.view<AudioSource>().each(
                 [](AudioSource& as)
                 {

@@ -1424,76 +1424,6 @@ namespace worlds
         }
     };
 
-    class AudioSourceEditor : public BasicComponentUtil<OldAudioSource>
-    {
-    public:
-        const char* getName() override
-        {
-            return "Audio Source";
-        }
-
-        void create(entt::entity ent, entt::registry& reg) override
-        {
-            reg.emplace<OldAudioSource>(ent, AssetDB::pathToId("Audio/SFX/dlgsound.ogg"));
-        }
-
-#ifdef BUILD_EDITOR
-        void edit(entt::entity ent, entt::registry& registry, Editor* ed) override
-        {
-            auto& as = registry.get<OldAudioSource>(ent);
-
-            if (ImGui::CollapsingHeader(ICON_FAD_SPEAKER u8" Audio Source"))
-            {
-
-                if (ImGui::Button("Remove"))
-                {
-                    registry.remove<OldAudioSource>(ent);
-                    return;
-                }
-                ImGui::Checkbox("Loop", &as.loop);
-                ImGui::Checkbox("Spatialise", &as.spatialise);
-                ImGui::Checkbox("Play on scene open", &as.playOnSceneOpen);
-                ImGui::DragFloat("Volume", &as.volume);
-                ImGui::Text("Current Asset Path: %s", AssetDB::idToPath(as.clipId).c_str());
-
-                selectAssetPopup("Audio Source Path", as.clipId, ImGui::Button("Change"));
-
-                if (ImGui::Button(ICON_FA_PLAY u8" Preview"))
-                    AudioSystem::getInstance()->playOneShotClip(as.clipId, glm::vec3(0.0f));
-
-                ImGui::Separator();
-            }
-        }
-#endif
-
-        void toJson(entt::entity ent, entt::registry& reg, json& j) override
-        {
-            auto& as = reg.get<OldAudioSource>(ent);
-
-            j = {
-                {"clipPath", AssetDB::idToPath(as.clipId)},
-                {"channel", as.channel},
-                {"loop", as.loop},
-                {"playOnSceneOpen", as.playOnSceneOpen},
-                {"spatialise", as.spatialise},
-                {"volume", as.volume}};
-        }
-
-        void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
-        {
-            ZoneScoped;
-            std::string clipPath = j["clipPath"];
-            AssetID id = AssetDB::pathToId(clipPath);
-            auto& as = reg.emplace<OldAudioSource>(ent, id);
-
-            as.channel = j["channel"];
-            as.loop = j["loop"];
-            as.playOnSceneOpen = j["playOnSceneOpen"];
-            as.spatialise = j["spatialise"];
-            as.volume = j["volume"];
-        }
-    };
-
     class FMODAudioSourceEditor : public BasicComponentUtil<AudioSource>
     {
     public:
@@ -2158,7 +2088,6 @@ namespace worlds
     PhysicsActorEditor paEd;
     RigidBodyEditor dpaEd;
     NameComponentEditor ncEd;
-    AudioSourceEditor asEd;
     WorldCubemapEditor wcEd;
     ReverbProbeBoxEditor rpbEd;
     AudioTriggerEditor atEd;
