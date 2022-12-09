@@ -22,6 +22,7 @@ namespace R2::VK
     class PipelineLayout;
     class Texture;
     struct VertexBinding;
+    class TimestampPool;
 }
 
 namespace worlds
@@ -91,6 +92,7 @@ namespace worlds
         UniquePtr<R2::VK::FrameSeparatedBuffer> drawInfoBuffers;
         UniquePtr<R2::VK::Texture> depthBuffer;
         UniquePtr<R2::VK::Texture> colorBuffer;
+        UniquePtr<R2::VK::TimestampPool> timestampPool;
 
         UniquePtr<Tonemapper> tonemapper;
         UniquePtr<LightCull> lightCull;

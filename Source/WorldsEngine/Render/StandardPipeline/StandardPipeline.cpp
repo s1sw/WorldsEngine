@@ -6,6 +6,7 @@
 #include <Core/TaskScheduler.hpp>
 #include <R2/BindlessTextureManager.hpp>
 #include <R2/SubAllocatedBuffer.hpp>
+#include <R2/VKTimestampPool.hpp>
 #include <R2/VK.hpp>
 #include <Render/CullMesh.hpp>
 #include <Render/Frustum.hpp>
@@ -309,6 +310,8 @@ namespace worlds
         
         computeSkinner = new ComputeSkinner(renderer);
         particleRenderer = new ParticleRenderer(renderer, settings.msaaLevel, getViewMask(settings.numViews), multiVPBuffer.Get());
+        timestampPool = new VK::TimestampPool(
+            core->GetHandles(), (int)core->GetNumFramesInFlight() * 6);
     }
 
     void StandardPipeline::onResize(int width, int height)
@@ -732,6 +735,24 @@ namespace worlds
             }
         });
 
+        // retrieve timings from last frame
+        uint64_t retrievedTimestamps[6];
+        if (timestampPool->GetTimestamps(core->GetFrameIndex() * 6, 6, retrievedTimestamps))
+        {
+            double times[3];
+            for (int i = 0; i < 3; i++)
+            {
+                int ts = i * 2;
+                double timeTaken = (double)(retrievedTimestamps[ts + 1] - retrievedTimestamps[ts]);
+                timeTaken *= core->GetDeviceInfo().TimestampPeriod;
+                times[i] = timeTaken;
+            }
+            renderer->getDebugStats().depthPassTime = times[0];
+            renderer->getDebugStats().mainPassTime = times[1];
+            renderer->getDebugStats().tonemapTime = times[2];
+        }
+        timestampPool->Reset(cb, core->GetFrameIndex() * 6, 6);
+
         SceneGlobals* globals = (SceneGlobals*)sceneGlobals->Map();
         globals->time = renderer->getTime();
         globals->shadowmapResolution = r_shadowmapRes.getInt();
@@ -853,6 +874,7 @@ namespace worlds
 
         // Depth Pre-Pass
         cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
+        timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 6 + 0);
 
         VK::RenderPass depthPass;
         depthPass.DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
@@ -889,6 +911,7 @@ namespace worlds
         }
         depthPass.End(cb);
         renderer->getDebugStats().numDrawCalls = fdbTask.drawIdCounter;
+        timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 6 + 1);
 
         cb.EndDebugLabel();
 
@@ -899,6 +922,7 @@ namespace worlds
 
         // Actual "opaque" pass
         cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
+        timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 6 + 2);
 
         VK::RenderPass colorPass;
         colorPass.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
@@ -933,6 +957,7 @@ namespace worlds
 
         debugLineDrawer->Execute(cb, dbgLines, dbgLinesCount);
         cb.EndDebugLabel();
+        timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 6 + 3);
 
         particleRenderer->Execute(cb, reg);
 
@@ -944,7 +969,9 @@ namespace worlds
         if (!r_skipBloom)
             bloom->Execute(cb);
 
+        timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 6 + 4);
         tonemapper->Execute(cb, r_skipBloom);
+        timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 6 + 5);
 
         lightBuffers->UnmapCurrent();
     }

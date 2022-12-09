@@ -95,6 +95,9 @@ namespace worlds
         int numMaterialsLoaded;
         double cmdBufWriteTime;
         double lightCullTime;
+        double depthPassTime;
+        double mainPassTime;
+        double tonemapTime;
     };
 
     enum class VKVendor

@@ -132,6 +132,9 @@ namespace worlds
                     ImGui::Text("GPU render time: %.3fms", lastGpuTime);
                     ImGui::Text("Average GPU render time: %.3fms", avgGpuTime);
                     ImGui::Text("GPU light cull time: %.3fms", dbgStats.lightCullTime / 1000.0f / 1000.0f);
+                    ImGui::Text("GPU depth pass time: %.3fms", dbgStats.depthPassTime / 1000.0f / 1000.0f);
+                    ImGui::Text("GPU main pass time: %.3fms", dbgStats.mainPassTime / 1000.0f / 1000.0f);
+                    ImGui::Text("GPU tonemap time: %.3fms", dbgStats.tonemapTime / 1000.0f / 1000.0f);
                     ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
                     ImGui::Text("Triangles: %u", dbgStats.numTriangles);
                     ImGui::Text("Lights in view: %i", dbgStats.numLightsInView);
