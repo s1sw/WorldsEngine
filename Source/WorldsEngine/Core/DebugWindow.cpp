@@ -125,7 +125,12 @@ namespace worlds
                             "Time spent in renderer: %.3fms", timeInfo.lastTickRendererTime
                     );
                     ImGui::Text("- Writing command buffer: %.3fms", dbgStats.cmdBufWriteTime);
-                    ImGui::Text("GPU render time: %.3fms", renderer->getLastGPUTime() / 1000.0f / 1000.0f);
+                    static float avgGpuTime = 0.0f;
+                    float lastGpuTime = renderer->getLastGPUTime() / 1000.0f / 1000.0f;
+                    float averageAlpha = 0.05f;
+                    avgGpuTime = (averageAlpha * lastGpuTime) + (1.0 - averageAlpha) * avgGpuTime;
+                    ImGui::Text("GPU render time: %.3fms", lastGpuTime);
+                    ImGui::Text("Average GPU render time: %.3fms", avgGpuTime);
                     ImGui::Text("GPU light cull time: %.3fms", dbgStats.lightCullTime / 1000.0f / 1000.0f);
                     ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
                     ImGui::Text("Triangles: %u", dbgStats.numTriangles);
