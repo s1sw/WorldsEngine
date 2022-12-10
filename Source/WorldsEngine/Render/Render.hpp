@@ -94,9 +94,11 @@ namespace worlds
         int numTexturesLoaded;
         int numMaterialsLoaded;
         double cmdBufWriteTime;
-        double lightCullTime;
+        double skinningTime;
         double depthPassTime;
+        double lightCullTime;
         double mainPassTime;
+        double bloomTime;
         double tonemapTime;
     };
 

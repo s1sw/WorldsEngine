@@ -54,30 +54,17 @@ namespace worlds
             cs[i]->PushConstantSize(sizeof(LightCullPushConstants));
             cs[i]->Build();
         }
-
-        timestampPool = new VK::TimestampPool(
-            core->GetHandles(), (int)core->GetNumFramesInFlight() * 2);
     }
 
     void LightCull::Execute(VK::CommandBuffer& cb)
     {
         VK::Core* core = renderer->getCore();
-        // retrieve timings from last frame
-        uint64_t retrievedTimestamps[2];
-        if (timestampPool->GetTimestamps(core->GetFrameIndex() * 2, 2, retrievedTimestamps))
-        {
-            double timeTaken = (double)(retrievedTimestamps[1] - retrievedTimestamps[0]);
-            timeTaken *= core->GetDeviceInfo().TimestampPeriod;
-            renderer->getDebugStats().lightCullTime = timeTaken;
-        }
 
         depthBuffer->Acquire(cb, VK::ImageLayout::ShaderReadOnlyOptimal, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::ComputeShader);
         lightTiles->Acquire(cb, VK::AccessFlags::ShaderWrite, VK::PipelineStageFlags::ComputeShader);
         LightCullPushConstants pcs{};
         pcs.eyeIndex = 0;
 
-        timestampPool->Reset(cb, core->GetFrameIndex() * 2, 2);
-        timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 2);
         int w = depthBuffer->GetWidth();
         int h = depthBuffer->GetHeight();
         cs[core->GetFrameIndex()]->Dispatch(cb, pcs, (w + 31) / 32, (h + 31) / 32, 1);
@@ -90,6 +77,5 @@ namespace worlds
             int h = depthBuffer->GetHeight();
             cs[core->GetFrameIndex()]->Dispatch(cb, pcs, (w + 31) / 32, (h + 31) / 32, 1);
         }
-        timestampPool->WriteTimestamp(cb, (core->GetFrameIndex() * 2) + 1);
     }
 }

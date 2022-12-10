@@ -4,6 +4,7 @@
 #include <Libs/IconsFontAwesome5.h>
 #include <Render/Render.hpp>
 #include <Physics/Physics.hpp>
+#include <Editor/GuiUtil.hpp>
 
 namespace worlds
 {
@@ -131,10 +132,20 @@ namespace worlds
                     avgGpuTime = (averageAlpha * lastGpuTime) + (1.0 - averageAlpha) * avgGpuTime;
                     ImGui::Text("GPU render time: %.3fms", lastGpuTime);
                     ImGui::Text("Average GPU render time: %.3fms", avgGpuTime);
-                    ImGui::Text("GPU light cull time: %.3fms", dbgStats.lightCullTime / 1000.0f / 1000.0f);
+                    pushBoldFont();
+                    ImGui::Text("The following statistics are for the last RTT pass only.");
+                    ImGui::PopFont();
+                    ImGui::Text("GPU skinning time: %.3fms", dbgStats.skinningTime / 1000.0f / 1000.0f);
                     ImGui::Text("GPU depth pass time: %.3fms", dbgStats.depthPassTime / 1000.0f / 1000.0f);
+                    ImGui::Text("GPU light cull time: %.3fms", dbgStats.lightCullTime / 1000.0f / 1000.0f);
                     ImGui::Text("GPU main pass time: %.3fms", dbgStats.mainPassTime / 1000.0f / 1000.0f);
+                    ImGui::Text("GPU bloom time: %.3fms", dbgStats.bloomTime / 1000.0f / 1000.0f);
                     ImGui::Text("GPU tonemap time: %.3fms", dbgStats.tonemapTime / 1000.0f / 1000.0f);
+                    float sum = dbgStats.skinningTime + dbgStats.depthPassTime +
+                            dbgStats.lightCullTime + dbgStats.mainPassTime + dbgStats.bloomTime +
+                            dbgStats.tonemapTime;
+                    ImGui::Text("Sum of above: %.3fms", sum / 1000.0f / 1000.0f);
+                    ImGui::Text("Unaccounted (e.g. ImGui): %.3fms", lastGpuTime - (sum / 1000.0f / 1000.0f));
                     ImGui::Text("V-Sync status: %s", renderer->getVsync() ? "On" : "Off");
                     ImGui::Text("Triangles: %u", dbgStats.numTriangles);
                     ImGui::Text("Lights in view: %i", dbgStats.numLightsInView);
