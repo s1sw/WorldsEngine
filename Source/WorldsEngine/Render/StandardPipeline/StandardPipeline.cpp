@@ -334,6 +334,8 @@ namespace worlds
         entt::registry& registry;
         VKTextureManager* textureManager;
         ShadowmapManager* shadowmapManager;
+        int numViews;
+        Frustum* frustums;
 
         FillLightBufferTask(LightUB* lightUB, entt::registry& registry, VKTextureManager* textureManager)
             : lightUB(lightUB), registry(registry), textureManager(textureManager)
@@ -348,6 +350,11 @@ namespace worlds
             registry.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t) {
                 if (!wl.enabled)
                     return;
+
+                for (int i = 0; i < numViews; i++)
+                {
+                    if (!frustums[i].containsSphere(t.position, wl.maxDistance)) return;
+                }
 
                 if (wl.shadowmapIdx != ~0u)
                 {
@@ -774,28 +781,6 @@ namespace worlds
             cb.EndDebugLabel();
         }
 
-        TasksFinished finisher;
-
-        LightUB* lightUB = (LightUB*)lightBuffers->MapCurrent();
-
-        FillLightBufferTask fillTask{lightUB, reg, textureManager};
-        fillTask.shadowmapManager = renderer->getShadowmapManager();
-
-        AllocatedSkinnedStorageTask allocSkinnedStorageTask{renderer, reg};
-        allocSkinnedStorageTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
-        allocSkinnedStorageTask.m_MinRange = 10;
-
-        finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
-            finisher.dependencies, {&fillTask, &allocSkinnedStorageTask});
-
-        g_taskSched.AddTaskSetToPipe(&fillTask);
-        g_taskSched.AddTaskSetToPipe(&allocSkinnedStorageTask);
-        g_taskSched.WaitforTask(&finisher);
-
-        lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
-        modelMatrixBuffers->GetCurrentBuffer()->Acquire(
-            cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::VertexShader);
-
         // Set up culling frustums and fill the VP buffer
         Camera* camera = rttPass->getCamera();
         Frustum* frustums = (Frustum*)alloca(sizeof(Frustum) * rttPass->getSettings().numViews);
@@ -829,6 +814,31 @@ namespace worlds
         }
 
         core->QueueBufferUpload(multiVPBuffer.Get(), &multiVPs, sizeof(multiVPs), 0);
+
+        TasksFinished finisher;
+
+        LightUB* lightUB = (LightUB*)lightBuffers->MapCurrent();
+
+        FillLightBufferTask fillTask{lightUB, reg, textureManager};
+        fillTask.shadowmapManager = renderer->getShadowmapManager();
+        fillTask.numViews = rttPass->getSettings().numViews;
+        fillTask.frustums = frustums;
+
+        AllocatedSkinnedStorageTask allocSkinnedStorageTask{renderer, reg};
+        allocSkinnedStorageTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
+        allocSkinnedStorageTask.m_MinRange = 10;
+
+        finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
+            finisher.dependencies, {&fillTask, &allocSkinnedStorageTask});
+
+        g_taskSched.AddTaskSetToPipe(&fillTask);
+        g_taskSched.AddTaskSetToPipe(&allocSkinnedStorageTask);
+        g_taskSched.WaitforTask(&finisher);
+
+        lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderStorageRead, VK::PipelineStageFlags::FragmentShader);
+        modelMatrixBuffers->GetCurrentBuffer()->Acquire(
+            cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::VertexShader);
+
 
         computeSkinner->Execute(cb, reg);
 
@@ -899,14 +909,14 @@ namespace worlds
         for (int i = 0; i < fdbTask.drawIdCounter; i++)
         {
             const StandardDrawCommand& drawCmd = drawCmds[i];
-            //if (drawCmd.techniqueIdx != lastTechniqueIdx || drawCmd.variantFlags != lastVariantFlags)
-            //{
+            if (drawCmd.techniqueIdx != lastTechniqueIdx || drawCmd.variantFlags != lastVariantFlags)
+            {
                 // change pipeline to depth pre-pass pipeline for this technique
                 VariantFlags finalFlags = drawCmd.variantFlags | VariantFlags::DepthPrepass;
                 cb.BindPipeline(techniqueManager->getPipelineVariant(drawCmd.techniqueIdx, finalFlags));
-                //lastTechniqueIdx = drawCmd.techniqueIdx;
-                //lastVariantFlags = lastVariantFlags;
-            //}
+                lastTechniqueIdx = drawCmd.techniqueIdx;
+                lastVariantFlags = lastVariantFlags;
+            }
             cb.DrawIndexed(drawCmd.indexCount, 1, drawCmd.firstIndex, drawCmd.vertexOffset, i);
         }
         depthPass.End(cb);
@@ -938,14 +948,14 @@ namespace worlds
         for (int i = 0; i < fdbTask.drawIdCounter; i++)
         {
             const StandardDrawCommand& drawCmd = drawCmds[i];
-            //if (drawCmd.techniqueIdx != lastTechniqueIdx || drawCmd.variantFlags != lastVariantFlags)
-            //{
+            if (drawCmd.techniqueIdx != lastTechniqueIdx || drawCmd.variantFlags != lastVariantFlags)
+            {
                 // change pipeline to main pipeline for this technique
                 VariantFlags finalFlags = drawCmd.variantFlags;
                 cb.BindPipeline(techniqueManager->getPipelineVariant(drawCmd.techniqueIdx, finalFlags));
-                //lastTechniqueIdx = drawCmd.techniqueIdx;
-                //lastVariantFlags = lastVariantFlags;
-            //}
+                lastTechniqueIdx = drawCmd.techniqueIdx;
+                lastVariantFlags = lastVariantFlags;
+            }
             cb.DrawIndexed(drawCmd.indexCount, 1, drawCmd.firstIndex, drawCmd.vertexOffset, i);
         }
 

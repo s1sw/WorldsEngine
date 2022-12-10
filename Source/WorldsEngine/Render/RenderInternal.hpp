@@ -95,14 +95,14 @@ namespace worlds
 
     struct LightUB
     {
-        static const int MAX_LIGHTS = 256;
+        static const int MAX_LIGHTS = 64;
         static int LIGHT_TILE_SIZE;
         glm::mat4 additionalShadowMatrices[NUM_SHADOW_LIGHTS];
         uint32_t lightCount;
         uint32_t cubemapCount;
         uint32_t shadowmapIds[NUM_SHADOW_LIGHTS];
         glm::mat4 cascadeMatrices[4];
-        PackedLight lights[256];
+        PackedLight lights[MAX_LIGHTS];
         GPUCubemap cubemaps[64];
     };
 

@@ -198,7 +198,7 @@ void setupTileFrustum(float3 frustumPoints[8])
     float3 camPos = viewPos[eyeIdx].xyz;
 
     for (int i = 0; i < 4; i++)
-{
+    {
         float3 planeNormal = cross(frustumPoints[i] - camPos, frustumPoints[i + 1] - camPos);
         planeNormal = normalize(planeNormal);
         tileFrustum.planes[i] = float4(planeNormal, -dot(planeNormal, frustumPoints[i]));

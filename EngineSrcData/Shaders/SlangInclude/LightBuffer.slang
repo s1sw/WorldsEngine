@@ -19,8 +19,8 @@ struct LightBuffer
     float4x4 cascadeMatrices[4];
 
     // 1352
-    Light lights[256];
-    // 14664
+    Light lights[64];
+    // 4680
     Cubemap cubemaps[64];
 }
 
@@ -58,6 +58,6 @@ struct LightBufferLoader
 
     Cubemap GetCubemap(int cubemapIndex)
     {
-        return rawLightBuffer.Load<Cubemap>(14664 + CUBEMAP_SIZE * cubemapIndex);
+        return rawLightBuffer.Load<Cubemap>(4680 + CUBEMAP_SIZE * cubemapIndex);
     }
 }

@@ -211,7 +211,7 @@ float3 ComputeIncomingLight(ShadeInfo shadeInfo, float2 fragCoord, float3 worldP
     tileLoader.lightTileBuffer = LightTiles;
 
     float3 lo = 0.0f;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 2; i++)
     {
         // scalarize light reads if possible
         uint lightBits = WaveReadLaneFirst(WaveActiveBitOr(tileLoader.GetLightIDMask(tileIdx, i)));
@@ -469,7 +469,7 @@ uint GetLightTileCount(float2 fragCoord)
     LightTileInfo lti = CalculateTileInfo(VPBuffer.screenWidth, VPBuffer.screenHeight);
     uint tileIdx = ((tileIdxY * lti.numTilesX) + tileIdxX);
     uint foundLightCount = 0;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 2; i++)
     {
         //uint lightBits = LightTiles[tileIdx].lightIdMasks[i];
         uint lightBits = ltl.GetLightIDMask(tileIdx, i);
