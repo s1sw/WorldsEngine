@@ -40,6 +40,7 @@ namespace worlds
     class ComputeSkinner;
     class ParticleRenderer;
     struct EngineInterfaces;
+    typedef uint32_t AssetID;
 
     enum class VariantFlags : uint16_t
     {
@@ -118,6 +119,7 @@ namespace worlds
         void createSizeDependants();
         void setupMainPassPipeline(R2::VK::PipelineBuilder& pb, R2::VK::VertexBinding& vb);
         void setupDepthPassPipeline(R2::VK::PipelineBuilder& pb, R2::VK::VertexBinding& vb);
+        void setupTechnique(AssetID fragShaderId, AssetID vertShaderId);
     public:
         StandardPipeline(const EngineInterfaces& engineInterfaces);
         ~StandardPipeline();

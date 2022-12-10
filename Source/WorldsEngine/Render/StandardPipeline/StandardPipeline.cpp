@@ -670,6 +670,60 @@ namespace worlds
 
     extern ConVar r_shadowmapRes;
 
+    void StandardPipeline::setupTechnique(AssetID fragShaderID, AssetID vertShaderID)
+    {
+        AssetID standardFragID = AssetDB::pathToId("Shaders/standard.frag.spv");
+        AssetID standardVertID = AssetDB::pathToId("Shaders/standard.vert.spv");
+
+        // Based on https://stackoverflow.com/a/2595226
+        uint32_t key = vertShaderID;
+        key ^= fragShaderID + 0x9e3779b9 + (key << 6) + (key >> 2);
+
+        VK::VertexBinding vb;
+        vb.Size = sizeof(Vertex);
+        vb.Binding = 0;
+        vb.Attributes.emplace_back(0, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
+        vb.Attributes.emplace_back(1, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, normal));
+        vb.Attributes.emplace_back(2, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, tangent));
+        vb.Attributes.emplace_back(3, VK::TextureFormat::R32_SFLOAT, (uint32_t)offsetof(Vertex, bitangentSign));
+        vb.Attributes.emplace_back(4, VK::TextureFormat::R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
+
+        AssetID depthFS = AssetDB::pathToId("Shaders/standard_empty.frag.spv");
+        AssetID depthAlphaTestFS = AssetDB::pathToId("Shaders/standard_alpha_test.frag.spv");
+
+        VK::ShaderModule& mainFragModule = ShaderCache::getModule(fragShaderID);
+        VK::ShaderModule& mainVertModule = ShaderCache::getModule(vertShaderID);
+        VK::ShaderModule& depthFragModule = ShaderCache::getModule(depthFS);
+        VK::ShaderModule& depthAlphaTestModule = ShaderCache::getModule(depthAlphaTestFS);
+
+        uint32_t techniqueId = techniqueManager->createTechnique();
+        VK::Core* core = ((VKRenderer*)engineInterfaces.renderer)->getCore();
+
+        VK::PipelineBuilder pb{core};
+        setupMainPassPipeline(pb, vb);
+        pb.AddShader(VK::ShaderStage::Vertex, mainVertModule)
+          .AddShader(VK::ShaderStage::Fragment, mainFragModule);
+
+        techniqueManager->registerVariant(techniqueId, pb.Build(), VariantFlags::None);
+        techniqueManager->registerVariant(techniqueId, pb.Build(), VariantFlags::AlphaTest);
+
+        VK::PipelineBuilder pb2{core};
+        setupDepthPassPipeline(pb2, vb);
+        pb2.AddShader(VK::ShaderStage::Vertex, mainVertModule)
+           .AddShader(VK::ShaderStage::Fragment, fragShaderID == standardFragID ? depthFragModule : mainFragModule);
+
+        techniqueManager->registerVariant(techniqueId, pb2.Build(), VariantFlags::DepthPrepass);
+
+        VK::PipelineBuilder pb3{core};
+        setupDepthPassPipeline(pb3, vb);
+        pb3.AddShader(VK::ShaderStage::Vertex, mainVertModule)
+           .AddShader(VK::ShaderStage::Fragment, fragShaderID == standardFragID ? depthAlphaTestModule : mainFragModule)
+           .AlphaToCoverage(true);
+        techniqueManager->registerVariant(techniqueId, pb3.Build(), VariantFlags::DepthPrepass | VariantFlags::AlphaTest);
+
+        customShaderTechniques.insert({ key, techniqueId });
+    }
+
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
     {
         ZoneScoped;
@@ -708,49 +762,7 @@ namespace worlds
                     key ^= fragShaderID + 0x9e3779b9 + (key << 6) + (key >> 2);
 
                     if (customShaderTechniques.contains(key)) continue;
-
-                    VK::VertexBinding vb;
-                    vb.Size = sizeof(Vertex);
-                    vb.Binding = 0;
-                    vb.Attributes.emplace_back(0, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, position));
-                    vb.Attributes.emplace_back(1, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, normal));
-                    vb.Attributes.emplace_back(2, VK::TextureFormat::R32G32B32_SFLOAT, (uint32_t)offsetof(Vertex, tangent));
-                    vb.Attributes.emplace_back(3, VK::TextureFormat::R32_SFLOAT, (uint32_t)offsetof(Vertex, bitangentSign));
-                    vb.Attributes.emplace_back(4, VK::TextureFormat::R32G32_SFLOAT, (uint32_t)offsetof(Vertex, uv));
-
-                    AssetID depthFS = AssetDB::pathToId("Shaders/standard_empty.frag.spv");
-                    AssetID depthAlphaTestFS = AssetDB::pathToId("Shaders/standard_alpha_test.frag.spv");
-
-                    VK::ShaderModule& mainFragModule = ShaderCache::getModule(fragShaderID);
-                    VK::ShaderModule& mainVertModule = ShaderCache::getModule(vertShaderID);
-                    VK::ShaderModule& depthFragModule = ShaderCache::getModule(depthFS);
-                    VK::ShaderModule& depthAlphaTestModule = ShaderCache::getModule(depthAlphaTestFS);
-
-                    uint32_t techniqueId = techniqueManager->createTechnique();
-
-                    VK::PipelineBuilder pb{core};
-                    setupMainPassPipeline(pb, vb);
-                    pb.AddShader(VK::ShaderStage::Vertex, mainVertModule)
-                      .AddShader(VK::ShaderStage::Fragment, mainFragModule);
-
-                    techniqueManager->registerVariant(techniqueId, pb.Build(), VariantFlags::None);
-                    techniqueManager->registerVariant(techniqueId, pb.Build(), VariantFlags::AlphaTest);
-
-                    VK::PipelineBuilder pb2{core};
-                    setupDepthPassPipeline(pb2, vb);
-                    pb2.AddShader(VK::ShaderStage::Vertex, mainVertModule)
-                       .AddShader(VK::ShaderStage::Fragment, fragShaderID == standardFragID ? depthFragModule : mainFragModule);
-
-                    techniqueManager->registerVariant(techniqueId, pb2.Build(), VariantFlags::DepthPrepass);
-
-                    VK::PipelineBuilder pb3{core};
-                    setupDepthPassPipeline(pb3, vb);
-                    pb3.AddShader(VK::ShaderStage::Vertex, mainVertModule)
-                       .AddShader(VK::ShaderStage::Fragment, fragShaderID == standardFragID ? depthAlphaTestModule : mainFragModule)
-                       .AlphaToCoverage(true);
-                    techniqueManager->registerVariant(techniqueId, pb3.Build(), VariantFlags::DepthPrepass | VariantFlags::AlphaTest);
-
-                    customShaderTechniques.insert({ key, techniqueId });
+                    setupTechnique(fragShaderID, vertShaderID);
                 }
             }
         });
