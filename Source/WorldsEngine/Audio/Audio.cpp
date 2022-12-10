@@ -311,7 +311,10 @@ namespace worlds
             // The FMOD plugin says here that it wants the simulation outputs.
             // However, this is wrong. The code is actually looking for the IPLSource attached
             // to the Steam Audio source!
-            FMCHECK(dsp->setParameterData(SpatializerEffect::SIMULATION_OUTPUTS, &source, sizeof(IPLSource)));
+            FMCHECK(dsp->setParameterData(
+                    SpatializerEffect::SIMULATION_OUTPUTS, &source,
+                    sizeof(IPLSource))
+            );
         }
         else
         {
@@ -372,7 +375,6 @@ namespace worlds
 
             AudioSystem* as = AudioSystem::getInstance();
             SACHECK(iplSourceCreate(as->simulator, &sourceSettings, &phononSource));
-            std::unique_lock lock{_this->simThread->commitMutex};
 
             eventInstance->setUserData(phononSource);
             eventInstance->setCallback(audioSourcePhononEventCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATED | FMOD_STUDIO_EVENT_CALLBACK_DESTROYED);
@@ -588,7 +590,7 @@ namespace worlds
             FMCHECK(as.eventInstance->release());
         }
 
-        if (as.phononSource)
+        if (as.phononSource && as.inPhononSim)
         {
             std::unique_lock lock{simThread->commitMutex};
             sourcesToRemove.push(as.phononSource);
