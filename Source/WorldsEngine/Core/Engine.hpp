@@ -32,6 +32,7 @@ namespace worlds
     class ISystem;
     class Window;
     class PhysicsSystem;
+    class ViewController;
 
     struct SceneInfo
     {
@@ -160,7 +161,7 @@ namespace worlds
         entt::registry registry;
 
         IGameEventHandler* evtHandler;
-        RTTPass* screenRTTPass;
+        ViewController* viewController;
         Camera cam;
 
         bool sceneLoadQueued = false;

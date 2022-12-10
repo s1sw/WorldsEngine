@@ -41,6 +41,7 @@
 #include <VR/OpenXRInterface.hpp>
 #include <filesystem>
 #include <Core/EngineInternal.hpp>
+#include <Core/ViewController.hpp>
 
 #ifdef BUILD_EDITOR
 #define EDITORONLY(expr) expr
@@ -515,6 +516,7 @@ namespace worlds
 
         if (!headless)
         {
+            viewController = new ViewController(interfaces, { enableVR, window });
             delete splashWindow;
 
             window->show();
@@ -611,6 +613,8 @@ namespace worlds
 
         if (vrInterface)
             vrInterface->updateEvents();
+
+        viewController->draw();
 
         float interpAlpha = 1.0f;
 
