@@ -349,6 +349,7 @@ namespace worlds
         ShadowmapManager* shadowmapManager;
         int numViews;
         Frustum* frustums;
+        RenderDebugStats* dbgStats;
 
         FillLightBufferTask(LightUB* lightUB, entt::registry& registry, VKTextureManager* textureManager)
             : lightUB(lightUB), registry(registry), textureManager(textureManager)
@@ -361,7 +362,7 @@ namespace worlds
 
             uint32_t lightCount = 0;
             registry.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t) {
-                if (!wl.enabled)
+                if (!wl.enabled || lightCount >= LightUB::MAX_LIGHTS)
                     return;
 
                 for (int i = 0; i < numViews; i++)
@@ -408,6 +409,7 @@ namespace worlds
             });
 
             lightUB->lightCount = lightCount;
+            dbgStats->numLightsInView = lightCount;
 
             AssetID skybox = registry.ctx<SceneSettings>().skybox;
 
@@ -853,6 +855,7 @@ namespace worlds
         fillTask.shadowmapManager = renderer->getShadowmapManager();
         fillTask.numViews = rttPass->getSettings().numViews;
         fillTask.frustums = frustums;
+        fillTask.dbgStats = &renderer->getDebugStats();
 
         AllocatedSkinnedStorageTask allocSkinnedStorageTask{renderer, reg};
         allocSkinnedStorageTask.m_SetSize = reg.view<SkinnedWorldObject>().size();
