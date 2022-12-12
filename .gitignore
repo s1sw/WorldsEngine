@@ -347,13 +347,7 @@ healthchecksdb
 /GameData/LevelCubemaps
 /log.txt
 
-build/
-build_*/
-
-/subprojects/SDL2-*
-/subprojects/enet-*
-/subprojects/*.git
-/subprojects/packagecache
+build*/
 
 .clangd/
 /EngineData/Shaders
