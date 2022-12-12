@@ -179,7 +179,7 @@ float3 calculateLighting(Light light, ShadeInfo shadeInfo, float3 worldPos)
     float3 f = SchlickFresnel(max(dot(norm, shadeInfo.viewDir), 0.0f), f0);
     f *= SchlickFresnel(max(dot(norm, lsi.L), 0.0f), f0);
 
-    float3 kd = lerp(float3(1.0) - f, float3(0.0), shadeInfo.metallic);
+    float3 kd = lerp(1.0 - f, 0.0, shadeInfo.metallic);
 
     float3 numerator = NDF * G * SchlickFresnel(max(dot(halfway, norm), 0.0f), f0);
     float denominator = 4.0f * cosLo * cosLi;

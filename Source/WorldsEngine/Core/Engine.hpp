@@ -56,7 +56,7 @@ namespace worlds
         const char* gameName;
     };
 
-    struct SceneSettings
+    struct SkySettings
     {
         AssetID skybox;
         float skyboxBoost;
@@ -104,6 +104,21 @@ namespace worlds
         DotNetScriptEngine* scriptEngine;
         entt::registry& registry;
         IGameEventHandler* evtHandler;
+    };
+
+    struct SceneEntityOwnership
+    {
+        AssetID owningScene;
+    };
+
+    class World
+    {
+    public:
+        World();
+        void loadScene(AssetID scene);
+        entt::registry registry;
+        SkySettings skySettings;
+        std::vector<SceneInfo> loadedScenes;
     };
 
     class WorldsEngine

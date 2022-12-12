@@ -411,7 +411,7 @@ namespace worlds
             lightUB->lightCount = lightCount;
             dbgStats->numLightsInView = lightCount;
 
-            AssetID skybox = registry.ctx<SceneSettings>().skybox;
+            AssetID skybox = registry.ctx<SkySettings>().skybox;
 
             if (!allCubemaps.contains(skybox))
             {

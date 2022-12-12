@@ -143,7 +143,8 @@ namespace worlds
         loadOpenWindows();
 
         inputManager.addKeydownHandler(
-            [&](SDL_Scancode scancode) {
+            [&](SDL_Scancode scancode)
+            {
                 ModifierFlags flags = ModifierFlags::None;
 
                 if (inputManager.ctrlHeld())
@@ -157,7 +158,8 @@ namespace worlds
         );
 
         g_console->registerCommand(
-            [&](const char*) {
+            [&](const char*)
+            {
                 if (currentState != GameState::Editing)
                     return;
 
@@ -171,7 +173,8 @@ namespace worlds
         );
 
         g_console->registerCommand(
-            [&](const char*) {
+            [&](const char*)
+            {
                 if (currentState != GameState::Playing)
                     return;
 
@@ -184,7 +187,8 @@ namespace worlds
         );
 
         g_console->registerCommand(
-            [&](const char*) {
+            [&](const char*)
+            {
                 if (reg.ctx<SceneInfo>().id != ~0u)
                     interfaces.engine->loadScene(reg.ctx<SceneInfo>().id);
 
@@ -196,7 +200,8 @@ namespace worlds
         );
 
         g_console->registerCommand(
-            [&](const char*) {
+            [&](const char*)
+            {
                 interfaces.engine->pauseSim = false;
                 currentState = GameState::Playing;
             },
@@ -205,7 +210,8 @@ namespace worlds
 
         EditorActions::addAction({
             "scene.save",
-            [&](Editor* ed, entt::registry& reg) {
+            [&](Editor* ed, entt::registry& reg)
+            {
                 if (reg.ctx<SceneInfo>().id != ~0u && !inputManager.shiftHeld())
                 {
                     AssetID sceneId = reg.ctx<SceneInfo>().id;
@@ -232,17 +238,19 @@ namespace worlds
 
         EditorActions::addAction({
             "scene.new",
-            [](Editor* ed, entt::registry& reg) {
+            [](Editor* ed, entt::registry& reg)
+            {
                 entt::registry* regPtr = &reg;
                 messageBoxModal("New Scene", "Are you sure you want to clear the current scene and create a new one?",
-                    [ed, regPtr](bool result) {
-                        if (result)
-                        {
-                            regPtr->clear();
-                            regPtr->set<SceneInfo>("Untitled", INVALID_ASSET);
-                            ed->updateWindowTitle();
-                        }
-                    });
+                                [ed, regPtr](bool result)
+                                {
+                                    if (result)
+                                    {
+                                        regPtr->clear();
+                                        regPtr->set<SceneInfo>("Untitled", INVALID_ASSET);
+                                        ed->updateWindowTitle();
+                                    }
+                                });
             },
             "New Scene"
         });
@@ -261,7 +269,8 @@ namespace worlds
 
         EditorActions::addAction({
             "editor.togglePlay",
-            [](Editor* ed, entt::registry& reg) {
+            [](Editor* ed, entt::registry& reg)
+            {
                 if (ed->isPlaying())
                     g_console->executeCommandStr("reloadAndEdit");
                 else
@@ -272,10 +281,11 @@ namespace worlds
 
         EditorActions::addAction({
             "editor.togglePause",
-            [](Editor* ed, entt::registry& reg) { 
+            [](Editor* ed, entt::registry& reg)
+            {
                 GameState state = ed->getCurrentState();
                 if (state == GameState::Paused)
-                    g_console->executeCommandStr("unpause"); 
+                    g_console->executeCommandStr("unpause");
                 else if (state == GameState::Playing)
                     g_console->executeCommandStr("pause");
             },
@@ -300,7 +310,8 @@ namespace worlds
 
         EditorActions::addAction({
             "editor.addStaticPhysics",
-            [](Editor* ed, entt::registry& reg) {
+            [](Editor* ed, entt::registry& reg)
+            {
                 if (!reg.valid(ed->currentSelectedEntity))
                 {
                     addNotification("Nothing selected to add physics to!", NotificationType::Error);
@@ -332,7 +343,8 @@ namespace worlds
 
         EditorActions::addAction({
             "editor.roundScale",
-            [](Editor* ed, entt::registry& reg) {
+            [](Editor* ed, entt::registry& reg)
+            {
                 if (!reg.valid(ed->currentSelectedEntity))
                     return;
                 Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
@@ -349,7 +361,8 @@ namespace worlds
 
         EditorActions::addAction({
             "editor.clearScale",
-            [](Editor* ed, entt::registry& reg) {
+            [](Editor* ed, entt::registry& reg)
+            {
                 if (!reg.valid(ed->currentSelectedEntity))
                     return;
                 Transform& t = reg.get<Transform>(ed->currentSelectedEntity);
@@ -366,14 +379,15 @@ namespace worlds
 
         EditorActions::addAction({
             "editor.setStatic",
-            [](Editor* ed, entt::registry& reg) {
+            [](Editor* ed, entt::registry& reg)
+            {
                 if (!reg.valid(ed->currentSelectedEntity))
                     return;
 
                 StaticFlags allFlags =
-                        StaticFlags::Audio |
-                        StaticFlags::Rendering |
-                        StaticFlags::Navigation;
+                    StaticFlags::Audio |
+                    StaticFlags::Rendering |
+                    StaticFlags::Navigation;
 
                 reg.get<WorldObject>(ed->currentSelectedEntity).staticFlags = allFlags;
                 for (entt::entity e : ed->getSelectedEntities())
@@ -385,26 +399,28 @@ namespace worlds
         });
 
         EditorActions::addAction({
-           "editor.copy",
-           [](Editor* ed, entt::registry& reg) {
-               if (!reg.valid(ed->currentSelectedEntity)) return;
-               std::vector<entt::entity> allSelectedEntities;
-               allSelectedEntities.push_back(ed->currentSelectedEntity);
-               for (entt::entity e : ed->selectedEntities)
-               {
-                   allSelectedEntities.push_back(e);
-               }
+            "editor.copy",
+            [](Editor* ed, entt::registry& reg)
+            {
+                if (!reg.valid(ed->currentSelectedEntity)) return;
+                std::vector<entt::entity> allSelectedEntities;
+                allSelectedEntities.push_back(ed->currentSelectedEntity);
+                for (entt::entity e : ed->selectedEntities)
+                {
+                    allSelectedEntities.push_back(e);
+                }
 
-               std::string entityJson =
-                       JsonSceneSerializer::entitiesToJson(reg, allSelectedEntities.data(), allSelectedEntities.size());
-               SDL_SetClipboardText(entityJson.c_str());
-           },
-           "Copy selected entities"
+                std::string entityJson =
+                    JsonSceneSerializer::entitiesToJson(reg, allSelectedEntities.data(), allSelectedEntities.size());
+                SDL_SetClipboardText(entityJson.c_str());
+            },
+            "Copy selected entities"
         });
 
         EditorActions::addAction({
             "editor.paste",
-            [](Editor* ed, entt::registry& reg) {
+            [](Editor* ed, entt::registry& reg)
+            {
                 if (!SDL_HasClipboardText()) return;
                 const char* txt = SDL_GetClipboardText();
                 try
@@ -431,7 +447,8 @@ namespace worlds
 
         EditorActions::addAction({
             "assets.refresh",
-            [](Editor* ed, entt::registry& reg) {
+            [](Editor* ed, entt::registry& reg)
+            {
                 ed->currentProject().assets().enumerateAssets();
                 ed->currentProject().assets().checkForAssetChanges();
                 ed->currentProject().assetCompiler().startCompiling();
@@ -447,22 +464,22 @@ namespace worlds
         };
 
         ActionBindingPair bindingPairs[] = {
-            { "scene.save", SDL_SCANCODE_S, ModifierFlags::Control },
-            { "scene.open", SDL_SCANCODE_O, ModifierFlags::Control },
-            { "scene.new", SDL_SCANCODE_N, ModifierFlags::Control },
-            { "editor.undo", SDL_SCANCODE_Z, ModifierFlags::Control },
-            { "editor.redo", SDL_SCANCODE_Z, ModifierFlags::Control | ModifierFlags::Shift },
-            { "editor.togglePlay", SDL_SCANCODE_P, ModifierFlags::Control },
-            { "editor.togglePause", SDL_SCANCODE_P, ModifierFlags::Control | ModifierFlags::Shift },
-            { "editor.openActionSearch", SDL_SCANCODE_SPACE, ModifierFlags::Control },
-            { "editor.openAssetSearch", SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift },
-            { "editor.copy", SDL_SCANCODE_C, ModifierFlags::Control },
-            { "editor.paste", SDL_SCANCODE_V, ModifierFlags::Control }
+            {"scene.save", SDL_SCANCODE_S, ModifierFlags::Control},
+            {"scene.open", SDL_SCANCODE_O, ModifierFlags::Control},
+            {"scene.new", SDL_SCANCODE_N, ModifierFlags::Control},
+            {"editor.undo", SDL_SCANCODE_Z, ModifierFlags::Control},
+            {"editor.redo", SDL_SCANCODE_Z, ModifierFlags::Control | ModifierFlags::Shift},
+            {"editor.togglePlay", SDL_SCANCODE_P, ModifierFlags::Control},
+            {"editor.togglePause", SDL_SCANCODE_P, ModifierFlags::Control | ModifierFlags::Shift},
+            {"editor.openActionSearch", SDL_SCANCODE_SPACE, ModifierFlags::Control},
+            {"editor.openAssetSearch", SDL_SCANCODE_SPACE, ModifierFlags::Control | ModifierFlags::Shift},
+            {"editor.copy", SDL_SCANCODE_C, ModifierFlags::Control},
+            {"editor.paste", SDL_SCANCODE_V, ModifierFlags::Control}
         };
 
         for (auto& bindPair : bindingPairs)
         {
-            ActionKeybind kb { bindPair.scancode, bindPair.flags };
+            ActionKeybind kb{bindPair.scancode, bindPair.flags};
             EditorActions::bindAction(bindPair.actionName, kb);
         }
 
@@ -816,6 +833,8 @@ namespace worlds
         }
     }
 
+    ConVar ed_runDotNetWatch{"ed_runDotNetWatch", "0"};
+
     void Editor::openProject(std::string path)
     {
         ZoneScoped;
@@ -866,8 +885,12 @@ namespace worlds
             interfaces.vrInterface->loadActionJson("SourceData/VRInput/actions.json");
         }
 
-        dotnetWatchProcess =
-            new slib::Subprocess("dotnet watch build", (std::string(project->root()) + "/Code").c_str());
+        if (ed_runDotNetWatch)
+        {
+            dotnetWatchProcess =
+                new slib::Subprocess("dotnet watch build",
+                                     (std::string(project->root()) + "/Code").c_str());
+        }
     }
 
     void Editor::update(float deltaTime)
@@ -875,7 +898,8 @@ namespace worlds
         ZoneScoped;
         static IntegratedMenubar menubar{interfaces};
 
-        auto sceneViewRemove = [](EditorSceneView* esv) {
+        auto sceneViewRemove = [](EditorSceneView* esv)
+        {
             if (!esv->open)
             {
                 delete esv;
@@ -886,7 +910,8 @@ namespace worlds
 
         sceneViews.erase(std::remove_if(sceneViews.begin(), sceneViews.end(), sceneViewRemove), sceneViews.end());
 
-        auto aeRemove = [](AssetEditorWindow* ae) {
+        auto aeRemove = [](AssetEditorWindow* ae)
+        {
             if (!ae->isActive())
             {
                 delete ae;
@@ -965,8 +990,8 @@ namespace worlds
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::Begin("EditorDockspaceWindow", 0,
                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-                         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
-                         ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar);
+                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
+                     ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_MenuBar);
         ImGui::PopStyleVar(3);
         ImGuiID dockspaceId = ImGui::GetID("EditorDockspace");
         ImGui::DockSpace(dockspaceId, ImVec2(0, 0));
@@ -1021,22 +1046,28 @@ namespace worlds
 
             ImGui::Checkbox("Global object snap", &settings.objectSnapGlobal);
             tooltipHover("If this is checked, moving an object with Ctrl held will snap in increments relative to the "
-                         "world rather than the object's original position.");
-            
+                "world rather than the object's original position.");
+
             if (ImGui::CollapsingHeader("Physics Simulation"))
             {
                 ImGui::Checkbox("Pause physics", &interfaces.engine->pauseSim);
 
                 if (ImGui::Button("Disable rigidbodies"))
                 {
-                    reg.view<RigidBody>().each([](RigidBody& rb) { rb.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true); });
+                    reg.view<RigidBody>().each([](RigidBody& rb)
+                    {
+                        rb.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
+                    });
                 }
 
                 ImGui::SameLine();
 
                 if (ImGui::Button("Enable rigidbodies"))
                 {
-                    reg.view<RigidBody>().each([](RigidBody& rb) { rb.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true); });
+                    reg.view<RigidBody>().each([](RigidBody& rb)
+                    {
+                        rb.actor->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
+                    });
                 }
 
                 if (ImGui::Button("Enable Selected"))
@@ -1104,7 +1135,8 @@ namespace worlds
             ae->draw(reg);
         }
 
-        saveFileModal("Save Scene", [this](const char* path) {
+        saveFileModal("Save Scene", [this](const char* path)
+        {
             AssetID sceneId = AssetDB::createAsset(path);
             JsonSceneSerializer::saveScene(sceneId, reg);
             lastSaveModificationCount = undo.modificationCount();
@@ -1115,7 +1147,8 @@ namespace worlds
 
         openFileModalOffset(
             "Open Scene",
-            [this](const char* path) {
+            [this](const char* path)
+            {
                 interfaces.engine->loadScene(AssetDB::pathToId(path));
                 updateWindowTitle();
                 undo.clear();
@@ -1241,7 +1274,8 @@ namespace worlds
                 }
 
                 if (ImGui::MenuItem("Pause Asset Watcher", nullptr, &project->assets().pauseWatcher, true))
-                {}
+                {
+                }
 
                 ImGui::EndMenu();
             }
@@ -1283,7 +1317,8 @@ namespace worlds
                 AssetCompileOperation* currentOp = project->assetCompiler().currentOperation();
                 if (currentOp)
                 {
-                    std::filesystem::path filename = std::filesystem::path(AssetDB::idToPath(currentOp->outputId)).filename();
+                    std::filesystem::path filename = std::filesystem::path(AssetDB::idToPath(currentOp->outputId)).
+                        filename();
                     ImGui::Text("Compiling %s", filename.string().c_str());
                     ImGui::ProgressBar(currentOp->progress, ImVec2(150.0f, 0.0f));
                 }
@@ -1296,7 +1331,8 @@ namespace worlds
             ImGui::EndMainMenuBar();
         }
 
-        saveFileModal("Save Prefab", [&](const char* path) {
+        saveFileModal("Save Prefab", [&](const char* path)
+        {
             PHYSFS_File* file = PHYSFS_openWrite(path);
             JsonSceneSerializer::saveEntity(file, reg, currentSelectedEntity);
         });
@@ -1337,6 +1373,20 @@ namespace worlds
                 project->assets().recompileFlag = false;
             }
             project->assetCompiler().updateCompilation();
+            
+            if (ed_runDotNetWatch)
+            {
+                if (dotnetWatchProcess == nullptr)
+                    dotnetWatchProcess =
+                        new slib::Subprocess("dotnet watch build",
+                                             (std::string(project->root()) + "/Code").c_str());
+            }
+            else if (dotnetWatchProcess != nullptr)
+            {
+                dotnetWatchProcess->kill();
+                delete dotnetWatchProcess;
+                dotnetWatchProcess = nullptr;
+            }
         }
 
         entityEyedropperActive = false;

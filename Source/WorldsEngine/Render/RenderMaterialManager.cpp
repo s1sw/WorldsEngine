@@ -187,6 +187,7 @@ namespace worlds
     }
 
     robin_hood::unordered_map<AssetID, int> materialRefCounts;
+
     void RenderMaterialManager::UnloadUnusedMaterials(entt::registry& reg)
     {
         materialRefCounts.clear();
@@ -197,7 +198,8 @@ namespace worlds
             materialRefCounts.insert({p.first, 0});
         }
 
-        reg.view<WorldObject>().each([&](WorldObject& wo) {
+        reg.view<WorldObject>().each([&](WorldObject& wo)
+        {
             for (int i = 0; i < NUM_SUBMESH_MATS; i++)
             {
                 if (!wo.presentMaterials[i]) continue;
@@ -206,7 +208,8 @@ namespace worlds
             }
         });
 
-        reg.view<SkinnedWorldObject>().each([&](SkinnedWorldObject& wo) {
+        reg.view<SkinnedWorldObject>().each([&](SkinnedWorldObject& wo)
+        {
             for (int i = 0; i < NUM_SUBMESH_MATS; i++)
             {
                 if (!wo.presentMaterials[i]) continue;

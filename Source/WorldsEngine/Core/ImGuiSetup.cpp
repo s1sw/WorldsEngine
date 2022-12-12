@@ -5,6 +5,7 @@
 #include <Libs/IconsFontAwesome5.h>
 #include <Libs/IconsFontaudio.h>
 #include <ImGui/imgui_impl_sdl.h>
+#include <ImGui/imgui_freetype.h>
 
 namespace worlds
 {
@@ -63,8 +64,8 @@ namespace worlds
         if (PHYSFS_exists("Fonts/EditorFont.ttf"))
             ImGui::GetIO().Fonts->Clear();
 
-        boldFont = addImGuiFont("Fonts/EditorFont-Bold.ttf", 20.0f * dpiScale);
-        ImGui::GetIO().FontDefault = addImGuiFont("Fonts/EditorFont.ttf", 20.0f * dpiScale);
+        boldFont = addImGuiFont("Fonts/EditorFont-Bold.ttf", 18.0f * dpiScale);
+        ImGui::GetIO().FontDefault = addImGuiFont("Fonts/EditorFont.ttf", 18.0f * dpiScale);
 
         static const ImWchar iconRanges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
         ImFontConfig iconConfig{};

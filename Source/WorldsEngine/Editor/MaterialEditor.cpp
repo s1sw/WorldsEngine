@@ -137,7 +137,7 @@ namespace worlds
 
     MaterialEditor::MaterialEditor(AssetID id, EngineInterfaces interfaces) : lx(0.0f), ly(0.0f), dist(2.0f)
     {
-        previewRegistry.set<SceneSettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"), 1.0f);
+        previewRegistry.set<SkySettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"), 1.0f);
 
         RTTPassSettings pci{};
         pci.enableShadows = false;
@@ -404,7 +404,7 @@ namespace worlds
         ImGui::SameLine();
 
         bool openSkyboxPopup = false;
-        auto& sceneSettings = previewRegistry.ctx<SceneSettings>();
+        auto& sceneSettings = previewRegistry.ctx<SkySettings>();
 
         if (ImGui::Button("Change Background"))
         {

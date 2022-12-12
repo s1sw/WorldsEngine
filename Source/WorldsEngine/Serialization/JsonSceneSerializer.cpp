@@ -152,8 +152,8 @@ namespace worlds
 
         nlohmann::json scene{{"entities", entities},
                              {"settings",
-                              {{"skyboxPath", AssetDB::idToPath(reg.ctx<SceneSettings>().skybox)},
-                               {"skyboxBoost", reg.ctx<SceneSettings>().skyboxBoost}}}};
+                              {{"skyboxPath", AssetDB::idToPath(reg.ctx<SkySettings>().skybox)},
+                               {"skyboxBoost", reg.ctx<SkySettings>().skyboxBoost}}}};
 
 #ifdef BUILD_EDITOR
         EntityFolders* entityFolders = reg.try_ctx<EntityFolders>();
@@ -393,10 +393,10 @@ namespace worlds
         else
         {
             loadSceneEntities(reg, j["entities"]);
-            SceneSettings settings{};
+            SkySettings settings{};
             settings.skybox = AssetDB::pathToId(j["settings"]["skyboxPath"].get<std::string>());
             settings.skyboxBoost = j["settings"].value("skyboxBoost", 1.0f);
-            reg.set<SceneSettings>(settings);
+            reg.set<SkySettings>(settings);
 
 #ifdef BUILD_EDITOR
             if (j.contains("rootEntityFolder"))

@@ -8,7 +8,7 @@ namespace worlds
     {
         if (ImGui::Begin("Scene Settings", &active))
         {
-            auto& settings = reg.ctx<SceneSettings>();
+            auto& settings = reg.ctx<SkySettings>();
 
             ImGui::Text("Current Skybox: %s", AssetDB::idToPath(settings.skybox).c_str());
             ImGui::SameLine();

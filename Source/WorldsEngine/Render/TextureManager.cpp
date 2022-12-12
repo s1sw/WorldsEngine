@@ -9,113 +9,6 @@
 
 namespace worlds
 {
-    VKUITextureManager::VKUITextureManager(VKTextureManager* texMan) : texMan(texMan)
-    {
-    }
-
-    ImTextureID VKUITextureManager::loadOrGet(AssetID id)
-    {
-        return (ImTextureID)(uint64_t) texMan->loadAndGetAsync(id);
-    }
-
-    void VKUITextureManager::unload(AssetID id)
-    {
-        texMan->unload(id);
-    }
-
-    VKTextureManager::VKTextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager)
-        : core(core), textureManager(textureManager)
-    {
-        missingTextureID = loadSynchronous(AssetDB::pathToId("Textures/missing.wtex"));
-        missingTexture = textureManager->GetTextureAt(missingTextureID);
-        AssetDB::registerAssetChangeCallback(
-            [&](AssetID asset) {
-                if (!textureIds.contains(asset)) return;
-                logMsg("Reloading %s", AssetDB::idToPath(asset).c_str());
-                auto& texInfo = textureIds.at(asset);
-                if (texInfo.isCubemap)
-                {
-                    // Fully unload cubemaps so convolution can take care of them
-                    unload(asset);
-                    return;
-                }
-                if (texInfo.tex != missingTexture)
-                {
-                    delete texInfo.tex;
-                }
-                load(asset, texInfo.bindlessId);
-            }
-        );
-    }
-
-    VKTextureManager::~VKTextureManager()
-    {
-        for (auto& pair : textureIds)
-        {
-            if (pair.second.tex != missingTexture)
-                delete pair.second.tex;
-            textureManager->FreeTextureHandle(pair.second.bindlessId);
-        }
-        delete missingTexture;
-    }
-
-    uint32_t VKTextureManager::loadAndGetAsync(AssetID id)
-    {
-        std::unique_lock lock{idMutex};
-        if (textureIds.contains(id))
-        {
-            textureIds.at(id).refCount++;
-            return textureIds.at(id).bindlessId;
-        }
-
-        // Allocate a handle while we still have the lock but without actual
-        // texture data. This stops other threads from trying to load the same
-        // texture
-        uint32_t handle = textureManager->AllocateTextureHandle(missingTexture);
-        textureIds.insert({id, TexInfo{nullptr, handle}});
-        lock.unlock();
-
-        return load(id, handle);
-    }
-
-    uint32_t VKTextureManager::get(AssetID id)
-    {
-        return textureIds.at(id).bindlessId;
-    }
-
-    bool VKTextureManager::isLoaded(AssetID id)
-    {
-        return textureIds.contains(id);
-    }
-
-    void VKTextureManager::unload(AssetID id)
-    {
-        std::lock_guard lock{idMutex};
-        TexInfo info = textureIds[id];
-        if (info.bindlessId == missingTextureID)
-        {
-            // Unloading the missing texture will break a lot of things so... let's just not
-            return;
-        }
-
-        if (info.tex != missingTexture)
-        {
-            delete info.tex;
-        }
-
-        textureIds.erase(id);
-        textureManager->FreeTextureHandle(info.bindlessId);
-    }
-
-    void VKTextureManager::release(AssetID id)
-    {
-        TexInfo& info = textureIds.at(id);
-        info.refCount--;
-
-        if (info.refCount <= 0)
-            unload(id);
-    }
-
     struct VKTextureManager::TextureLoadTask : enki::ITaskSet
     {
         AssetID id;
@@ -124,8 +17,8 @@ namespace worlds
 
         TextureLoadTask(AssetID id, uint32_t handle, VKTextureManager* vkTextureManager)
             : id(id)
-            , handle(handle)
-            , vkTextureManager(vkTextureManager)
+              , handle(handle)
+              , vkTextureManager(vkTextureManager)
         {
         }
 
@@ -172,9 +65,123 @@ namespace worlds
         }
     };
 
+    VKUITextureManager::VKUITextureManager(VKTextureManager* texMan) : texMan(texMan)
+    {
+    }
+
+    ImTextureID VKUITextureManager::loadOrGet(AssetID id)
+    {
+        return (ImTextureID)(uint64_t)texMan->loadAndGetAsync(id);
+    }
+
+    void VKUITextureManager::unload(AssetID id)
+    {
+        texMan->unload(id);
+    }
+
+    VKTextureManager::VKTextureManager(R2::VK::Core* core, R2::BindlessTextureManager* textureManager)
+        : core(core), textureManager(textureManager)
+    {
+        missingTextureID = loadSynchronous(AssetDB::pathToId("Textures/missing.wtex"));
+        missingTexture = textureManager->GetTextureAt(missingTextureID);
+        AssetDB::registerAssetChangeCallback(
+            [&](AssetID asset)
+            {
+                if (!textureIds.contains(asset)) return;
+                logMsg("Reloading %s", AssetDB::idToPath(asset).c_str());
+                auto& texInfo = textureIds.at(asset);
+                if (texInfo.isCubemap)
+                {
+                    // Fully unload cubemaps so convolution can take care of them
+                    unload(asset);
+                    return;
+                }
+                if (texInfo.tex != missingTexture)
+                {
+                    delete texInfo.tex;
+                }
+                load(asset, texInfo.bindlessId);
+            }
+        );
+    }
+
+    VKTextureManager::~VKTextureManager()
+    {
+        for (auto& pair : textureIds)
+        {
+            if (pair.second.tex != missingTexture)
+                delete pair.second.tex;
+            textureManager->FreeTextureHandle(pair.second.bindlessId);
+        }
+        delete missingTexture;
+    }
+
+    uint32_t VKTextureManager::loadAndGetAsync(AssetID id)
+    {
+        std::unique_lock lock{idMutex};
+        if (textureIds.contains(id))
+        {
+            textureIds.at(id).refCount++;
+            return textureIds.at(id).bindlessId;
+        }
+
+        // Allocate a handle while we still have the lock but without actual
+        // texture data. This stops other threads from trying to load the same
+        // texture
+        uint32_t handle = textureManager->AllocateTextureHandle(missingTexture);
+        textureIds.insert({id, TexInfo{nullptr, handle}});
+        lock.unlock();
+
+        auto tlt = new TextureLoadTask{id, handle, this};
+        TaskDeleter* td = new TaskDeleter();
+        td->SetDependency(td->dependency, tlt);
+        td->deleteSelf = true;
+        g_taskSched.AddTaskSetToPipe(tlt);
+        return handle;
+    }
+
+    uint32_t VKTextureManager::get(AssetID id)
+    {
+        return textureIds.at(id).bindlessId;
+    }
+
+    bool VKTextureManager::isLoaded(AssetID id)
+    {
+        return textureIds.contains(id);
+    }
+
+    void VKTextureManager::unload(AssetID id)
+    {
+        std::lock_guard lock{idMutex};
+        TexInfo info = textureIds[id];
+        if (info.bindlessId == missingTextureID)
+        {
+            // Unloading the missing texture will break a lot of things so... let's just not
+            return;
+        }
+
+        if (info.tex != missingTexture)
+        {
+            delete info.tex;
+        }
+
+        textureIds.erase(id);
+        textureManager->FreeTextureHandle(info.bindlessId);
+    }
+
+    void VKTextureManager::release(AssetID id)
+    {
+        TexInfo& info = textureIds.at(id);
+        info.refCount--;
+
+        if (info.refCount <= 0)
+            unload(id);
+    }
+
+
     uint32_t VKTextureManager::load(AssetID id, uint32_t handle)
     {
-        TextureLoadTask tlt { id, handle, this };
+        TextureLoadTask tlt{id, handle, this};
         g_taskSched.AddTaskSetToPipe(&tlt);
         g_taskSched.WaitforTask(&tlt);
         return handle;
@@ -187,7 +194,7 @@ namespace worlds
         uint32_t handle = textureManager->AllocateTextureHandle(missingTexture);
         textureIds.insert({id, TexInfo{nullptr, handle}});
         lock.unlock();
-        auto tlt = new TextureLoadTask{ id, handle, this };
+        auto tlt = new TextureLoadTask{id, handle, this};
         return tlt;
     }
 
@@ -207,7 +214,7 @@ namespace worlds
         textureIds.insert({id, TexInfo{nullptr, handle}});
         lock.unlock();
 
-        TextureLoadTask tlt { id, handle, this };
+        TextureLoadTask tlt{id, handle, this};
         g_taskSched.AddTaskSetToPipe(&tlt);
         g_taskSched.WaitforTask(&tlt);
         return handle;
@@ -226,5 +233,4 @@ namespace worlds
         }
         ImGui::End();
     }
-
 }

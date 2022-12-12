@@ -142,7 +142,7 @@ namespace worlds
             logVrb("Mounting %s", dataStr.c_str());
             if (PHYSFS_mount(dataStr.c_str(), "/", 0) == 0)
             {
-                const char *err = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+                const char* err = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
                 logErr("Failed to mount game data: %s", err);
                 fatalErr("Failed to mount game data");
             }
@@ -151,7 +151,7 @@ namespace worlds
         logVrb("Mounting %s", engineDataStr.c_str());
         if (PHYSFS_mount(engineDataStr.c_str(), "/", 0) == 0)
         {
-            const char *err = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+            const char* err = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
             logErr("Failed to mount engine data: %s", err);
             fatalErr("Failed to mount engine data");
         }
@@ -258,7 +258,7 @@ namespace worlds
 
         AssetDB::load();
         MeshManager::initialize();
-        registry.set<SceneSettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"), 1.0f);
+        registry.set<SkySettings>(AssetDB::pathToId("Cubemaps/Miramar/miramar.json"), 1.0f);
 
         if (!headless)
         {
@@ -505,18 +505,14 @@ namespace worlds
         if (evtHandler != nullptr)
         {
             evtHandler->init(registry, interfaces);
+            evtHandler->onSceneStart(registry);
 
-            if (!runAsEditor)
-            {
-                evtHandler->onSceneStart(registry);
-
-                scriptEngine->onSceneStart();
-            }
+            scriptEngine->onSceneStart();
         }
 
         if (!headless)
         {
-            viewController = new ViewController(interfaces, { enableVR, window });
+            viewController = new ViewController(interfaces, {enableVR, window});
             delete splashWindow;
 
             window->show();
@@ -596,8 +592,8 @@ namespace worlds
 
         if (vrInterface)
         {
-            vrInterface->waitFrame(); 
-            vrInterface->beginFrame(); 
+            vrInterface->waitFrame();
+            vrInterface->beginFrame();
         }
 
         if (!headless)
@@ -701,7 +697,7 @@ namespace worlds
             glm::quat alRot = cam.rotation;
 
             auto view = registry.view<AudioListenerOverride>();
-            if (view.size() > 0)
+            if (!view.empty())
             {
                 auto overrideEnt = view.front();
                 auto overrideT = registry.get<Transform>(overrideEnt);

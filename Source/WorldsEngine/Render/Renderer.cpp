@@ -95,6 +95,9 @@ namespace worlds
         R2::VK::GraphicsDeviceInfo deviceInfo = core->GetDeviceInfo();
         logMsg(WELogCategoryRender, "Device name: %s", deviceInfo.Name);
         timestampPeriod = deviceInfo.TimestampPeriod;
+        auto supportedFeatures = core->GetSupportedFeatures();
+        logMsg(WELogCategoryRender, "Ray tracing: %i, Variable rate shading: %i",
+               (int)supportedFeatures.RayTracing, (int)supportedFeatures.VariableRateShading);
 
         ShaderCache::setDevice(core);
 
@@ -328,7 +331,7 @@ namespace worlds
             renderMeshManager->loadOrGet(wo.mesh);
         });
 
-        auto& sceneSettings = registry.ctx<SceneSettings>();
+        auto& sceneSettings = registry.ctx<SkySettings>();
         if (!textureManager->isLoaded(sceneSettings.skybox))
         {
             LoadSingleCubemapTask lsct{textureManager, sceneSettings.skybox};

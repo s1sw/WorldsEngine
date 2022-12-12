@@ -196,7 +196,8 @@ namespace worlds
     };
 
     const robin_hood::unordered_flat_map<StaticFlags, const char*> flagNames = {
-        {StaticFlags::Audio, "Audio"}, {StaticFlags::Rendering, "Rendering"}, {StaticFlags::Navigation, "Navigation"}};
+        {StaticFlags::Audio, "Audio"}, {StaticFlags::Rendering, "Rendering"}, {StaticFlags::Navigation, "Navigation"}
+    };
 
     class WorldObjectEditor : public BasicComponentUtil<WorldObject>
     {
@@ -360,7 +361,8 @@ namespace worlds
                 {"texScaleOffset", wo.texScaleOffset},
                 {"materials", matArray},
                 {"drawnSubmeshes", drawnSubmeshArray},
-                {"staticFlags", wo.staticFlags}};
+                {"staticFlags", wo.staticFlags}
+            };
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
@@ -499,7 +501,8 @@ namespace worlds
                 {"mesh", AssetDB::idToPath(wo.mesh)},
                 {"texScaleOffset", wo.texScaleOffset},
                 {"materials", matArray},
-                {"staticFlags", wo.staticFlags}};
+                {"staticFlags", wo.staticFlags}
+            };
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
@@ -534,7 +537,8 @@ namespace worlds
         {LightType::Point, "Point"},
         {LightType::Spot, "Spot"},
         {LightType::Sphere, "Sphere"},
-        {LightType::Tube, "Tube"}};
+        {LightType::Tube, "Tube"}
+    };
 
     class WorldLightEditor : public BasicComponentUtil<WorldLight>
     {
@@ -545,41 +549,45 @@ namespace worlds
             switch (worldLight.type)
             {
             case LightType::Spot:
-            {
-                float cutoff = glm::degrees(worldLight.spotCutoff);
-                ImGui::DragFloat("Spot Cutoff", &cutoff, 1.0f, 0.0f, 90.0f);
-                worldLight.spotCutoff = glm::radians(cutoff);
-
-                float outerCutoff = glm::degrees(worldLight.spotOuterCutoff);
-                ImGui::DragFloat("Spot Outer Cutoff", &outerCutoff, 1.0f, cutoff, 90.0f);
-                worldLight.spotOuterCutoff = glm::radians(outerCutoff);
-
-                ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
-
-                if (worldLight.enableShadows)
                 {
-                    ImGui::DragFloat("Near Plane", &worldLight.shadowNear, 0.1f, 0.001f, FLT_MAX);
-                    ImGui::DragFloat("Far Plane", &worldLight.shadowFar, 1.0f, worldLight.shadowNear, FLT_MAX);
-                    ImGui::InputFloat("Shadow Bias", &worldLight.shadowBias, 0.0001f, 0.001f, "%.6f");
+                    float cutoff = glm::degrees(worldLight.spotCutoff);
+                    ImGui::DragFloat("Spot Cutoff", &cutoff, 1.0f, 0.0f, 90.0f);
+                    worldLight.spotCutoff = glm::radians(cutoff);
+
+                    float outerCutoff = glm::degrees(worldLight.spotOuterCutoff);
+                    ImGui::DragFloat("Spot Outer Cutoff", &outerCutoff, 1.0f, cutoff, 90.0f);
+                    worldLight.spotOuterCutoff = glm::radians(outerCutoff);
+
+                    ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
+
+                    if (worldLight.enableShadows)
+                    {
+                        ImGui::DragFloat("Near Plane", &worldLight.shadowNear, 0.1f, 0.001f, FLT_MAX);
+                        ImGui::DragFloat("Far Plane", &worldLight.shadowFar, 1.0f, worldLight.shadowNear, FLT_MAX);
+                        ImGui::InputFloat("Shadow Bias", &worldLight.shadowBias, 0.0001f, 0.001f, "%.6f");
+                    }
                 }
-            }
-            break;
+                break;
             case LightType::Sphere:
-            {
-                ImGui::DragFloat("Sphere Radius", &worldLight.spotCutoff, 1.0f, 0.0f, FLT_MAX);
-            }
-            break;
+                {
+                    ImGui::DragFloat("Sphere Radius", &worldLight.spotCutoff, 1.0f, 0.0f, FLT_MAX);
+                }
+                break;
             case LightType::Tube:
-            {
-                ImGui::DragFloat("Tube Length", &worldLight.tubeLength, 0.1f, 0.0f, FLT_MAX);
-                ImGui::DragFloat("Tube Radius", &worldLight.tubeRadius, 0.1f, 0.0f, FLT_MAX);
-            }
-            break;
+                {
+                    ImGui::DragFloat("Tube Length", &worldLight.tubeLength, 0.1f, 0.0f, FLT_MAX);
+                    ImGui::DragFloat("Tube Radius", &worldLight.tubeRadius, 0.1f, 0.0f, FLT_MAX);
+                }
+                break;
             case LightType::Directional:
-            {
-                ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
-            }
-            break;
+                {
+                    ImGui::Checkbox("Enable Shadows", &worldLight.enableShadows);
+                    if (worldLight.enableShadows)
+                    {
+                        ImGui::InputFloat("Shadow Bias", &worldLight.shadowBias, 0.0001f, 0.001f, "%.6f");
+                    }
+                }
+                break;
             default:
                 break;
             }
@@ -669,25 +677,25 @@ namespace worlds
                 drawLine(
                     transform.position,
                     transform.position + transform.rotation * glm::vec3(radiusAtCutoff, 0.0f, 0.0f) +
-                        lightForward * worldLight.maxDistance * 0.5f,
+                    lightForward * worldLight.maxDistance * 0.5f,
                     glm::vec4(1.0f)
                 );
                 drawLine(
                     transform.position,
                     transform.position + transform.rotation * glm::vec3(-radiusAtCutoff, 0.0f, 0.0f) +
-                        lightForward * worldLight.maxDistance * 0.5f,
+                    lightForward * worldLight.maxDistance * 0.5f,
                     glm::vec4(1.0f)
                 );
                 drawLine(
                     transform.position,
                     transform.position + transform.rotation * glm::vec3(0.0f, 0.0f, radiusAtCutoff) +
-                        lightForward * worldLight.maxDistance * 0.5f,
+                    lightForward * worldLight.maxDistance * 0.5f,
                     glm::vec4(1.0f)
                 );
                 drawLine(
                     transform.position,
                     transform.position + transform.rotation * glm::vec3(0.0f, 0.0f, -radiusAtCutoff) +
-                        lightForward * worldLight.maxDistance * 0.5f,
+                    lightForward * worldLight.maxDistance * 0.5f,
                     glm::vec4(1.0f)
                 );
             }
@@ -715,7 +723,8 @@ namespace worlds
                 {"maxDistance", wl.maxDistance},
                 {"shadowNear", wl.shadowNear},
                 {"shadowFar", wl.shadowFar},
-                {"shadowBias", wl.shadowBias}};
+                {"shadowBias", wl.shadowBias}
+            };
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
@@ -873,7 +882,8 @@ namespace worlds
         }
     }
 
-    template <typename T> void editPhysicsShapes(T& actor, Transform& actorTransform, worlds::Editor* ed)
+    template <typename T>
+    void editPhysicsShapes(T& actor, Transform& actorTransform, worlds::Editor* ed)
     {
         static size_t currentShapeIdx = 0;
         static bool transformingShape = false;
@@ -1443,7 +1453,7 @@ namespace worlds
             AudioSource& as = reg.emplace<AudioSource>(to);
             as.changeEventPath(originalAs.eventPath());
             as.playOnSceneStart = originalAs.playOnSceneStart;
-            
+
             if (originalAs.playbackState() == FMOD_STUDIO_PLAYBACK_PLAYING)
             {
                 as.eventInstance->start();
@@ -1553,7 +1563,7 @@ namespace worlds
                 ImGui::Checkbox("Parallax Correction", &wc.cubeParallax);
                 ImGui::InputInt("Priority", &wc.priority);
                 tooltipHover("Cubemaps with a higher priority value will be preferred over cubemaps with a lower "
-                             "priority value.");
+                    "priority value.");
                 ImGui::DragFloat("Blend Distance", &wc.blendDistance);
 
                 Transform boundsTransform{};
@@ -1582,7 +1592,8 @@ namespace worlds
                 {"priority", wc.priority},
                 {"resolution", wc.resolution},
                 {"captureOffset", wc.captureOffset},
-                {"blendDistance", wc.blendDistance}};
+                {"blendDistance", wc.blendDistance}
+            };
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap&, const json& j) override
@@ -2007,7 +2018,8 @@ namespace worlds
                 {"parent", (uint32_t)c.parent},
                 {"position", c.offset.position},
                 {"rotation", c.offset.rotation},
-                {"scale", c.offset.scale}};
+                {"scale", c.offset.scale}
+            };
         }
 
         void fromJson(entt::entity ent, entt::registry& reg, EntityIDMap& idMap, const json& j) override
@@ -2015,7 +2027,7 @@ namespace worlds
             ZoneScoped;
             if (!j.is_object())
                 return;
-            
+
             entt::entity realParent = (entt::entity)idMap[j["parent"]];
 
             if (!reg.valid(realParent))
@@ -2066,8 +2078,8 @@ namespace worlds
         {
             ParticleSystem& ps = reg.get<ParticleSystem>(ent);
             j = {
-                { "emissionRate", ps.emissionRate },
-                { "maxParticles", ps.maxParticles }
+                {"emissionRate", ps.emissionRate},
+                {"maxParticles", ps.maxParticles}
             };
         }
 
