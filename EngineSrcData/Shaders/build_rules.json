@@ -174,5 +174,11 @@
         "outputPath": "particle.frag.spv",
         "stage": "frag",
         "entryPoint": "FragmentShader"
+    },
+    {
+        "path": "gunk.vert.slang",
+        "outputPath": "gunk.vert.spv",
+        "stage": "vert",
+        "entryPoint": "VertexShader"
     }
 ]
