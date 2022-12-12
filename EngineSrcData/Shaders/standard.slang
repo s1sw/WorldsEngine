@@ -490,6 +490,11 @@ float3 GetHeatmapColor(uint number, float2 fragCoord)
     return heatmapCol;
 }
 
+float3 LightHeatmap(float2 fragCoord)
+{
+    return GetHeatmapColor(GetLightTileCount(fragCoord), fragCoord);
+}
+
 float3 BlendColorOnly(float3 base, float3 color)
 {
     float luminance = dot(base, float3(0.2126, 0.7152, 0.0722));
