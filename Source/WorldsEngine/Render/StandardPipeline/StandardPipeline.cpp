@@ -52,6 +52,7 @@ namespace worlds
     const int NUM_TIMESTAMPS = TS_Count * 2;
 
     const uint32_t MAX_DRAWS = 8192;
+
     struct StandardPushConstants
     {
         uint32_t modelMatrixID;
@@ -112,7 +113,8 @@ namespace worlds
 
     StandardPipeline::~StandardPipeline()
     {
-        ((VKRenderer*)engineInterfaces.renderer)->getTextureManager()->release(AssetDB::pathToId("Textures/bluenoise.png"));
+        ((VKRenderer*)engineInterfaces.renderer)->getTextureManager()->release(
+            AssetDB::pathToId("Textures/bluenoise.png"));
     }
 
     void StandardPipeline::createSizeDependants()
@@ -147,7 +149,8 @@ namespace worlds
         VK::BufferCreateInfo lightTileBci{
             VK::BufferUsage::Storage,
             sizeof(LightTile) * ((rttPass->width + 31) / 32) * ((rttPass->height + 31) / 32) * settings.numViews,
-            true};
+            true
+        };
         lightTileBuffer = core->CreateBuffer(lightTileBci);
         lightTileBuffer->SetDebugName("Light Tile Buffer");
 
@@ -188,14 +191,14 @@ namespace worlds
     void StandardPipeline::setupDepthPassPipeline(VK::PipelineBuilder& pb, VK::VertexBinding& vb)
     {
         pb.PrimitiveTopology(VK::Topology::TriangleList)
-           .CullMode(VK::CullMode::Back)
-           .Layout(pipelineLayout.Get())
-           .AddVertexBinding(vb)
-           .DepthTest(true)
-           .DepthWrite(true)
-           .DepthCompareOp(VK::CompareOp::Greater)
-           .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
-           .MSAASamples(rttPass->getSettings().msaaLevel);
+          .CullMode(VK::CullMode::Back)
+          .Layout(pipelineLayout.Get())
+          .AddVertexBinding(vb)
+          .DepthTest(true)
+          .DepthWrite(true)
+          .DepthCompareOp(VK::CompareOp::Greater)
+          .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
+          .MSAASamples(rttPass->getSettings().msaaLevel);
 
         pb.ViewMask(getViewMask(rttPass->getSettings().numViews));
     }
@@ -238,7 +241,8 @@ namespace worlds
         core->QueueBufferUpload(
             sceneGlobals.Get(), poissonDisk, sizeof(glm::vec2) * 64, offsetof(SceneGlobals, poissonDisk));
         SceneGlobals* globals = (SceneGlobals*)sceneGlobals->Map();
-        globals->blueNoiseTexture = renderer->getTextureManager()->loadSynchronous(AssetDB::pathToId("Textures/bluenoise.png"));
+        globals->blueNoiseTexture = renderer->getTextureManager()->loadSynchronous(
+            AssetDB::pathToId("Textures/bluenoise.png"));
         sceneGlobals->Unmap();
 
         VK::DescriptorSetLayoutBuilder dslb{core};
@@ -268,8 +272,8 @@ namespace worlds
 
         VK::PipelineLayoutBuilder plb{core->GetHandles()};
         plb.PushConstants(VK::ShaderStage::Vertex | VK::ShaderStage::Fragment, 0, sizeof(StandardPushConstants))
-            .DescriptorSet(descriptorSetLayout.Get())
-            .DescriptorSet(&renderer->getBindlessTextureManager()->GetTextureDescriptorSetLayout());
+           .DescriptorSet(descriptorSetLayout.Get())
+           .DescriptorSet(&renderer->getBindlessTextureManager()->GetTextureDescriptorSetLayout());
         pipelineLayout = plb.Build();
 
         VK::VertexBinding vb;
@@ -313,16 +317,18 @@ namespace worlds
         pb3.AddShader(VK::ShaderStage::Vertex, stdVert)
            .AddShader(VK::ShaderStage::Fragment, depthAlphaTestFrag)
            .AlphaToCoverage(true);
-        techniqueManager->registerVariant(standardTechnique, pb3.Build(), VariantFlags::DepthPrepass | VariantFlags::AlphaTest);
+        techniqueManager->registerVariant(standardTechnique, pb3.Build(),
+                                          VariantFlags::DepthPrepass | VariantFlags::AlphaTest);
 
         cubemapConvoluter = new CubemapConvoluter(core);
         createSizeDependants();
 
         if (settings.outputToXR)
             hiddenMeshRenderer = new HiddenMeshRenderer(engineInterfaces, settings.msaaLevel, multiVPBuffer.Get());
-        
+
         computeSkinner = new ComputeSkinner(renderer);
-        particleRenderer = new ParticleRenderer(renderer, settings.msaaLevel, getViewMask(settings.numViews), multiVPBuffer.Get());
+        particleRenderer = new ParticleRenderer(renderer, settings.msaaLevel, getViewMask(settings.numViews),
+                                                multiVPBuffer.Get());
         timestampPool = new VK::TimestampPool(
             core->GetHandles(), (int)core->GetNumFramesInFlight() * NUM_TIMESTAMPS);
     }
@@ -361,7 +367,8 @@ namespace worlds
             ZoneScoped;
 
             uint32_t lightCount = 0;
-            registry.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t) {
+            registry.view<WorldLight, Transform>().each([&](WorldLight& wl, const Transform& t)
+            {
                 if (!wl.enabled || lightCount >= LightUB::MAX_LIGHTS)
                     return;
 
@@ -372,7 +379,8 @@ namespace worlds
 
                 if (wl.shadowmapIdx != ~0u)
                 {
-                    lightUB->additionalShadowMatrices[wl.shadowmapIdx] = shadowmapManager->GetShadowVPMatrix(wl.shadowmapIdx);
+                    lightUB->additionalShadowMatrices[wl.shadowmapIdx] = shadowmapManager->GetShadowVPMatrix(
+                        wl.shadowmapIdx);
                     lightUB->shadowmapIds[wl.shadowmapIdx] = shadowmapManager->GetShadowmapId(wl.shadowmapIdx);
                 }
 
@@ -421,7 +429,8 @@ namespace worlds
             uint32_t cubemapIdx = 1;
             lightUB->cubemaps[0] = GPUCubemap{glm::vec3{100000.0f}, textureManager->get(skybox), glm::vec3{0.0f}, 0};
 
-            registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t) {
+            registry.view<WorldCubemap, Transform>().each([&](WorldCubemap& wc, Transform& t)
+            {
                 GPUCubemap gc{};
                 gc.extent = wc.extent;
                 gc.position = t.position;
@@ -639,7 +648,8 @@ namespace worlds
                     StandardDrawCommand drawCmd{};
                     drawCmd.indexCount = rsi.indexCount;
                     drawCmd.firstIndex = rsi.indexOffset + (rmi.indexOffset / sizeof(uint32_t));
-                    drawCmd.vertexOffset = wo.skinnedVertexOffset + (renderer->getMeshManager()->getSkinnedVertsOffset() / sizeof(Vertex));
+                    drawCmd.vertexOffset = wo.skinnedVertexOffset + (renderer->getMeshManager()->getSkinnedVertsOffset()
+                        / sizeof(Vertex));
                     drawCmd.variantFlags = materialInfo.alphaTest ? VariantFlags::AlphaTest : VariantFlags::None;
 
                     if (materialInfo.fragmentShader != INVALID_ASSET || materialInfo.vertexShader != INVALID_ASSET)
@@ -721,10 +731,14 @@ namespace worlds
         pb3.AddShader(VK::ShaderStage::Vertex, mainVertModule)
            .AddShader(VK::ShaderStage::Fragment, fragShaderID == standardFragID ? depthAlphaTestModule : mainFragModule)
            .AlphaToCoverage(true);
-        techniqueManager->registerVariant(techniqueId, pb3.Build(), VariantFlags::DepthPrepass | VariantFlags::AlphaTest);
+        techniqueManager->registerVariant(techniqueId, pb3.Build(),
+                                          VariantFlags::DepthPrepass | VariantFlags::AlphaTest);
 
-        customShaderTechniques.insert({ key, techniqueId });
+        customShaderTechniques.insert({key, techniqueId});
     }
+
+#define GPU_BEGIN(timestamp) timestampPool->WriteTimestamp(cb, timestampOffset + timestamp * 2 + 0)
+#define GPU_END(timestamp) timestampPool->WriteTimestamp(cb, timestampOffset + timestamp * 2 + 0)
 
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
     {
@@ -735,10 +749,10 @@ namespace worlds
         BindlessTextureManager* btm = renderer->getBindlessTextureManager();
         VKTextureManager* textureManager = renderer->getTextureManager();
         uint32_t frameIdx = renderer->getCore()->GetFrameIndex();
-        // RenderMaterialManager::UnloadUnusedMaterials(reg);
 
         // Load necessary material techniques
-        reg.view<WorldObject>().each([&](WorldObject& wo) {
+        reg.view<WorldObject>().each([&](WorldObject& wo)
+        {
             for (int i = 0; i < NUM_SUBMESH_MATS; i++)
             {
                 if (!wo.presentMaterials[i]) continue;
@@ -841,7 +855,7 @@ namespace worlds
             multiVPs.inverseVP[i] = glm::inverse(proj * view);
             multiVPs.viewPos[i] = glm::vec4((glm::vec3)glm::inverse(view)[3], 0.0f);
 
-            new (&frustums[i]) Frustum();
+            new(&frustums[i]) Frustum();
             frustums[i].fromVPMatrix(proj * view);
         }
 
@@ -873,9 +887,9 @@ namespace worlds
             cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::VertexShader);
 
 
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_Skinning * 2 + 0);
+        GPU_BEGIN(TS_Skinning);
         computeSkinner->Execute(cb, reg);
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_Skinning * 2 + 1);
+        GPU_END(TS_Skinning);
 
         glm::mat4* modelMatricesMapped = (glm::mat4*)modelMatrixBuffers->MapCurrent();
         GPUDrawInfo* drawInfosMapped = (GPUDrawInfo*)drawInfoBuffers->MapCurrent();
@@ -919,13 +933,13 @@ namespace worlds
 
         // Depth Pre-Pass
         cb.BeginDebugLabel("Depth Pre-Pass", 0.1f, 0.1f, 0.1f);
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_DepthPrepass * 2 + 0);
+        GPU_BEGIN(TS_DepthPrepass);
 
         VK::RenderPass depthPass;
         depthPass.DepthAttachment(depthBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
-            .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
-            .RenderArea(rttPass->width, rttPass->height)
-            .ViewMask(getViewMask(rttPass->getSettings().numViews));
+                 .DepthAttachmentClearValue(VK::ClearValue::DepthClear(0.0f))
+                 .RenderArea(rttPass->width, rttPass->height)
+                 .ViewMask(getViewMask(rttPass->getSettings().numViews));
 
         depthPass.Begin(cb);
 
@@ -956,27 +970,27 @@ namespace worlds
         }
         depthPass.End(cb);
         renderer->getDebugStats().numDrawCalls = fdbTask.drawIdCounter;
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_DepthPrepass * 2 + 1);
+        GPU_END(TS_DepthPrepass);
 
         cb.EndDebugLabel();
 
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_LightCull * 2 + 0);
         // Run light culling using the depth buffer
+        GPU_BEGIN(TS_LightCull);
         lightCull->Execute(cb);
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_LightCull * 2 + 1);
+        GPU_END(TS_LightCull);
 
         lightTileBuffer->Acquire(cb, VK::AccessFlags::ShaderRead, VK::PipelineStageFlags::FragmentShader);
 
         // Actual "opaque" pass
         cb.BeginDebugLabel("Opaque Pass", 0.5f, 0.1f, 0.1f);
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_MainPass * 2 + 0);
+        GPU_BEGIN(TS_MainPass);
 
         VK::RenderPass colorPass;
         colorPass.ColorAttachment(colorBuffer.Get(), VK::LoadOp::Clear, VK::StoreOp::Store)
-            .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.0f, 0.0f, 0.0f, 1.0f))
-            .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Load, VK::StoreOp::Store)
-            .RenderArea(rttPass->width, rttPass->height)
-            .ViewMask(getViewMask(rttPass->getSettings().numViews));
+                 .ColorAttachmentClearValue(VK::ClearValue::FloatColorClear(0.0f, 0.0f, 0.0f, 1.0f))
+                 .DepthAttachment(depthBuffer.Get(), VK::LoadOp::Load, VK::StoreOp::Store)
+                 .RenderArea(rttPass->width, rttPass->height)
+                 .ViewMask(getViewMask(rttPass->getSettings().numViews));
 
         colorPass.Begin(cb);
 
@@ -1009,18 +1023,18 @@ namespace worlds
 
         colorPass.End(cb);
         cb.EndDebugLabel();
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_MainPass * 2 + 1);
+        GPU_END(TS_MainPass);
 
         // Post-processing
         static ConVar r_skipBloom{"r_skipBloom", "0", "Skips bloom rendering."};
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_Bloom * 2 + 0);
+        GPU_BEGIN(TS_Bloom);
         if (!r_skipBloom)
             bloom->Execute(cb);
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_Bloom * 2 + 1);
+        GPU_END(TS_Bloom);
 
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_Tonemap * 2 + 0);
+        GPU_BEGIN(TS_Tonemap);
         tonemapper->Execute(cb, r_skipBloom);
-        timestampPool->WriteTimestamp(cb, timestampOffset + TS_Tonemap * 2 + 1);
+        GPU_END(TS_Tonemap);
 
         lightBuffers->UnmapCurrent();
     }

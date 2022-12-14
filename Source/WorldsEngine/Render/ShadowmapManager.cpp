@@ -34,7 +34,9 @@ namespace worlds
             .DepthCompareOp(VK::CompareOp::Greater)
             .DepthAttachmentFormat(VK::TextureFormat::D32_SFLOAT)
             .CullMode(VK::CullMode::Back)
-            .PrimitiveTopology(VK::Topology::TriangleList);
+            .PrimitiveTopology(VK::Topology::TriangleList)
+            .DepthBias(true)
+            .SlopeDepthBias(-1.0f);
 
         pipeline = pb.Build();
 

@@ -216,7 +216,8 @@ namespace worlds
         LoadSingleCubemapTask(VKTextureManager* textureManager, AssetID id)
             : textureManager(textureManager)
             , id(id)
-        {}
+        {
+        }
 
         void ExecuteRange(enki::TaskSetPartition range, uint32_t threadnum) override
         {
@@ -226,7 +227,7 @@ namespace worlds
 
             TasksFinished finisher{};
             finisher.SetDependenciesVec<decltype(finisher.dependencies), enki::ITaskSet>(
-                    finisher.dependencies, { loadTask, addToQueueTask });
+                finisher.dependencies, {loadTask, addToQueueTask});
             g_taskSched.AddTaskSetToPipe(loadTask);
             g_taskSched.WaitforTask(&finisher);
         }
@@ -238,7 +239,7 @@ namespace worlds
         VKTextureManager* textureManager;
 
         LoadCubemapsTask(entt::registry& registry, VKTextureManager* textureManager)
-                : registry(registry), textureManager(textureManager)
+            : registry(registry), textureManager(textureManager)
         {
         }
 
@@ -266,7 +267,7 @@ namespace worlds
 
                         TasksFinished finisher{};
                         finisher.SetDependenciesVec<decltype(finisher.dependencies), enki::ITaskSet>(
-                                finisher.dependencies, {loadTask, addToQueueTask});
+                            finisher.dependencies, {loadTask, addToQueueTask});
 
                         g_taskSched.AddTaskSetToPipe(loadTask);
                         g_taskSched.WaitforTask(&finisher);
@@ -323,41 +324,15 @@ namespace worlds
         timestampPool->Reset(cb, core->GetFrameIndex() * 2, 2);
         timestampPool->WriteTimestamp(cb, core->GetFrameIndex() * 2);
 
-        registry.view<WorldObject>().each([&](WorldObject& wo) {
-            renderMeshManager->loadOrGet(wo.mesh);
-        });
-
-        registry.view<SkinnedWorldObject>().each([&](WorldObject& wo) {
-            renderMeshManager->loadOrGet(wo.mesh);
-        });
-
-        auto& sceneSettings = registry.ctx<SkySettings>();
-        if (!textureManager->isLoaded(sceneSettings.skybox))
+        registry.view<WorldObject>().each([&](WorldObject& wo)
         {
-            LoadSingleCubemapTask lsct{textureManager, sceneSettings.skybox};
-            g_taskSched.AddTaskSetToPipe(&lsct);
-            g_taskSched.WaitforTask(&lsct);
-        }
+            renderMeshManager->loadOrGet(wo.mesh);
+        });
 
-        // Load materials and stuff
-        ObjectMaterialLoadTask<WorldObject> woLoadTask{ this, registry };
-        woLoadTask.m_SetSize = registry.view<WorldObject>().size();
-        ObjectMaterialLoadTask<SkinnedWorldObject> swoLoadTask{ this, registry };
-        swoLoadTask.m_SetSize = registry.view<SkinnedWorldObject>().size();
-        LoadCubemapsTask cubemapsTask{ registry, textureManager };
-        cubemapsTask.m_SetSize = registry.view<WorldCubemap>().size();
-
-        TasksFinished finisher;
-        finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
-                finisher.dependencies, { &woLoadTask, &swoLoadTask, &cubemapsTask });
-
-        if (!RenderMaterialManager::IsInitialized())
-            RenderMaterialManager::Initialize(this);
-
-        g_taskSched.AddTaskSetToPipe(&woLoadTask);
-        g_taskSched.AddTaskSetToPipe(&swoLoadTask);
-        g_taskSched.AddTaskSetToPipe(&cubemapsTask);
-        g_taskSched.WaitforTask(&finisher);
+        registry.view<SkinnedWorldObject>().each([&](WorldObject& wo)
+        {
+            renderMeshManager->loadOrGet(wo.mesh);
+        });
 
         glm::mat4 shadowViewMatrix = interfaces.mainCamera->getViewMatrix();
         for (VKRTTPass* pass : rttPasses)
@@ -374,7 +349,76 @@ namespace worlds
                     shadowViewMatrix = pass->cam->getViewMatrix();
                 }
             }
+
+            if (pass->settings.registryOverride != nullptr)
+            {
+                entt::registry* regOverride = pass->settings.registryOverride;
+                regOverride->view<WorldObject>().each([&](WorldObject& wo)
+                {
+                    renderMeshManager->loadOrGet(wo.mesh);
+                });
+
+                regOverride->view<SkinnedWorldObject>().each([&](WorldObject& wo)
+                {
+                    renderMeshManager->loadOrGet(wo.mesh);
+                });
+
+                // Load materials and stuff
+                ObjectMaterialLoadTask<WorldObject> woLoadTask{this, *regOverride};
+                woLoadTask.m_SetSize = regOverride->view<WorldObject>().size();
+                ObjectMaterialLoadTask<SkinnedWorldObject> swoLoadTask{this, *regOverride};
+                swoLoadTask.m_SetSize = regOverride->view<SkinnedWorldObject>().size();
+                LoadCubemapsTask cubemapsTask{*regOverride, textureManager};
+                cubemapsTask.m_SetSize = regOverride->view<WorldCubemap>().size();
+
+                TasksFinished finisher;
+                finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
+                    finisher.dependencies, {&woLoadTask, &swoLoadTask, &cubemapsTask});
+                g_taskSched.AddTaskSetToPipe(&woLoadTask);
+
+                g_taskSched.AddTaskSetToPipe(&swoLoadTask);
+                g_taskSched.AddTaskSetToPipe(&cubemapsTask);
+                g_taskSched.WaitforTask(&finisher);
+                
+                auto& sceneSettings = regOverride->ctx<SkySettings>();
+                if (!textureManager->isLoaded(sceneSettings.skybox))
+                {
+                    LoadSingleCubemapTask lsct{textureManager, sceneSettings.skybox};
+                    g_taskSched.AddTaskSetToPipe(&lsct);
+                    g_taskSched.WaitforTask(&lsct);
+                }
+            }
         }
+
+        auto& sceneSettings = registry.ctx<SkySettings>();
+        if (!textureManager->isLoaded(sceneSettings.skybox))
+        {
+            LoadSingleCubemapTask lsct{textureManager, sceneSettings.skybox};
+            g_taskSched.AddTaskSetToPipe(&lsct);
+            g_taskSched.WaitforTask(&lsct);
+        }
+
+        if (!RenderMaterialManager::IsInitialized())
+            RenderMaterialManager::Initialize(this);
+
+        // Load materials and stuff
+        ObjectMaterialLoadTask<WorldObject> woLoadTask{this, registry};
+        woLoadTask.m_SetSize = registry.view<WorldObject>().size();
+        ObjectMaterialLoadTask<SkinnedWorldObject> swoLoadTask{this, registry};
+        swoLoadTask.m_SetSize = registry.view<SkinnedWorldObject>().size();
+        LoadCubemapsTask cubemapsTask{registry, textureManager};
+        cubemapsTask.m_SetSize = registry.view<WorldCubemap>().size();
+
+        TasksFinished finisher;
+        finisher.SetDependenciesVec<std::vector<enki::Dependency>, enki::ITaskSet>(
+            finisher.dependencies, {&woLoadTask, &swoLoadTask, &cubemapsTask});
+
+
+        g_taskSched.AddTaskSetToPipe(&woLoadTask);
+        g_taskSched.AddTaskSetToPipe(&swoLoadTask);
+        g_taskSched.AddTaskSetToPipe(&cubemapsTask);
+        g_taskSched.WaitforTask(&finisher);
+
         shadowmapManager->AllocateShadowmaps(registry);
         shadowmapManager->RenderShadowmaps(cb, registry, shadowViewMatrix);
 
@@ -394,12 +438,12 @@ namespace worlds
                 const UnscaledTransform& leftEye = interfaces.vrInterface->getEyeTransform(Eye::LeftEye);
                 const UnscaledTransform& rightEye = interfaces.vrInterface->getEyeTransform(Eye::RightEye);
                 pass->setView(
-                        0, glm::inverse(leftEye.getMatrix()),
-                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::LeftEye));
+                    0, glm::inverse(leftEye.getMatrix()),
+                    interfaces.vrInterface->getEyeProjectionMatrix(Eye::LeftEye));
 
                 pass->setView(
-                        1, glm::inverse(rightEye.getMatrix()),
-                        interfaces.vrInterface->getEyeProjectionMatrix(Eye::RightEye));
+                    1, glm::inverse(rightEye.getMatrix()),
+                    interfaces.vrInterface->getEyeProjectionMatrix(Eye::RightEye));
             }
 
             cb.BeginDebugLabel("RTT Pass", 0.0f, 0.0f, 0.0f);
@@ -538,7 +582,8 @@ namespace worlds
         particleSimulator = new ParticleSimulator(this);
     }
 
-    static ConVar showRenderDebugMenus{ "r_showExtraDebug", "0" };
+    static ConVar showRenderDebugMenus{"r_showExtraDebug", "0"};
+
     void VKRenderer::drawDebugMenus()
     {
         if (!showRenderDebugMenus) return;
