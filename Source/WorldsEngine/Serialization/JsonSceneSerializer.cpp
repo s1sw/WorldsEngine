@@ -77,38 +77,6 @@ namespace worlds
         return arr;
     }
 
-// Entity folders exist solely in the editor
-#ifdef BUILD_EDITOR
-    nlohmann::json getJsonForFolder(const EntityFolder& folder)
-    {
-        nlohmann::json children = nlohmann::json::array();
-        for (const EntityFolder& f : folder.children)
-        {
-            children.push_back(getJsonForFolder(f));
-        }
-
-        return nlohmann::json{
-            {"name", folder.name}, {"entities", entityVectorToJson(folder.entities)}, {"children", children}};
-    }
-
-    EntityFolder folderFromJson(nlohmann::json j)
-    {
-        EntityFolder f{j["name"]};
-
-        for (uint32_t v : j["entities"])
-        {
-            f.entities.push_back((entt::entity)v);
-        }
-
-        for (nlohmann::json& c : j["children"])
-        {
-            f.children.push_back(folderFromJson(c));
-        }
-
-        return f;
-    }
-#endif
-
     void serializeEntityInScene(nlohmann::json& entities, entt::entity ent, entt::registry& reg)
     {
         nlohmann::json entity;
@@ -154,15 +122,6 @@ namespace worlds
                              {"settings",
                               {{"skyboxPath", AssetDB::idToPath(reg.ctx<SkySettings>().skybox)},
                                {"skyboxBoost", reg.ctx<SkySettings>().skyboxBoost}}}};
-
-#ifdef BUILD_EDITOR
-        EntityFolders* entityFolders = reg.try_ctx<EntityFolders>();
-
-        if (entityFolders)
-        {
-            scene["rootEntityFolder"] = getJsonForFolder(entityFolders->rootFolder);
-        }
-#endif
 
         return scene;
     }
@@ -372,18 +331,6 @@ namespace worlds
         }
     }
 
-    void validateFolder(EntityFolder& folder, entt::registry& registry)
-    {
-        folder.entities.erase(std::remove_if(folder.entities.begin(), folder.entities.end(),
-                                             [&registry](entt::entity e) { return !registry.valid(e); }),
-                              folder.entities.end());
-
-        for (EntityFolder& e : folder.children)
-        {
-            validateFolder(e, registry);
-        }
-    }
-
     void deserializeJsonScene(nlohmann::json& j, entt::registry& reg)
     {
         if (!j.contains("entities"))
@@ -397,16 +344,6 @@ namespace worlds
             settings.skybox = AssetDB::pathToId(j["settings"]["skyboxPath"].get<std::string>());
             settings.skyboxBoost = j["settings"].value("skyboxBoost", 1.0f);
             reg.set<SkySettings>(settings);
-
-#ifdef BUILD_EDITOR
-            if (j.contains("rootEntityFolder"))
-            {
-                EntityFolders folders;
-                folders.rootFolder = folderFromJson(j["rootEntityFolder"]);
-                validateFolder(folders.rootFolder, reg);
-                reg.set<EntityFolders>(folders);
-            }
-#endif
         }
     }
 

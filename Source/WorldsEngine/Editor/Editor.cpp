@@ -103,11 +103,6 @@ namespace worlds
 
     static int menuButtonsExtent = 0;
 
-    EntityFolder::EntityFolder(std::string name) : name(name)
-    {
-        randomId = pcg32_random();
-    }
-
     Editor::Editor(entt::registry& reg, EngineInterfaces& interfaces)
         : actionSearch(this, reg), assetSearch(this), currentTool(Tool::Translate), reg(reg),
           currentSelectedEntity(entt::null), lookX(0.0f), lookY(0.0f), cameraSpeed(5.0f), imguiMetricsOpen(false),
@@ -137,9 +132,6 @@ namespace worlds
         titleBarIcon = interfaces.renderer->getUITextureManager()->loadOrGet(
             AssetDB::pathToId("UI/Editor/Images/logo_no_background_small.png"));
 
-        EntityFolders folders;
-
-        reg.set<EntityFolders>(std::move(folders));
         loadOpenWindows();
 
         inputManager.addKeydownHandler(

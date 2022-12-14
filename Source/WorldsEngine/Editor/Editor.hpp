@@ -223,11 +223,6 @@ namespace worlds
         std::vector<entt::entity> entities;
     };
 
-    struct EntityFolders
-    {
-        EntityFolder rootFolder{"Root"};
-    };
-
     class AssetEditorWindow;
 
     enum class GameState : uint8_t

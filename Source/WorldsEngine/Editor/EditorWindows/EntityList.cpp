@@ -10,27 +10,12 @@
 
 namespace worlds
 {
-    void showFolderButtons(entt::entity e, EntityFolder& folder, int counter)
-    {
-        if (ImGui::Button((folder.name + "##" + std::to_string(counter)).c_str()))
-        {
-            folder.entities.push_back(e);
-            ImGui::CloseCurrentPopup();
-        }
-
-        for (EntityFolder& c : folder.children)
-        {
-            showFolderButtons(e, c, counter++);
-        }
-    }
-
     void EntityList::draw(entt::registry& reg)
     {
         static std::string searchText;
         static std::vector<entt::entity> filteredEntities;
         static size_t numNamedEntities;
         static bool showUnnamed = false;
-        static bool folderView = false;
         static entt::entity currentlyRenaming = entt::null;
         static entt::entity popupOpenFor = entt::null;
 
@@ -46,7 +31,8 @@ namespace worlds
                                [](unsigned char c) { return std::tolower(c); });
 
                 filteredEntities.clear();
-                reg.view<NameComponent>().each([&](auto ent, NameComponent& nc) {
+                reg.view<NameComponent>().each([&](auto ent, NameComponent& nc)
+                {
                     std::string name = nc.name;
 
                     std::transform(name.begin(), name.end(), name.begin(),
@@ -63,45 +49,19 @@ namespace worlds
 
             numNamedEntities = currNamedEntCount;
             ImGui::Checkbox("Show Unnamed Entities", &showUnnamed);
-            ImGui::Checkbox("Folder View", &folderView);
 
             if (ImGui::IsWindowHovered() && ImGui::GetIO().MouseClicked[1])
             {
                 ImGui::OpenPopup("AddEntity");
             }
 
-            if (ImGui::BeginPopupContextWindow("AddEntity"))
-            {
-                if (ImGui::Button("Empty"))
-                {
-                    auto emptyEnt = reg.create();
-                    Transform& emptyT = reg.emplace<Transform>(emptyEnt);
-                    reg.emplace<NameComponent>(emptyEnt).name = "Empty";
-                    editor->select(emptyEnt);
-                    Camera& cam = editor->getFirstSceneView()->getCamera();
-                    emptyT.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
-                    ImGui::CloseCurrentPopup();
-                }
-
-                if (ImGui::Button("Light"))
-                {
-                    auto emptyEnt = reg.create();
-                    Transform& emptyT = reg.emplace<Transform>(emptyEnt);
-                    reg.emplace<NameComponent>(emptyEnt).name = "Empty";
-                    editor->select(emptyEnt);
-                    Camera& cam = editor->getFirstSceneView()->getCamera();
-                    emptyT.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
-                    reg.emplace<WorldLight>(emptyEnt);
-                    ImGui::CloseCurrentPopup();
-                }
-                ImGui::EndPopup();
-            }
 
             bool openEntityContextMenu = false;
             bool navDown = false;
             bool navUp = false;
 
-            if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
+            if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::IsWindowFocused(
+                ImGuiFocusedFlags_RootAndChildWindows))
             {
                 navDown = ImGui::IsKeyPressed(SDL_SCANCODE_DOWN);
                 navUp = ImGui::IsKeyPressed(SDL_SCANCODE_UP);
@@ -114,7 +74,8 @@ namespace worlds
 
             bool selectNext = false;
             entt::entity lastEntity = entt::null;
-            std::function<void(entt::entity)> forEachEnt = [&](entt::entity ent) {
+            std::function<void(entt::entity)> forEachEnt = [&](entt::entity ent)
+            {
                 ImGui::PushID((int)ent);
                 auto nc = reg.try_get<NameComponent>(ent);
                 float lineHeight = ImGui::CalcTextSize("w").y;
@@ -136,7 +97,7 @@ namespace worlds
                         ImVec2(0.0f + windowPos.x, cursorPos.y + windowPos.y - ImGui::GetScrollY()),
                         ImVec2(windowWidth + windowPos.x, cursorPos.y + lineHeight + windowPos.y - ImGui::GetScrollY()),
                         ImColor(0, 75, 150));
-                    
+
                     if (navDown)
                     {
                         selectNext = true;
@@ -178,8 +139,8 @@ namespace worlds
 
                 // Parent drag/drop
                 ImGuiDragDropFlags entityDropFlags = 0 | ImGuiDragDropFlags_SourceNoDisableHover |
-                                                     ImGuiDragDropFlags_SourceNoHoldToOpenOthers |
-                                                     ImGuiDragDropFlags_SourceAllowNullID;
+                    ImGuiDragDropFlags_SourceNoHoldToOpenOthers |
+                    ImGuiDragDropFlags_SourceAllowNullID;
 
                 if (ImGui::BeginDragDropSource(entityDropFlags))
                 {
@@ -263,98 +224,65 @@ namespace worlds
 
             static uint32_t renamingFolder = 0u;
 
-            std::function<void(EntityFolder&, EntityFolder*)> doFolderEntry = [&](EntityFolder& folder,
-                                                                                  EntityFolder* parent) {
-                bool thisFolderRenaming = folder.randomId == renamingFolder;
-
-                std::string label;
-                ImGui::PushID(folder.randomId);
-
-                if (thisFolderRenaming)
-                    label = "##" + std::to_string(folder.randomId);
-                else
-                    label = folder.name + "##" + std::to_string(folder.randomId);
-
-                ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_None;
-
-                if (thisFolderRenaming)
-                {
-                    treeNodeFlags |= ImGuiTreeNodeFlags_AllowItemOverlap;
-                }
-
-                glm::vec2 tl = ImGui::GetCursorPos();
-                glm::vec2 br = tl + glm::vec2(ImGui::GetWindowWidth(), ImGui::GetTextLineHeightWithSpacing());
-                tl = tl + (glm::vec2)ImGui::GetWindowPos();
-                br = br + (glm::vec2)ImGui::GetWindowPos();
-
-                if (ImGui::IsMouseHoveringRect(tl, br) && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-                {
-                    renamingFolder = folder.randomId;
-                }
-
-                bool showContents = ImGui::TreeNodeEx(label.c_str(), treeNodeFlags);
-
-                if (thisFolderRenaming)
-                {
-                    ImGui::SameLine();
-                    if (ImGui::InputText("##foldername", &folder.name, ImGuiInputTextFlags_EnterReturnsTrue))
-                    {
-                        renamingFolder = 0u;
-                    }
-                }
-
-                if (showContents)
-                {
-                    if (parent)
-                    {
-                        ImGui::SameLine();
-                        if (ImGui::Button("Remove"))
-                        {
-                            uint32_t id = folder.randomId;
-                            parent->children.erase(std::remove_if(parent->children.begin(), parent->children.end(),
-                                                                  [id](EntityFolder& f) { return f.randomId == id; }));
-                        }
-                    }
-
-                    for (entt::entity ent : folder.entities)
-                    {
-                        forEachEnt(ent);
-                    }
-
-                    for (EntityFolder& child : folder.children)
-                    {
-                        doFolderEntry(child, &folder);
-                    }
-
-                    if (ImGui::Button("Add Folder"))
-                    {
-                        folder.children.emplace_back(EntityFolder{"Untitled Entity Folder"});
-                    }
-                    ImGui::TreePop();
-                }
-                ImGui::PopID();
-            };
-
             if (ImGui::BeginChild("Entities"))
             {
+                if (ImGui::BeginPopupContextWindow("AddEntity"))
+                {
+                    if (ImGui::Button("Empty"))
+                    {
+                        auto emptyEnt = reg.create();
+                        Transform& emptyT = reg.emplace<Transform>(emptyEnt);
+                        reg.emplace<NameComponent>(emptyEnt).name = "Empty";
+                        editor->select(emptyEnt);
+                        Camera& cam = editor->getFirstSceneView()->getCamera();
+                        emptyT.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    if (ImGui::Button("Point Light"))
+                    {
+                        auto emptyEnt = reg.create();
+                        Transform& emptyT = reg.emplace<Transform>(emptyEnt);
+                        reg.emplace<NameComponent>(emptyEnt).name = "Point Light";
+                        editor->select(emptyEnt);
+                        Camera& cam = editor->getFirstSceneView()->getCamera();
+                        emptyT.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+                        auto& light = reg.emplace<WorldLight>(emptyEnt);
+                        light.type = LightType::Point;
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    if (ImGui::Button("Spot Light"))
+                    {
+                        auto emptyEnt = reg.create();
+                        Transform& emptyT = reg.emplace<Transform>(emptyEnt);
+                        reg.emplace<NameComponent>(emptyEnt).name = "Spot Light";
+                        editor->select(emptyEnt);
+                        Camera& cam = editor->getFirstSceneView()->getCamera();
+                        emptyT.position = cam.position + cam.rotation * glm::vec3(0.0f, 0.0f, 1.0f);
+                        emptyT.rotation = cam.rotation;
+                        auto& light = reg.emplace<WorldLight>(emptyEnt);
+                        light.type = LightType::Spot;
+                        light.spotOuterCutoff = glm::radians(50.0f);
+                        light.spotCutoff = glm::radians(20.0f);
+                        light.maxDistance = 5.0f;
+                        light.intensity = 3.0f;
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
+
                 if (searchText.empty())
                 {
-                    if (folderView)
+                    if (showUnnamed)
                     {
-                        EntityFolders& folders = reg.ctx<EntityFolders>();
-                        doFolderEntry(folders.rootFolder, 0);
+                        reg.view<Transform>(entt::exclude_t<ChildComponent>{}).each(
+                            [&](entt::entity ent, const Transform&) { forEachEnt(ent); });
                     }
                     else
                     {
-                        if (showUnnamed)
-                        {
-                            reg.view<Transform>(entt::exclude_t<ChildComponent>{}).each([&](entt::entity ent, const Transform&) { forEachEnt(ent); });
-                        }
-                        else
-                        {
-                            reg.view<NameComponent>(entt::exclude_t<ChildComponent>{})
-                                .each([&](auto ent, NameComponent) { forEachEnt(ent); });
-                        }
+                        reg.view<NameComponent>(entt::exclude_t<ChildComponent>{})
+                           .each([&](auto ent, NameComponent) { forEachEnt(ent); });
                     }
                 }
                 else
@@ -368,7 +296,8 @@ namespace worlds
             bool openFolderPopup = false;
 
             // Using a lambda here for early exit
-            auto entityPopup = [&](entt::entity e) {
+            auto entityPopup = [&](entt::entity e)
+            {
                 if (!reg.valid(e))
                 {
                     ImGui::CloseCurrentPopup();
@@ -387,12 +316,6 @@ namespace worlds
                     currentlyRenaming = e;
                     ImGui::CloseCurrentPopup();
                 }
-
-                if (ImGui::Button("Add to folder"))
-                {
-                    ImGui::CloseCurrentPopup();
-                    openFolderPopup = true;
-                }
             };
 
             if (openEntityContextMenu)
@@ -403,20 +326,6 @@ namespace worlds
             if (ImGui::BeginPopup("Entity Context Menu"))
             {
                 entityPopup(popupOpenFor);
-                ImGui::EndPopup();
-            }
-
-            auto folderPopup = [&](entt::entity e) {
-                EntityFolders& folders = reg.ctx<EntityFolders>();
-                showFolderButtons(e, folders.rootFolder, 0);
-            };
-
-            if (openFolderPopup)
-                ImGui::OpenPopup("Add to folder");
-
-            if (ImGui::BeginPopup("Add to folder"))
-            {
-                folderPopup(popupOpenFor);
                 ImGui::EndPopup();
             }
         }
