@@ -180,5 +180,17 @@
         "outputPath": "gunk.vert.spv",
         "stage": "vert",
         "entryPoint": "VertexShader"
+    },
+    {
+        "path": "hologram.frag.slang",
+        "outputPath": "hologram.frag.spv",
+        "stage": "frag",
+        "entryPoint": "FragmentShader"
+    },
+    {
+        "path": "glass.frag.slang",
+        "outputPath": "glass.frag.spv",
+        "stage": "frag",
+        "entryPoint": "FragmentShader"
     }
 ]
