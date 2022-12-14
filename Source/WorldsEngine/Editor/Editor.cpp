@@ -212,6 +212,11 @@ namespace worlds
             "scene.save",
             [&](Editor* ed, entt::registry& reg)
             {
+                if (isPlaying())
+                {
+                    addNotification("No saving in play mode!!", NotificationType::Error);
+                    return;
+                }
                 if (reg.ctx<SceneInfo>().id != ~0u && !inputManager.shiftHeld())
                 {
                     AssetID sceneId = reg.ctx<SceneInfo>().id;
