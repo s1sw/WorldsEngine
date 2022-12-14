@@ -519,7 +519,7 @@ float4 FragmentShader(VertexOutput input, float2 fragCoord : SV_Position, uint v
         shadeInfo.albedoColor = float3(1.0, 0.0, 1.0);
 
     shadeInfo.normal = normalize(normal);
-    shadeInfo.viewDir = normalize(VPBuffer.viewPos[0].xyz - input.WorldPosition.xyz);
+    shadeInfo.viewDir = normalize(VPBuffer.viewPos[viewIndex].xyz - input.WorldPosition.xyz);
     shadeInfo.ao = 1;
 
     material.LoadPBRInfo(shadeInfo, input.UV);
