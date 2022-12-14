@@ -512,7 +512,10 @@ namespace worlds
 
         if (!headless)
         {
-            viewController = new ViewController(interfaces, {enableVR, window});
+            if (!runAsEditor)
+                viewController = new ViewController(interfaces, {enableVR, window});
+            else
+                viewController = nullptr;
             delete splashWindow;
 
             window->show();
@@ -610,7 +613,8 @@ namespace worlds
         if (vrInterface)
             vrInterface->updateEvents();
 
-        viewController->draw();
+        if (viewController)
+            viewController->draw();
 
         float interpAlpha = 1.0f;
 
