@@ -22,8 +22,12 @@ jobs:
       with:
         submodules: recursive
     - uses: egor-tensin/vs-shell@v2
-    - name: Install Vulkan SDK
-      run: choco install vulkan-sdk --version 1.3.211.0
+    - uses: suisei-cn/actions-download-file@v1.3.0
+      id: downloadfile  # Remember to give an ID if you need the output
+      name: Download the file
+      with:
+        url: "https://sdk.lunarg.com/sdk/download/1.3.211.0/windows/VulkanSDK-1.3.211.0-Installer.exe"
+    - run: VulkanSDK-1.3.211.0-Installer.exe
     - run: refreshenv
     - run: set VULKAN_SDK=C:/VulkanSDK/1.3.211.0
     - name: Configure CMake
