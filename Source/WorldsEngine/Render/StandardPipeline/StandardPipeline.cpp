@@ -737,8 +737,8 @@ namespace worlds
         customShaderTechniques.insert({key, techniqueId});
     }
 
-#define GPU_BEGIN(timestamp) timestampPool->WriteTimestamp(cb, timestampOffset + timestamp * 2 + 0)
-#define GPU_END(timestamp) timestampPool->WriteTimestamp(cb, timestampOffset + timestamp * 2 + 0)
+#define GPU_BEGIN(timestamp) timestampPool->WriteTimestamp(cb, timestampOffset + (timestamp * 2) + 0)
+#define GPU_END(timestamp) timestampPool->WriteTimestamp(cb, timestampOffset + (timestamp * 2) + 1)
 
     void StandardPipeline::draw(entt::registry& reg, R2::VK::CommandBuffer& cb)
     {
