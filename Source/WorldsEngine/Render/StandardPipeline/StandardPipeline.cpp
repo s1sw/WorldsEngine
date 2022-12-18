@@ -667,7 +667,7 @@ namespace worlds
 
                         // Based on https://stackoverflow.com/a/2595226
                         uint32_t key = vertShaderID;
-                        key = fragShaderID + 0x9e3779b9 + (key << 6) + (key >> 2);
+                        key ^= fragShaderID + 0x9e3779b9 + (key << 6) + (key >> 2);
 
                         releaseAssert(customShaderTechniques->contains(key));
                         drawCmd.techniqueIdx = customShaderTechniques->at(key);
@@ -752,6 +752,38 @@ namespace worlds
 
         // Load necessary material techniques
         reg.view<WorldObject>().each([&](WorldObject& wo)
+        {
+            for (int i = 0; i < NUM_SUBMESH_MATS; i++)
+            {
+                if (!wo.presentMaterials[i]) continue;
+                AssetID material = wo.materials[i];
+                if (!RenderMaterialManager::IsMaterialLoaded(material)) continue;
+                const MaterialInfo& info = RenderMaterialManager::GetMaterialInfo(material);
+
+                if (info.fragmentShader != INVALID_ASSET || info.vertexShader != INVALID_ASSET)
+                {
+                    AssetID fragShaderID = info.fragmentShader;
+                    AssetID vertShaderID = info.vertexShader;
+                    AssetID standardFragID = AssetDB::pathToId("Shaders/standard.frag.spv");
+                    AssetID standardVertID = AssetDB::pathToId("Shaders/standard.vert.spv");
+
+                    if (fragShaderID == INVALID_ASSET)
+                        fragShaderID = standardFragID;
+
+                    if (vertShaderID == INVALID_ASSET)
+                        vertShaderID = standardVertID;
+
+                    // Based on https://stackoverflow.com/a/2595226
+                    uint32_t key = vertShaderID;
+                    key ^= fragShaderID + 0x9e3779b9 + (key << 6) + (key >> 2);
+
+                    if (customShaderTechniques.contains(key)) continue;
+                    setupTechnique(fragShaderID, vertShaderID);
+                }
+            }
+        });
+
+        reg.view<SkinnedWorldObject>().each([&](SkinnedWorldObject& wo)
         {
             for (int i = 0; i < NUM_SUBMESH_MATS; i++)
             {
